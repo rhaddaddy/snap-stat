@@ -1,0 +1,30 @@
+HTTP/2 200 
+date: Tue, 27 Oct 2026 20:53:13 GMT
+content-type: image/webp
+content-length: 72936
+server: BunnyCDN-PHX1-1155
+cdn-pullzone: 1535688
+cdn-requestcountrycode: US
+access-control-allow-origin: *
+access-control-allow-headers: Server, x-goog-meta-frames, Content-Length, Content-Type, Range, X-Requested-With, If-Modified-Since, If-None-Match
+access-control-expose-headers: Server, x-goog-meta-frames, Content-Length, Content-Type, Range, X-Requested-With, If-Modified-Since, If-None-Match
+cache-control: public, max-age=86400
+last-modified: Tue, 20 Oct 2026 06:05:01 GMT
+x-bo-version: 1.0.81
+x-bo-server: NY-313
+x-downloadsize: 85948
+x-bo-origindownloadtime: 147
+x-bo-processingtime: 30
+x-bo-compressionratio: 15.14%
+x-bo-processing-error: 302
+cdn-proxyver: 1.71
+cdn-requestpullcode: 200
+cdn-requestpullsuccess: True
+cdn-edgestorageid: 1220, 1155
+cdn-cachedat: 10/26/2026 22:18:56
+cdn-status: 200
+cdn-requesttime: 0
+cdn-requestid: d41bfaa86a205aa974910edc1d7fbaa8
+cdn-cache: HIT
+accept-ranges: bytes
+
