@@ -1073,7 +1073,9 @@ function allCards() {
   arr(S.addedCards).forEach((c) => c && c.key && !(map.get(c.key) || {}).resolved && map.set(c.key, { tags: [], series: "", ability: "", release: "", ...c, added: true }));
   for (const [k, e] of Object.entries(obj(S.cardEdits))) if (map.has(k)) map.set(k, { ...map.get(k), ...e });
   const today = localDate(Date.now());
-  for (const c of map.values()) { c.upcoming = !!(c.release && c.release > today); if (!c.code) c.code = cardCode(c.name); c.unknownName = /^Unknown card \(/.test(c.name); }
+  for (const c of map.values()) {
+    // Not out yet: a future release date, or (once the card data has loaded) Marvel Snap Zone lists it as unreleased or doesn't know it. Cards you own always count as out.
+    c.upcoming = !S.owned[c.key] && !!((c.release && c.release > today) || (!c.added && (c.catUnreleased || (CAT && c.catalog && !c.catId)))); if (!c.code) c.code = cardCode(c.name); c.unknownName = /^Unknown card \(/.test(c.name); }
   const costN = (c) => (c.cost === "?" || c.cost === "" ? 99 : num(c.cost));
   _cardsCache = [...map.values()].sort((a, b) => costN(a) - costN(b) || a.name.localeCompare(b.name));
   _byKey = new Map(_cardsCache.map((c) => [c.key, c])); _byCode = new Map(); _cardsCache.forEach((c) => { if (c.code && !_byCode.has(c.code)) _byCode.set(c.code, c); });
@@ -1585,6 +1587,7 @@ function mergeCatalog(map) {
     }
     const c = map.get(k), up = { art: catArt(d.art), catId: d.id || "" };
     const ser = String(d.source || "").match(/^Series (\d)$/i); if (ser && !c.series) up.series = ser[1];
+    up.catUnreleased = /unreleased/i.test(d.status || "");
     if (code && c.code !== code) { const owner = byCode.get(code); if (!owner || owner === k) up.code = code; }
     if (code && !byCode.has(code)) byCode.set(code, k);
     if (/^Unknown card \(/.test(c.name)) {
@@ -1608,7 +1611,7 @@ function mergeCatalog(map) {
 }
 function cardInUse(k) { return !!(S.owned[k] || S.wishCards[k] || S.favCards[k] || obj(S.cardEdits)[k] || S.decks.some((d) => arr(d.cards).includes(k)) || S.variants.some((v) => v.card === k)); }
 function variantArt(v) { if (!v) return ""; const cv = v.cat && _catVars.get(v.cat); return cv ? cv.art : safeUrl(v.art); }
-function varUpcoming(v, today) { const cv = v.cat && _catVars.get(v.cat); return !!((v.release && v.release > today) || (cv && cv.unreleased && !v.owned)); }
+function varUpcoming(v, today) { if (v.owned) return false; const cv = v.cat && _catVars.get(v.cat); return !!((v.release && v.release > today) || (cv && cv.unreleased) || card(v.card).upcoming); }
 function byArtist(v) { return v.artist && keyOf(v.artist) !== keyOf(v.name) ? " by " + v.artist : ""; }
 function catOrder(v) { const cv = v.cat && _catVars.get(v.cat); return cv ? cv.order : 999; }
 
