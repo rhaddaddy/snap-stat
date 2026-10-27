@@ -1,4 +1,4 @@
-# Temporary (round 3): saves copies of a few public pages so their formats can be checked. Safe to delete.
+# Temporary (round 4): saves copies of a few public pages so their formats can be checked. Safe to delete.
 name: Peek at data sources
 on:
   push:
@@ -18,19 +18,21 @@ jobs:
           mkdir -p debug
           UA="Mozilla/5.0 (compatible; SNAP-Stat-card-updater/1.0)"
           get() { curl -sSL -A "$UA" --max-time 60 -o "debug/$1" -w "$1 %{http_code} %{size_download}\n" "$2" || echo "$1 failed"; }
-          get sf-bundles.html "https://snap.fan/bundles/"
-          get sf-decks.html "https://snap.fan/decks/"
-          get sf-tierlist.html "https://snap.fan/decks/tier-list/"
-          get sf-meta.html "https://snap.fan/meta/"
-          get sf-balance.html "https://snap.fan/cards/balance-history/"
-          get sf-balance2.html "https://snap.fan/balance-history/"
-          get sf-event-ca.html "https://snap.fan/events/ChampionArena_Oct26/"
-          get sf-event-sanctum.html "https://snap.fan/events/LocationWar_Nov26/"
-          get sf-home.html "https://snap.fan/"
-          # Can the app draw this art onto a picture? (needs an Access-Control-Allow-Origin header)
-          curl -sSI -A "$UA" -H "Origin: https://rhaddaddy.github.io" "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/abomination.webp?v=1161" > debug/cors-msz.txt || true
-          curl -sSI -A "$UA" -H "Origin: https://rhaddaddy.github.io" "https://game-assets.snap.fan/card_variant_images/SuperiorIronMan-f87821f522ced6f3b284373f70962170f84a1740995303a73b4f7efc482e9d4e.webp" > debug/cors-sf.txt || true
-          curl -sSI -A "$UA" -H "Origin: https://rhaddaddy.github.io" -H "Referer: https://rhaddaddy.github.io/" "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/abomination.webp?v=1161" > debug/hotlink-msz.txt || true
+          get sf-history.html "https://snap.fan/cards/history/"
+          get sf-spotlights.html "https://snap.fan/cards/spotlights/"
+          get sf-decks-meta.html "https://snap.fan/decks/meta/"
+          get sf-schedule.html "https://snap.fan/news/schedule/"
+          get sf-series-changes.html "https://snap.fan/cards/series-changes/"
+          get sf-card-tier.html "https://snap.fan/cards/tier-list/"
+          get sf-bundles-2.html "https://snap.fan/bundles/page/2/"
+          get msz-getinfo-decks.json "https://marvelsnapzone.com/getinfo/?searchtype=decks"
+          get msz-getinfo-meta.json "https://marvelsnapzone.com/getinfo/?searchtype=decks&decktype=meta"
+          get msp-getdecks.json "https://static2.marvelsnap.pro/snap/do.php?cmd=getdecks"
+          get msp-decks.html "https://marvelsnap.pro/decks/"
+          get msp-meta.html "https://marvelsnap.pro/meta/"
+          get untapped-meta.html "https://snap.untapped.gg/en/meta"
+          get snapvault-decks.html "https://www.snapvault.app/decks"
+          get snapvault-meta.html "https://www.snapvault.app/meta"
           ls -la debug
           for f in debug/*.html; do head -c 600000 "$f" > "$f.tmp" && mv "$f.tmp" "$f"; done
       - name: Save
