@@ -497,7 +497,7 @@ Death|8|12|D|Costs 1 less for each card destroyed this game.`;
 
 const TAGS = { R: "On Reveal", O: "Ongoing", D: "Destroy", X: "Discard", M: "Move", B: "Buff", C: "Disrupt", J: "Gives cards", P: "Energy", S: "Adds cards", L: "Location", H: "Big body" };
 const RARITIES = ["Rare", "Super Rare", "Amazing", "Sensational", "Exquisite", "Ultimate"];
-const VAR_SOURCES = ["General Pool", "Token Shop", "Bundle", "Season Pass", "Spotlight", "Album", "Conquest Shop", "Champion Arena", "Sanctum Showdown", "High Voltage", "Team-Up", "Promo", "Event"];
+const VAR_SOURCES = ["General Pool", "Token Shop", "Bundle", "Season Pass", "Spotlight", "Album", "Promo", "Live Release", "Conquest Shop", "Champion Arena", "Sanctum Showdown", "Deadpool's Diner", "High Voltage", "Team-Up", "Overloaded", "Event"];
 const COS = { cardback: "Card back", avatar: "Avatar", title: "Title", emote: "Emote" };
 const SHOPS = { snap: "Snap Shop", collector: "Collector's Shop", web: "Web Shop" };
 const CURR = { gold: "Gold", tokens: "Collector's Tokens", credits: "Credits", usd: "USD" };
@@ -1659,7 +1659,17 @@ function mszSource(r) {
   if (/location war/i.test(r)) return "Sanctum Showdown";
   return r;
 }
-function normSource(r) { r = String(r || "").trim(); return /^team.?up$/i.test(r) ? "Team-Up" : /^season ?pass$/i.test(r) ? "Season Pass" : /^token shop/i.test(r) ? "Token Shop" : r; }
+function normSource(r) {
+  r = String(r || "").trim();
+  if (/^team.?up$/i.test(r)) return "Team-Up";
+  if (/^season ?pass$/i.test(r)) return "Season Pass";
+  if (/^token( shop)?/i.test(r)) return "Token Shop";
+  if (/^spotlight/i.test(r)) return "Spotlight";
+  if (/bundle/i.test(r)) return "Bundle";
+  if (/^sanctum|location war/i.test(r)) return "Sanctum Showdown";
+  if (/^deadpool'?s diner$/i.test(r)) return "Deadpool's Diner";
+  return r;
+}
 const RARITY_RANK = { common: 1, uncommon: 2, rare: 3, "super rare": 4, epic: 5, legendary: 6, ultra: 7, infinity: 8, amazing: 9, sensational: 10, exquisite: 11, ultimate: 12 };
 const rarityRank = (r) => RARITY_RANK[String(r || "").toLowerCase()] || 0;
 
