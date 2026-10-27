@@ -1,0 +1,52 @@
+// Connects SNAP Stat to your Firebase project: Google/Apple sign-in and the Firestore database.
+// Loads Firebase from Google's CDN. The settings come from firebase-config.js (or the in-app setup screen).
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+import { initializeFirestore, doc, collection, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+function readConfig() {
+  const c = window.FIREBASE_CONFIG;
+  if (c && c.apiKey && !/paste/i.test(c.apiKey)) return c;
+  try { const s = JSON.parse(localStorage.getItem("snapstat.firebaseConfig") || "null"); if (s && s.apiKey) return s; } catch (e) { /* ignore */ }
+  return null;
+}
+
+const cfg = readConfig();
+if (!cfg) {
+  window.snapFirebaseNeedsConfig = true;
+  window.__resolveFirebase(null);
+} else {
+  try {
+    const app = initializeApp(cfg);
+    const auth = getAuth(app);
+    const fs = initializeFirestore(app, { ignoreUndefinedProperties: true });
+    const snap = (s) => ({ id: s.id, exists: s.exists(), data: () => s.data(), metadata: s.metadata });
+    const wrapColl = (ref) => ({
+      path: ref.path,
+      doc: (id) => wrapDoc(id ? doc(ref, id) : doc(ref)),
+      onSnapshot: (next, err) => onSnapshot(ref, (qs) => next({ docs: qs.docs.map(snap), size: qs.size, empty: qs.empty, metadata: qs.metadata }), err),
+    });
+    const wrapDoc = (ref) => ({
+      id: ref.id, path: ref.path,
+      get: () => getDoc(ref).then(snap),
+      set: (d) => setDoc(ref, d),
+      update: (d) => updateDoc(ref, d),
+      delete: () => deleteDoc(ref),
+      onSnapshot: (next, err) => onSnapshot(ref, (s) => next(snap(s)), err),
+      collection: (p) => wrapColl(collection(ref, p)),
+    });
+    window.__resolveFirebase({
+      db: { doc: (p) => wrapDoc(doc(fs, p)), collection: (p) => wrapColl(collection(fs, p)) },
+      onAuth: (fn) => onAuthStateChanged(auth, fn),
+      signIn: (kind) => {
+        const p = kind === "apple" ? new OAuthProvider("apple.com") : new GoogleAuthProvider();
+        if (kind === "apple") { p.addScope("email"); p.addScope("name"); }
+        return signInWithPopup(auth, p);
+      },
+      signOut: () => signOut(auth),
+    });
+  } catch (e) {
+    console.error(e);
+    window.__resolveFirebase(undefined);
+  }
+}
