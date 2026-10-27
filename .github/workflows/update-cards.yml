@@ -1,0 +1,44 @@
+# Refreshes card-data.json (card art, details and every variant) once a day,
+# and right away whenever this file or the script changes.
+name: Update card data
+
+on:
+  schedule:
+    - cron: "23 10 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/update-cards.yml"
+      - "scripts/update-cards.mjs"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-cards
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Download cards and variants
+        run: node scripts/update-cards.mjs
+      - name: Save changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
+          git add card-data.json card-data-sample.json
+          if git diff --cached --quiet; then
+            echo "Nothing new."
+          else
+            git commit -m "Update card data"
+            git pull --rebase
+            git push
+          fi

@@ -228,6 +228,18 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 .ct.own { border-color: color-mix(in srgb, var(--snap-a) 55%, transparent); }
 .ct .tag { position: absolute; top: 34px; right: 6px; font-size: 13px; color: var(--snap-a); text-shadow: 0 1px 2px rgba(0,0,0,.7); }
 .ct .tag.l { left: 6px; right: auto; }
+.ct .cimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.ct.has-img { background: transparent; border-color: transparent; padding: 0; width: 100%; }
+.ct.has-img.miss { border-color: transparent; }
+.ct.has-img .glyph, .ct.has-img .pip, .ct.has-img .nm { display: none; }
+.ct.has-img .sub { position: absolute; left: 4px; right: 4px; bottom: 2px; background: rgba(10,9,24,.8); border-radius: 6px; padding: 1px 5px; }
+.ct.has-img .tag { top: auto; bottom: 20px; z-index: 1; }
+.ct.has-img .tag.l { left: 4px; } .ct.has-img .tag:not(.l) { right: 4px; }
+.banner.has-img .big { display: none; }
+.av .aimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 25%; }
+.vthumb { width: 44px; height: 58px; object-fit: contain; flex: none; }
+.vprev { display: grid; place-items: center; }
+.vprev img { width: min(220px, 60vw); aspect-ratio: 3 / 4; object-fit: contain; }
 .cchip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 4px 8px 4px 4px; font-size: 13px; font-weight: 600; max-width: 100%; min-width: 0; }
 .cchip > span:last-child { overflow: hidden; text-overflow: ellipsis; }
 .cchip .c { width: 20px; height: 20px; border-radius: 50%; background: var(--cost); color: #fff; display: grid; place-items: center; font-family: var(--ui); font-weight: 800; font-size: 12px; flex: none; }
@@ -961,14 +973,16 @@ function avatarHtml(a, name, id, cls = "") {
   if (a && a.kind === "img" && a.url) return `<span class="av ${cls}"><img src="${esc(a.url)}" alt=""></span>`;
   const seed = a && a.ref ? a.ref : id || n;
   const label = (a && a.kind === "seed" ? a.label : a && a.kind === "card" ? card(a.ref).name : a && a.kind === "variant" && variantById(a.ref) ? card(variantById(a.ref).card).name : "") || n;
-  return `<span class="av art ${cls}" style="${artStyle(seed)}">${esc((label[0] || "?").toUpperCase())}</span>`;
+  const img = imgTag(a && a.kind === "seed" ? a.art : a && a.kind === "card" ? card(a.ref).art : a && a.kind === "variant" ? variantArt(variantById(a.ref)) : "", "aimg");
+  return `<span class="av art ${img ? "has-img" : ""} ${cls}" style="${artStyle(seed)}">${esc((label[0] || "?").toUpperCase())}${img}</span>`;
 }
 function bannerHtml(b, name) {
   if (b && b.kind === "img" && b.url) return `<div class="banner"><img src="${esc(b.url)}" alt=""></div>`;
   const v = b && b.kind === "variant" ? (variantById(b.ref) || b.snap) : null;
   const cardName = v ? (v.cardName || card(v.card).name) : b && b.kind === "card" ? card(b.ref).name : "";
   const seed = (b && b.ref) || name || "banner";
-  return `<div class="banner art" style="${artStyle(seed)}"><span class="big">${esc((cardName || name || "?").slice(0, 1).toUpperCase())}</span>${cardName ? `<span class="cap">${esc(cardName)}${v ? " · " + esc(v.name) + (v.artist ? " by " + esc(v.artist) : "") : ""}</span>` : ""}</div>`;
+  const img = imgTag(v ? (variantById(b.ref) ? variantArt(variantById(b.ref)) : v.art) : b && b.kind === "card" ? card(b.ref).art : "", "bimg");
+  return `<div class="banner art ${img ? "has-img" : ""}" style="${artStyle(seed)}">${img}<span class="big">${esc((cardName || name || "?").slice(0, 1).toUpperCase())}</span>${cardName ? `<span class="cap">${esc(cardName)}${v ? " · " + esc(v.name) + (v.artist ? " by " + esc(v.artist) : "") : ""}</span>` : ""}</div>`;
 }
 const ICON = {
   cube: `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 3.5 7.2v9.6L12 21.5l8.5-4.7V7.2zM3.5 7.2 12 12l8.5-4.8M12 12v9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`,
@@ -1043,19 +1057,21 @@ function catalogCards() {
   return out.filter((x) => x.name);
 }
 function allCards() {
-  const sig = `${S.updated}|${saveVer}|${S.addedCards.length}|${Object.keys(S.cardEdits).length}|` + sharedVer + "|" + (S.localSeasons.length + S.localEvents.length) + localDate(Date.now());
+  const sig = `${S.updated}|${saveVer}|${S.addedCards.length}|${Object.keys(S.cardEdits).length}|` + sharedVer + "|" + (S.localSeasons.length + S.localEvents.length) + localDate(Date.now()) + "|" + catVer;
   if (_cardsCache && sig === _cardsSig) return _cardsCache;
   const map = new Map();
   baseCards().forEach((c) => map.set(c.key, c));
   for (const line of CARD_EXTRA.trim().split("\n")) { const [code, name] = line.split("|"); const k = keyOf(name); if (!map.has(k)) map.set(k, { key: k, name, cost: "?", power: "?", tags: [], ability: "", series: "", release: "", code }); }
   for (const c of catalogCards()) { const k = keyOf(c.name); if (!map.has(k)) map.set(k, { key: k, name: c.name, cost: "?", power: "?", tags: [], ability: "", series: "", release: c.release, from: c.from, catalog: true }); }
-  arr(S.addedCards).forEach((c) => c && c.key && map.set(c.key, { tags: [], series: "", ability: "", release: "", ...c, added: true }));
+  mergeCatalog(map);
+  arr(S.addedCards).forEach((c) => c && c.key && !(map.get(c.key) || {}).resolved && map.set(c.key, { tags: [], series: "", ability: "", release: "", ...c, added: true }));
   for (const [k, e] of Object.entries(obj(S.cardEdits))) if (map.has(k)) map.set(k, { ...map.get(k), ...e });
   const today = localDate(Date.now());
   for (const c of map.values()) { c.upcoming = !!(c.release && c.release > today); if (!c.code) c.code = cardCode(c.name); c.unknownName = /^Unknown card \(/.test(c.name); }
   const costN = (c) => (c.cost === "?" || c.cost === "" ? 99 : num(c.cost));
   _cardsCache = [...map.values()].sort((a, b) => costN(a) - costN(b) || a.name.localeCompare(b.name));
   _byKey = new Map(_cardsCache.map((c) => [c.key, c])); _byCode = new Map(); _cardsCache.forEach((c) => { if (c.code && !_byCode.has(c.code)) _byCode.set(c.code, c); });
+  _cardsCache.forEach((c) => { const nk = keyOf(c.name); if (nk && !_byKey.has(nk)) _byKey.set(nk, c); });
   _cardsSig = sig;
   return _cardsCache;
 }
@@ -1080,8 +1096,9 @@ function cardFace(c, opts = {}) {
   const v = opts.variant;
   const seed = v ? v.id + v.name : c.key;
   const style = c.custom ? "" : artStyle(seed);
-  return `<button class="ct art ${c.custom ? "fr-" + clamp(num(c.frame), 0, 5) : ""} ${opts.cls || ""}" style="${style}" data-a="${opts.a || "cardOpen"}" data-k="${esc(c.key)}" ${opts.extra || ""} aria-label="${esc(c.name)}${v ? ", " + esc(v.name) : ""}, cost ${esc(c.cost)}, power ${esc(c.power)}">
-    <span class="pip cost">${esc(c.cost)}</span><span class="pip pow">${esc(c.power)}</span>${opts.badges || ""}<span class="glyph">${esc((c.name[0] || "?").toUpperCase())}</span>
+  const img = c.custom ? "" : imgTag(opts.art || variantArt(v) || c.art, "cimg");
+  return `<button class="ct art ${c.custom ? "fr-" + clamp(num(c.frame), 0, 5) : ""} ${img ? "has-img" : ""} ${opts.cls || ""}" style="${style}" data-a="${opts.a || "cardOpen"}" data-k="${esc(c.key)}" ${opts.extra || ""} aria-label="${esc(c.name)}${v ? ", " + esc(v.name) : ""}, cost ${esc(c.cost)}, power ${esc(c.power)}">
+    ${img}<span class="pip cost">${esc(c.cost)}</span><span class="pip pow">${esc(c.power)}</span>${opts.badges || ""}<span class="glyph">${esc((c.name[0] || "?").toUpperCase())}</span>
     <span class="nm">${esc(c.name)}</span>${v ? `<span class="sub">${esc(v.name)}</span>` : opts.sub ? `<span class="sub">${esc(opts.sub)}</span>` : ""}</button>`;
 }
 
@@ -1246,8 +1263,8 @@ function syncProfile() {
       if (!S.me.share || !S.me.handle.trim()) { if (shared.profiles[store.uid]) await ref.delete(); if (shared.decks[store.uid]) await dref.delete(); return; }
       const ms = realMatches(); const cur = currentSeasonPeriod();
       const fd = S.decks.find((d) => d.id === S.me.featuredDeck);
-      const bannerSnap = S.me.banner && S.me.banner.kind === "variant" && variantById(S.me.banner.ref) ? { ...S.me.banner, snap: { name: variantById(S.me.banner.ref).name, artist: variantById(S.me.banner.ref).artist || "", cardName: card(variantById(S.me.banner.ref).card).name } } : S.me.banner;
-      const avatarSnap = S.me.avatar && S.me.avatar.kind !== "img" ? { kind: "seed", ref: S.me.avatar.ref, label: S.me.avatar.kind === "card" ? card(S.me.avatar.ref).name : variantById(S.me.avatar.ref) ? card(variantById(S.me.avatar.ref).card).name : "" } : S.me.avatar;
+      const bannerSnap = S.me.banner && S.me.banner.kind === "variant" && variantById(S.me.banner.ref) ? { ...S.me.banner, snap: { name: variantById(S.me.banner.ref).name, artist: variantById(S.me.banner.ref).artist || "", cardName: card(variantById(S.me.banner.ref).card).name, art: variantArt(variantById(S.me.banner.ref)) || "" } } : S.me.banner;
+      const avatarSnap = S.me.avatar && S.me.avatar.kind !== "img" ? { kind: "seed", ref: S.me.avatar.ref, label: S.me.avatar.kind === "card" ? card(S.me.avatar.ref).name : variantById(S.me.avatar.ref) ? card(variantById(S.me.avatar.ref).card).name : "", art: (S.me.avatar.kind === "card" ? card(S.me.avatar.ref).art : variantArt(variantById(S.me.avatar.ref))) || "" } : S.me.avatar;
       await ref.set({
         name: S.me.name.trim().slice(0, 40), handle: S.me.handle.trim().slice(0, 40), snapId: String(S.me.snapId || "").slice(0, 40), country: S.me.country || "", visibility: S.me.visibility === "private" ? "private" : "public",
         alliance: S.me.alliance.trim().slice(0, 40), colLevel: num(S.me.colLevel), rank: String(S.me.rank || "").slice(0, 12), peak: String(S.me.peak || "").slice(0, 12),
@@ -1491,6 +1508,121 @@ function sheetHead(title, sub) { return `<div class="sheet-h"><div style="min-wi
 async function copyText(t, done = "Copied") {
   try { await navigator.clipboard.writeText(t); toast(done); }
   catch { openSheet(() => `${sheetHead("Copy this")}<p class="muted small">Your browser blocked automatic copying. Select the text and copy it.</p><textarea id="copybox" class="code" readonly>${esc(t)}</textarea>`); setTimeout(() => { const b = $("#copybox"); if (b) { b.focus(); b.select(); } }, 30); }
+}
+
+/* ============ Card data file: art, card details and every variant ============
+   Standalone version only. card-data.json is refreshed daily in the app's GitHub repository
+   from Marvel Snap Zone (see scripts/update-cards.mjs). The art itself stays on their servers. */
+let CAT = null, catVer = 0, _catVars = new Map(), _catByCard = new Map();
+const CAT_CACHE = "snapstat-carddata-v1";
+const safeUrl = (u) => (typeof u === "string" && (/^https:\/\/[^\s"'<>]+$/i.test(u) || /^http:\/\/(127\.0\.0\.1|localhost)[:/][^\s"'<>]*$/i.test(u)) ? u : "");
+const showArt = () => !!window.SNAPSTAT_STANDALONE;
+function artFail(img) { const p = img.parentNode; if (p) p.classList.remove("has-img"); img.remove(); }
+function imgTag(src, cls) { const u = safeUrl(src); return u && showArt() ? `<img class="${cls}" src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="artFail(this)">` : ""; }
+
+function catUrls() {
+  const o = window.SNAPSTAT_OPTIONS || {}, urls = [];
+  if (o.cardData) urls.push(o.cardData);
+  const m = location.hostname.match(/^([^.]+)\.github\.io$/i), repo = location.pathname.split("/").filter(Boolean)[0];
+  if (m && repo && !/\.html?$/i.test(repo)) urls.push(`https://raw.githubusercontent.com/${m[1]}/${repo}/main/card-data.json`);
+  urls.push("card-data.json");
+  return urls;
+}
+function useCardData(j, fromCache) {
+  if (!j || !Array.isArray(j.cards) || j.cards.length < 50) return false;
+  if (CAT && fromCache) return false;
+  CAT = { updated: String(j.updated || ""), source: String(j.source || ""), cards: j.cards }; catVer++;
+  const el = document.activeElement;
+  if (!(el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) { render(); if (typeof sheetFn !== "undefined" && sheetFn) refreshSheet(); }
+  return true;
+}
+async function loadCardData() {
+  if (!window.SNAPSTAT_STANDALONE) return;
+  try { const c = localStorage.getItem(CAT_CACHE); if (c) useCardData(JSON.parse(c), true); } catch { /* no saved copy */ }
+  for (const u of catUrls()) {
+    try {
+      const r = await fetch(u, { cache: "no-cache" }); if (!r.ok) continue;
+      const text = await r.text(); const j = JSON.parse(text);
+      if (CAT && j.updated && j.updated === CAT.updated) return;
+      if (!useCardData(j, false)) continue;
+      try { localStorage.setItem(CAT_CACHE, text); } catch { /* too big for this browser; it's fetched again next time */ }
+      return;
+    } catch { /* try the next copy */ }
+  }
+}
+function catCollectible(d) { return /^released$/i.test(d.status || "") && !/not available|token|unreleased/i.test(d.source || "") && (!d.type || /character/i.test(d.type)); }
+function catVarName(v) {
+  if (v.name) return String(v.name).slice(0, 80);
+  const m = String(v.desc || "").match(/\bfrom (.+?)(?: by |$)/i);
+  if (m && m[1].length <= 60) return m[1].trim();
+  return v.rarity ? `${v.rarity} variant` : `Variant ${v.order || ""}`.trim();
+}
+/* Called from allCards(): fills in names, costs, power and abilities, adds released cards the app didn't know, and indexes the variants. */
+function mergeCatalog(map) {
+  _catVars = new Map(); _catByCard = new Map();
+  if (!CAT) return;
+  const byCode = new Map(); for (const c of map.values()) if (c.code && !byCode.has(c.code)) byCode.set(c.code, c.key);
+  const unk = new Map(); for (const a of arr(S.addedCards)) if (a && a.key && a.code && /^Unknown card \(/.test(a.name)) unk.set(a.code, a);
+  const claimed = new Set();
+  for (const d of CAT.cards) {
+    if (!d || !d.name || claimed.has(keyOf(d.name))) continue;
+    claimed.add(keyOf(d.name));
+    const code = d.id ? cardCode(d.id) : "";
+    let k = (code && byCode.get(code)) || (map.has(keyOf(d.name)) ? keyOf(d.name) : "");
+    if (k && !map.has(k)) k = "";
+    if (!k && code && unk.has(code)) { const a = unk.get(code); k = a.key; map.set(k, { tags: [], series: "", ability: "", release: "", ...a, added: true, resolved: true }); }
+    if (!k) {
+      if (!catCollectible(d)) continue;
+      k = keyOf(d.name); map.set(k, { key: k, name: d.name, cost: "?", power: "?", tags: [], ability: "", series: "", release: "", code, fromCat: true });
+    }
+    const c = map.get(k), up = { art: safeUrl(d.art), catId: d.id || "" };
+    if (code && c.code !== code) { const owner = byCode.get(code); if (!owner || owner === k) up.code = code; }
+    if (code && !byCode.has(code)) byCode.set(code, k);
+    if (/^Unknown card \(/.test(c.name)) {
+      up.name = d.name;
+      // The game's ID showed this "unknown" card is one the list already had under its name: keep the one with the right ID.
+      const nk = keyOf(d.name); if (nk !== k && map.has(nk) && !cardInUse(nk)) { map.delete(nk); for (const [cd, kk] of byCode) if (kk === nk) byCode.delete(cd); }
+    }
+    if (d.cost !== "" && d.cost !== null && d.cost !== undefined && !isNaN(d.cost)) up.cost = Number(d.cost);
+    if (d.power !== "" && d.power !== null && d.power !== undefined && !isNaN(d.power)) up.power = Number(d.power);
+    if (d.ability) up.ability = String(d.ability);
+    map.set(k, { ...c, ...up });
+    const vs = [];
+    arr(d.variants).forEach((v, i) => {
+      const art = safeUrl(v && v.art); if (!art) return;
+      const id = `${d.id || k}:${v.id || i + 1}`;
+      const cv = { cat: id, card: k, art, name: catVarName(v), artist: String(v.artist || "").slice(0, 80), rarity: String(v.rarity || "").slice(0, 40), release: /^\d{4}-\d{2}-\d{2}$/.test(v.release || "") ? v.release : "", order: num(v.order) || i + 1 };
+      if (!_catVars.has(id)) { _catVars.set(id, cv); vs.push(cv); }
+    });
+    _catByCard.set(k, vs);
+  }
+}
+function cardInUse(k) { return !!(S.owned[k] || S.wishCards[k] || S.favCards[k] || obj(S.cardEdits)[k] || S.decks.some((d) => arr(d.cards).includes(k)) || S.variants.some((v) => v.card === k)); }
+function variantArt(v) { if (!v) return ""; const cv = v.cat && _catVars.get(v.cat); return cv ? cv.art : safeUrl(v.art); }
+function catOrder(v) { const cv = v.cat && _catVars.get(v.cat); return cv ? cv.order : 999; }
+
+/* Your variants plus every variant in the card data you haven't touched yet ("virtual" until you tick or save one). */
+let _avSig = "", _avCache = [];
+function allVariants() {
+  allCards();
+  const sig = `${saveVer}|${catVer}|${S.variants.length}|${S.updated}`;
+  if (sig === _avSig) return _avCache;
+  const out = [], seen = new Set();
+  for (const v of S.variants) { if (v.cat) seen.add(v.cat); out.push(v); }
+  for (const cv of _catVars.values()) if (!seen.has(cv.cat)) out.push({ id: "cat:" + cv.cat, cat: cv.cat, card: cv.card, name: cv.name, artist: cv.artist, rarity: cv.rarity, source: "", release: cv.release, owned: false, wish: false, favorite: false, virtual: true });
+  _avSig = sig; _avCache = out; return out;
+}
+function variantAny(id) {
+  id = String(id || "");
+  if (!id.startsWith("cat:")) return variantById(id);
+  const cat = id.slice(4);
+  return S.variants.find((v) => v.cat === cat) || allVariants().find((v) => v.id === id) || null;
+}
+function materializeVar(id) {
+  const v = variantAny(id); if (!v) return null;
+  if (!v.virtual) return v;
+  const real = { id: uid(), cat: v.cat, card: v.card, name: v.name, artist: v.artist, rarity: v.rarity, source: "", release: v.release || "", owned: false, wish: false, favorite: false };
+  S.variants.push(real); return real;
 }
 /* ============ Shared view bits ============ */
 function periodChips() { return `<div class="chips" role="group" aria-label="Time period">${periods().map((p) => `<button class="chip" data-a="period" data-v="${esc(p.id)}" aria-pressed="${ui.period === p.id}">${esc(p.label)}</button>`).join("")}</div>`; }
@@ -1796,7 +1928,7 @@ function vCardGrid() {
 }
 function cardSheet(k) {
   return () => {
-    const c = card(k); const vs = S.variants.filter((v) => v.card === k);
+    const c = card(k); const vs = allVariants().filter((v) => v.card === k).sort((a, b) => (b.owned ? 1 : 0) - (a.owned ? 1 : 0) || catOrder(a) - catOrder(b));
     const inDecks = S.decks.filter((d) => d.cards.includes(k));
     const a = cardAnalytics(allMatches()).find((r) => r.k === k);
     return `${sheetHead(esc(c.name), [c.tags.map((t) => TAGS[t] || t).join(" · "), c.from ? "From " + esc(c.from) : "", c.upcoming ? "Releases " + esc(dateStr(c.release)) : ""].filter(Boolean).join(" · "))}
@@ -1813,48 +1945,62 @@ function cardSheet(k) {
     <div class="row"><button class="btn sm" data-a="cardSaveEdit" data-k="${esc(k)}">Save card details</button>${S.cardEdits[k] ? `<button class="btn sm ghost" data-a="cardResetEdit" data-k="${esc(k)}">Reset to starter details</button>` : ""}${c.added ? `<button class="btn sm danger" data-a="cardDelete" data-k="${esc(k)}">Remove card</button>` : ""}</div>
     ${inDecks.length ? `<p class="small muted">In ${inDecks.length} deck${inDecks.length > 1 ? "s" : ""}: ${inDecks.map((d) => esc(d.name)).join(", ")}</p>` : ""}
     <div class="sec-h"><h3>Variants</h3><button class="btn sm" data-a="varNew" data-k="${esc(k)}">${ICON.plus} Add variant</button></div>
-    ${vs.length ? `<div class="list">${vs.map(variantRow).join("")}</div>` : `<p class="muted small">No variants tracked for this card yet.</p>`}`;
+    ${vs.length ? `<p class="muted small num">${vs.filter((v) => v.owned).length} of ${vs.length} owned</p><div class="list">${vs.map(variantRow).join("")}</div>` : `<p class="muted small">No variants tracked for this card yet.</p>`}`;
   };
 }
 function variantRow(v) {
-  return `<div class="li"><button class="grow" data-a="varOpen" data-id="${esc(v.id)}" style="background:none;border:0;text-align:left;padding:0;min-width:0"><div class="t">${v.favorite ? "★ " : ""}${esc(card(v.card).name)} · ${esc(v.name)}</div><div class="s">${[v.artist && "by " + v.artist, v.rarity, v.source, v.release && (v.release > localDate(Date.now()) ? "coming " : "") + dateStr(v.release)].filter(Boolean).map(esc).join(" · ") || (v.owned ? "Owned" : "Missing")}</div></button>
+  return `<div class="li">${imgTag(variantArt(v), "vthumb")}<button class="grow" data-a="varOpen" data-id="${esc(v.id)}" style="background:none;border:0;text-align:left;padding:0;min-width:0"><div class="t">${v.favorite ? "★ " : ""}${esc(card(v.card).name)} · ${esc(v.name)}</div><div class="s">${[v.artist && "by " + v.artist, v.rarity, v.source, v.release && (v.release > localDate(Date.now()) ? "coming " : "") + dateStr(v.release)].filter(Boolean).map(esc).join(" · ") || (v.owned ? "Owned" : "Missing")}</div></button>
     <label class="check small"><input type="checkbox" data-varchk="owned" data-id="${esc(v.id)}" ${v.owned ? "checked" : ""}> Own</label>
     <label class="check small"><input type="checkbox" data-varchk="wish" data-id="${esc(v.id)}" ${v.wish ? "checked" : ""}> Want</label></div>`;
 }
 function vVariants() {
+  const _cc = new Map(), cc = (k) => { let c = _cc.get(k); if (!c) { c = card(k); _cc.set(k, c); } return c; };
   const today = localDate(Date.now());
   const q = ui.varQ.toLowerCase(), qk = keyOf(ui.varQ);
-  const rarities = [...new Set(S.variants.map((v) => v.rarity).filter(Boolean))].sort();
-  const artists = [...new Set(S.variants.map((v) => v.artist).filter(Boolean))].sort();
-  let list = S.variants.filter((v) => {
-    const c = card(v.card);
+  const all = allVariants();
+  const rarities = [...new Set(all.map((v) => v.rarity).filter(Boolean))].sort();
+  const artists = [...new Set(all.map((v) => v.artist).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  let list = all.filter((v) => {
+    const c = cc(v.card);
     const hit = !q || [v.name, v.artist, v.rarity, v.source, c.name].some((s) => keyOf(s).includes(qk)) || String(c.ability || "").toLowerCase().includes(q);
     const up = v.release && v.release > today;
     const st = ui.varFilter === "all" || (ui.varFilter === "owned" && v.owned) || (ui.varFilter === "missing" && !v.owned && !up) || (ui.varFilter === "wish" && v.wish) || (ui.varFilter === "fav" && v.favorite) || (ui.varFilter === "upcoming" && up);
     return hit && st && (!ui.varRarity || v.rarity === ui.varRarity) && (!ui.varArtist || v.artist === ui.varArtist) && (!ui.varCost || ui.varCost === "any" || (ui.varCost === "6" ? num(c.cost) >= 6 : String(c.cost) === ui.varCost));
   });
-  const cn = (v) => card(v.card).name;
-  const sorters = { card: (a, b) => cn(a).localeCompare(cn(b)) || a.name.localeCompare(b.name), artist: (a, b) => String(a.artist || "~").localeCompare(String(b.artist || "~")) || cn(a).localeCompare(cn(b)), rarity: (a, b) => RARITIES.indexOf(b.rarity) - RARITIES.indexOf(a.rarity) || cn(a).localeCompare(cn(b)),
-    newest: (a, b) => String(b.release || "").localeCompare(String(a.release || "")), oldest: (a, b) => String(a.release || "9").localeCompare(String(b.release || "9")), cost: (a, b) => num(card(a.card).cost) - num(card(b.card).cost) || cn(a).localeCompare(cn(b)), power: (a, b) => num(card(b.card).power) - num(card(a.card).power), owned: (a, b) => (b.owned ? 1 : 0) - (a.owned ? 1 : 0) || cn(a).localeCompare(cn(b)) };
+  const cn = (v) => cc(v.card).name;
+  const sorters = { card: (a, b) => cn(a).localeCompare(cn(b)) || catOrder(a) - catOrder(b) || a.name.localeCompare(b.name), artist: (a, b) => String(a.artist || "~").localeCompare(String(b.artist || "~")) || cn(a).localeCompare(cn(b)), rarity: (a, b) => RARITIES.indexOf(b.rarity) - RARITIES.indexOf(a.rarity) || cn(a).localeCompare(cn(b)),
+    newest: (a, b) => String(b.release || "").localeCompare(String(a.release || "")), oldest: (a, b) => String(a.release || "9").localeCompare(String(b.release || "9")), cost: (a, b) => num(cc(a.card).cost) - num(cc(b.card).cost) || cn(a).localeCompare(cn(b)), power: (a, b) => num(cc(b.card).power) - num(cc(a.card).power), owned: (a, b) => (b.owned ? 1 : 0) - (a.owned ? 1 : 0) || cn(a).localeCompare(cn(b)) };
   list = list.sort(sorters[ui.varSort] || sorters.card);
   const f = (v, l) => `<button class="chip" data-a="varFilter" data-v="${v}" aria-pressed="${ui.varFilter === v}">${l}</button>`;
-  const own = S.variants.filter((v) => v.owned).length;
-  return `<section class="sec"><div class="sec-h"><h2>Variants</h2><span class="muted small num">${own} owned · ${S.variants.length - own} missing</span></div>
+  const own = all.filter((v) => v.owned).length, lim = ui.varLimit || 200;
+  return `<section class="sec"><div class="sec-h"><h2>Variants</h2><span class="muted small num">${own} owned · ${all.length - own} missing</span></div>
     <input type="search" id="var-q" data-ui="varQ" value="${esc(ui.varQ)}" placeholder="Search card, variant, artist, rarity, ability" aria-label="Search variants">
     <div class="chips">${f("all", "All")}${f("owned", "Owned")}${f("missing", "Missing")}${f("wish", "Wishlist")}${f("fav", "Favorites")}${f("upcoming", "Coming soon")}</div>
     <div class="chips">${["any", "0", "1", "2", "3", "4", "5", "6"].map((v) => `<button class="chip" data-a="varCost" data-v="${v}" aria-pressed="${(ui.varCost || "any") === v}">${v === "any" ? "Any cost" : v === "6" ? "6+" : v}</button>`).join("")}</div>
     <div class="grid3"><label class="f">Rarity<select id="var-rar" data-uisel="varRarity"><option value="">Any</option>${rarities.map((r) => `<option ${ui.varRarity === r ? "selected" : ""}>${esc(r)}</option>`).join("")}</select></label>
       <label class="f">Artist<select id="var-art" data-uisel="varArtist"><option value="">Any</option>${artists.map((r) => `<option ${ui.varArtist === r ? "selected" : ""}>${esc(r)}</option>`).join("")}</select></label>
       <label class="f">Sort<select id="var-sort" data-uisel="varSort">${[["card", "Card A–Z"], ["artist", "Artist"], ["rarity", "Rarity"], ["newest", "Newest"], ["oldest", "Oldest"], ["cost", "Cost"], ["power", "Power"], ["owned", "Owned first"]].map(([v, l]) => `<option value="${v}" ${ui.varSort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
-    <div class="row between"><span class="muted small">${list.length} variant${list.length === 1 ? "" : "s"}</span><button class="btn sm snap" data-a="varNew" data-k="">${ICON.plus} Add variant</button></div>
-    ${list.length ? `<div class="cgrid">${list.slice(0, 400).map((v) => cardFace(card(v.card), { a: "varOpen", extra: `data-id="${esc(v.id)}"`, variant: v, cls: v.owned ? "own" : v.release && v.release > today ? "" : "miss", badges: `${v.favorite ? `<span class="tag l" aria-hidden="true">♥</span>` : ""}${v.wish ? `<span class="tag" aria-hidden="true">★</span>` : ""}` })).join("")}</div>`
-      : `<div class="empty"><strong>No variants here yet</strong><span>Add the variants you own and the ones you're hunting for, with artist and rarity so you can sort and filter them.</span></div>`}</section>`;
+    <div class="row between"><label class="check"><input type="checkbox" data-uichk="varQuick" ${ui.varQuick ? "checked" : ""}> Quick mark: tap to switch owned / missing</label><button class="btn sm snap" data-a="varNew" data-k="">${ICON.plus} Add variant</button></div>
+    <div class="row between"><span class="muted small">${list.length} variant${list.length === 1 ? "" : "s"}</span>${CAT ? `<span class="muted small">Art and variant list from Marvel Snap Zone${CAT.updated ? ", updated " + esc(dateStr(CAT.updated.slice(0, 10))) : ""}</span>` : ""}</div>
+    ${list.length ? `<div class="cgrid">${list.slice(0, lim).map((v) => cardFace(cc(v.card), { a: ui.varQuick ? "varTick" : "varOpen", extra: `data-id="${esc(v.id)}"`, variant: v, cls: v.owned ? "own" : v.release && v.release > today ? "" : "miss", badges: `${v.favorite ? `<span class="tag l" aria-hidden="true">♥</span>` : ""}${v.wish ? `<span class="tag" aria-hidden="true">★</span>` : ""}` })).join("")}</div>`
+      : `<div class="empty"><strong>No variants here yet</strong><span>${showArt() && !CAT ? "The full variant list loads once the card data file is in your app's GitHub repository. " : ""}Add the variants you own and the ones you're hunting for, with artist and rarity so you can sort and filter them.</span></div>`}
+    ${list.length > lim ? `<div class="row" style="justify-content:center"><button class="btn" data-a="varMore">Show more (${list.length - lim} left)</button></div>` : ""}</section>`;
 }
 let ve = null;
+function veUpsert() {
+  if (!String(ve.name || "").trim()) { toast("Name the variant"); return false; }
+  if (ve.cat) { const ex = S.variants.find((v) => v.cat === ve.cat && v.id !== ve.id); if (ex) ve.id = ex.id; }
+  const body = { id: ve.id, card: ve.card, name: ve.name.trim(), artist: String(ve.artist || "").trim(), rarity: String(ve.rarity || "").trim(), source: String(ve.source || "").trim(), release: ve.release || "", owned: !!ve.owned, wish: !!ve.wish, favorite: !!ve.favorite, ...(ve.cat ? { cat: ve.cat } : {}) };
+  if (body.favorite) S.variants.forEach((v) => { if (v.card === body.card && v.id !== body.id) v.favorite = false; });
+  const i = S.variants.findIndex((v) => v.id === body.id); if (i >= 0) S.variants[i] = body; else S.variants.push(body);
+  save(); return true;
+}
 function variantSheet() {
   const today = localDate(Date.now());
-  return `${sheetHead(ve.isNew ? "Add variant" : "Variant", ve.isNew ? "" : esc(card(ve.card).name))}
-    <label class="f">Card<select id="ve-card" data-ve="card">${allCards().map((c) => `<option value="${esc(c.key)}" ${ve.card === c.key ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></label>
+  const adding = ve.isNew && !ve.fromCat, art = variantArt(ve);
+  return `${sheetHead(adding ? "Add variant" : "Variant", adding ? "" : esc(card(ve.card).name))}
+    ${art ? `<div class="vprev">${imgTag(art, "vpimg")}</div>` : ""}
+    <label class="f">Card<select id="ve-card" data-ve="card" ${ve.cat ? "disabled" : ""}>${allCards().map((c) => `<option value="${esc(c.key)}" ${ve.card === c.key ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></label>
     <div class="grid2"><label class="f">Variant name<input type="text" id="ve-name" data-ve="name" value="${esc(ve.name)}" placeholder="Style or set" data-autofocus></label><label class="f">Artist<input type="text" id="ve-artist" data-ve="artist" value="${esc(ve.artist)}" list="ve-artists"></label></div>
     <datalist id="ve-artists">${[...new Set(S.variants.map((v) => v.artist).filter(Boolean))].map((a) => `<option value="${esc(a)}">`).join("")}</datalist>
     <div class="grid2"><label class="f">Rarity<input type="text" id="ve-rar" data-ve="rarity" value="${esc(ve.rarity)}" list="ve-rars"></label><label class="f">Season or source<input type="text" id="ve-src" data-ve="source" value="${esc(ve.source)}"></label></div>
@@ -1862,7 +2008,8 @@ function variantSheet() {
     <label class="f">Release date${ve.release && ve.release > today ? " (coming soon)" : ""}<input type="date" id="ve-rel" data-ve="release" value="${esc(ve.release)}"></label>
     <div class="row"><label class="check"><input type="checkbox" data-vechk="owned" ${ve.owned ? "checked" : ""}> I own it</label><label class="check"><input type="checkbox" data-vechk="wish" ${ve.wish ? "checked" : ""}> Wishlist</label><label class="check"><input type="checkbox" data-vechk="favorite" ${ve.favorite ? "checked" : ""}> Favorite for this card</label></div>
     <p class="muted small">Your favorite variant shows on your decks, in deck codes you copy, and when you share a deck.</p>
-    <div class="row"><button class="btn snap" data-a="veSave">${ve.isNew ? "Add variant" : "Save"}</button>${ve.isNew ? "" : `<button class="btn" data-a="veBanner">Use as profile banner</button><button class="btn danger" data-a="veDelete">${ve.confirmDel ? "Tap again to delete" : "Delete"}</button>`}</div>`;
+    <div class="row"><button class="btn snap" data-a="veSave">${adding ? "Add variant" : "Save"}</button>${adding ? "" : `<button class="btn" data-a="veBanner">Use as profile banner</button>`}${ve.isNew ? "" : `<button class="btn danger" data-a="veDelete">${ve.confirmDel ? "Tap again to " + (ve.cat ? "reset" : "delete") : ve.cat ? "Reset" : "Delete"}</button>`}</div>
+    ${ve.cat && !ve.isNew ? `<p class="muted small">Reset clears your changes and marks it as not owned. It stays in the variant list.</p>` : ""}`;
 }
 function vCosmetics() {
   const kind = ui.cosKind || "cardback"; const list = S.cosmetics.filter((c) => c.kind === kind);
@@ -2146,7 +2293,7 @@ function postHtml(p) {
       ${arr(m.oppCards).length ? `<div class="small muted">They played: ${esc(m.oppCards.slice(0, 12).join(", "))}</div>` : ""}</div>`;
   } else if (p.type === "deck" && pa.deck) att = `<div class="att">${sharedDeckHtml(pa.deck, p.author, p.id)}</div>`;
   else if (p.type === "stats" && pa.stats) { const s = pa.stats; att = `<div class="att"><div class="eyebrow">${esc(s.label)}</div><div class="tiles"><div class="tile"><div class="k">Win rate</div><div class="v">${num(s.wr)}%</div></div><div class="tile"><div class="k">Record</div><div class="v">${num(s.w)}-${num(s.l)}</div></div><div class="tile"><div class="k">Net cubes</div><div class="v ${num(s.cubes) >= 0 ? "pos" : "neg"}">${signed(num(s.cubes))}</div></div></div>${s.rank ? `<span class="small muted">Rank ${esc(s.rank)}</span>` : ""}</div>`; }
-  else if (p.type === "variant" && pa.variant) att = `<div class="att"><div class="row nowrap"><div style="width:96px;flex:none">${cardFace({ key: keyOf(pa.variant.card), name: String(pa.variant.card), cost: cardByName(pa.variant.card)?.cost ?? "?", power: cardByName(pa.variant.card)?.power ?? "?", tags: [] }, { a: "noop", cls: "own", variant: { id: pa.variant.name, name: String(pa.variant.name) } })}</div><div class="stack small"><b>${esc(pa.variant.card)}</b><span>${esc(pa.variant.name)}</span>${pa.variant.artist ? `<span class="muted">by ${esc(pa.variant.artist)}</span>` : ""}${pa.variant.rarity ? `<span class="muted">${esc(pa.variant.rarity)}</span>` : ""}</div></div></div>`;
+  else if (p.type === "variant" && pa.variant) att = `<div class="att"><div class="row nowrap"><div style="width:96px;flex:none">${cardFace({ key: keyOf(pa.variant.card), name: String(pa.variant.card), cost: cardByName(pa.variant.card)?.cost ?? "?", power: cardByName(pa.variant.card)?.power ?? "?", tags: [] }, { a: "noop", cls: "own", variant: { id: pa.variant.name, name: String(pa.variant.name) }, art: safeUrl(pa.variant.art) || (cardByName(pa.variant.card) || {}).art })}</div><div class="stack small"><b>${esc(pa.variant.card)}</b><span>${esc(pa.variant.name)}</span>${pa.variant.artist ? `<span class="muted">by ${esc(pa.variant.artist)}</span>` : ""}${pa.variant.rarity ? `<span class="muted">${esc(pa.variant.rarity)}</span>` : ""}</div></div></div>`;
   else if (p.type === "custom" && pa.custom) att = `<div class="att" style="align-items:flex-start">${customCardHtml(pa.custom)}</div>`;
   const open = ui.openComments[r.k];
   return `<article class="post"><div class="post-h"><button data-a="profileOpen" data-id="${esc(p.author)}" style="background:none;border:0;padding:0">${avatarHtml(pr.avatar, handleOf(p.author), p.author)}</button><div class="who"><b>${esc(handleOf(p.author))}</b><span class="muted small">${pr.country ? flag(pr.country) + " " : ""}${pr.alliance ? esc(pr.alliance) + " · " : ""}${esc(ago(num(p.ts)))}</span></div>${POST_LABEL[p.type] ? `<span class="pill dim">${POST_LABEL[p.type]}</span>` : ""}</div>
@@ -2267,7 +2414,7 @@ function vAbout() {
   <section class="sec"><h2>Disclaimer</h2><div class="panel stack">
     <p>SNAP Stat is an unofficial fan-made app. It is not affiliated with, endorsed, sponsored or approved by Marvel or Second Dinner.</p>
     <p>MARVEL SNAP and all related names, characters, cards and images are trademarks and copyrights of their respective owners and are used here only to identify them.</p>
-    <p class="muted small">SNAP Stat doesn't use official card art or logos. Card tiles, avatars and banners are drawn by the app or uploaded by players.</p>
+    ${showArt() ? `<p class="muted small">Card art, variant art, card details and the variant list are loaded from Marvel Snap Zone (marvelsnapzone.com), a fan site. The art belongs to Marvel and Second Dinner. SNAP Stat doesn't store or host it, and shows a styled tile when it can't load.</p>` : `<p class="muted small">SNAP Stat doesn't use official card art or logos. Card tiles, avatars and banners are drawn by the app or uploaded by players.</p>`}
     <p class="muted small">Card, season and event details are entered by players or gathered from public community sources, and may be incomplete or out of date.</p></div></section>`;
 }
 function backBar(t) { return `<div class="row"><button class="btn sm ghost" data-a="go" data-to="more">‹ More</button></div><h1>${t}</h1>`; }
@@ -2433,7 +2580,7 @@ function vAccount() {
     <div class="panel stack"><h3>Profile picture & banner</h3>
       <div class="row"><button class="btn sm" data-a="pickAvatar">Profile card</button>${ownedVars.length ? `<select id="av-var" data-avsel="avatar" aria-label="Profile picture from a variant" style="width:auto"><option value="">From a variant…</option>${ownedVars.map((v) => `<option value="${esc(v.id)}">${esc(card(v.card).name)} · ${esc(v.name)}</option>`).join("")}</select>` : ""}${store.assets ? `<label class="btn sm">Upload picture<input type="file" accept="image/*" data-upload="avatar" hidden></label>` : ""}</div>
       <div class="row">${S.variants.length ? `<select id="bn-var" data-avsel="banner" aria-label="Banner from a variant" style="width:auto;max-width:100%"><option value="">Banner from a variant…</option>${S.variants.map((v) => `<option value="${esc(v.id)}" ${S.me.banner && S.me.banner.ref === v.id ? "selected" : ""}>${esc(card(v.card).name)} · ${esc(v.name)}${v.artist ? " (" + esc(v.artist) + ")" : ""}</option>`).join("")}</select>` : `<span class="muted small">Add variants in Collection to use one as your banner.</span>`}${store.assets ? `<label class="btn sm">Upload banner<input type="file" accept="image/*" data-upload="banner" hidden></label>` : ""}</div>
-      <p class="muted small">Official card art can't be shown here, so cards and variants get a styled tile. Upload your own picture if you'd rather.</p></div>
+      <p class="muted small">${showArt() ? "Picking a variant uses its art." : "Official card art can't be shown here, so cards and variants get a styled tile. Upload your own picture if you'd rather."}</p></div>
     <div class="panel stack">
       <div class="grid2"><label class="f">Your name<input type="text" id="me-name" data-bind="me.name" value="${esc(S.me.name)}" maxlength="40"></label><label class="f">In-game name<input type="text" id="me-handle" data-bind="me.handle" value="${esc(S.me.handle)}" maxlength="40"></label></div>
       <div class="grid2"><label class="f">Marvel Snap user ID<input type="text" id="me-snapid" data-bind="me.snapId" value="${esc(S.me.snapId)}" maxlength="40"></label><label class="f">Country<select id="me-country" data-bind="me.country">${countryOptions(S.me.country)}</select></label></div>
@@ -2737,16 +2884,20 @@ const A = {
   cardResetEdit: (el) => { delete S.cardEdits[el.dataset.k]; save(); refreshSheet(); render(); },
   cardDelete: (el) => { const k = el.dataset.k; S.addedCards = S.addedCards.filter((c) => c.key !== k); delete S.owned[k]; delete S.wishCards[k]; save(); closeSheet(); render(); },
   varNew: (el) => { ve = { isNew: true, id: uid(), card: el.dataset.k || allCards()[0].key, name: "", artist: "", rarity: "", source: "", release: "", owned: false, wish: false, favorite: false }; openSheet(variantSheet); },
-  varOpen: (el) => { const v = variantById(el.dataset.id); if (!v) return; ve = { artist: "", rarity: "", source: "", release: "", ...clone(v) }; openSheet(variantSheet); },
-  veSave: () => {
-    if (!ve.name.trim()) { toast("Name the variant"); return; }
-    const body = { id: ve.id, card: ve.card, name: ve.name.trim(), artist: ve.artist.trim(), rarity: ve.rarity.trim(), source: ve.source.trim(), release: ve.release, owned: !!ve.owned, wish: !!ve.wish, favorite: !!ve.favorite };
-    if (body.favorite) S.variants.forEach((v) => { if (v.card === body.card) v.favorite = false; });
-    const i = S.variants.findIndex((v) => v.id === ve.id); if (i >= 0) S.variants[i] = body; else S.variants.push(body);
-    save(); closeSheet(); render(); toast(ve.isNew ? "Variant added" : "Saved");
+  varOpen: (el) => {
+    const v = variantAny(el.dataset.id); if (!v) return;
+    if (v.virtual) { ve = { ...clone(v), id: uid(), isNew: true, fromCat: true }; delete ve.virtual; }
+    else ve = { artist: "", rarity: "", source: "", release: "", ...clone(v) };
+    openSheet(variantSheet);
   },
-  veDelete: () => { if (!ve.confirmDel) { ve.confirmDel = true; refreshSheet(); return; } S.variants = S.variants.filter((v) => v.id !== ve.id); S.decks.forEach((d) => { for (const k of Object.keys(obj(d.variants))) if (d.variants[k] === ve.id) delete d.variants[k]; }); save(); closeSheet(); render(); },
-  veBanner: () => { S.me.banner = { kind: "variant", ref: ve.id }; save(); closeSheet(); render(); toast("Banner updated"); },
+  varTick: (el) => { const v = materializeVar(el.dataset.id); if (!v) return; v.owned = !v.owned; save(); render(); },
+  varMore: () => { ui.varLimit = (ui.varLimit || 200) + 200; render(); },
+  veSave: () => {
+    if (!veUpsert()) return;
+    closeSheet(); render(); toast(ve.isNew && !ve.fromCat ? "Variant added" : "Saved");
+  },
+  veDelete: () => { if (!ve.confirmDel) { ve.confirmDel = true; refreshSheet(); return; } S.variants = S.variants.filter((v) => v.id !== ve.id); S.decks.forEach((d) => { for (const k of Object.keys(obj(d.variants))) if (d.variants[k] === ve.id) delete d.variants[k]; }); if (S.me.banner && S.me.banner.ref === ve.id) S.me.banner = null; if (S.me.avatar && S.me.avatar.ref === ve.id) S.me.avatar = null; save(); closeSheet(); render(); },
+  veBanner: () => { if (!veUpsert()) return; S.me.banner = { kind: "variant", ref: ve.id }; save(); closeSheet(); render(); toast("Banner updated"); },
   varFilter: (el) => { ui.varFilter = el.dataset.v; render(); },
   cosKind: (el) => { ui.cosKind = el.dataset.v; render(); },
   cosAdd: (el) => { const n = $("#nc-name").value.trim(); if (!n) { toast("Enter a name"); return; } S.cosmetics.push({ id: uid(), kind: el.dataset.v, name: n, source: $("#nc-src").value.trim(), owned: $("#nc-owned").checked, wish: false }); save(); render(); },
@@ -2793,7 +2944,7 @@ const A = {
     if (type === "result") { const m = allMatches().find((x) => x.id === (pc.matchId || ($("#pc-match") || {}).value)); if (!m) { toast("Pick a match"); return; } const d = S.decks.find((x) => x.id === m.deckId); type = m.result === "W" ? "win" : "loss"; payload.match = { cubes: num(m.cubes), deckName: m.deckName, opp: m.oppName, turn: m.turn, cards: d ? d.cards.map((k) => card(k).name) : [], oppCards: arr(m.oppCards).slice(0, 12), locs: arr(m.locs).slice(0, 3) }; }
     if (type === "deck") { const d = S.decks.find((x) => x.id === (pc.deckId || ($("#pc-deck") || {}).value)); if (!d) { toast("Pick a deck"); return; } payload.deck = deckPublic(d); }
     if (type === "stats") { const p = periodById(pc.period || ($("#pc-period") || {}).value); payload.stats = { label: p.label, rank: S.me.rank, ...slimStats(statsFor(inPeriod(realMatches(), p))) }; }
-    if (type === "variant") { const v = S.variants.find((x) => x.id === (pc.variantId || ($("#pc-var") || {}).value)); if (!v) { toast("Pick a variant"); return; } payload.variant = { card: card(v.card).name, name: v.name, artist: v.artist, rarity: v.rarity }; }
+    if (type === "variant") { const v = S.variants.find((x) => x.id === (pc.variantId || ($("#pc-var") || {}).value)); if (!v) { toast("Pick a variant"); return; } payload.variant = { card: card(v.card).name, name: v.name, artist: v.artist, rarity: v.rarity, art: variantArt(v) || "" }; }
     if (type === "custom") { const c = S.custom.find((x) => x.id === (pc.customId || ($("#pc-custom") || {}).value)); if (!c) { toast("Pick a card"); return; } payload.custom = { name: c.name, cost: c.cost, power: c.power, ability: c.ability, frame: c.frame }; }
     const text = $("#pc-text").value.trim(); if (type === "text" && !text) { toast("Write something first"); return; }
     if (addPost(type, payload, text)) { pc.text = ""; closeSheet(); if (ui.tab === "social") { ui.social = "feed"; render(); } else go("social"); toast("Posted"); }
@@ -2919,7 +3070,7 @@ document.addEventListener("change", (e) => {
   if (d.uichk) { ui[d.uichk] = t.checked; render(); return; }
   if (d.uisel) { ui[d.uisel] = t.value; render(); return; }
   if (d.cardchk) { const k = d.k; const tgt = d.cardchk === "owned" ? S.owned : d.cardchk === "wish" ? S.wishCards : S.favCards; if (t.checked) tgt[k] = true; else delete tgt[k]; save(); render(); return; }
-  if (d.varchk) { const v = variantById(d.id); if (v) { v[d.varchk] = t.checked; save(); render(); if (sheetFn) refreshSheet(); } return; }
+  if (d.varchk) { const v = materializeVar(d.id); if (v) { v[d.varchk] = t.checked; save(); render(); if (sheetFn) refreshSheet(); } return; }
   if (d.vechk) { ve[d.vechk] = t.checked; return; }
   if (d.coschk) { const c = S.cosmetics.find((x) => x.id === d.id); if (c) { c[d.coschk] = t.checked; save(); render(); } return; }
   if (d.aichk) { ai[d.aichk] = t.checked; return; }
@@ -3033,6 +3184,7 @@ document.addEventListener("input", (e) => { if (e.target.dataset && e.target.dat
 window.addEventListener("pagehide", () => { if (dirty) flushState(); if (dirtyWeeks.size) flushWeeks(); });
 if (location.hash.slice(1)) route(); else render();
 initCaps();
+loadCardData();
 
 </script>
 </body>
