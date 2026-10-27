@@ -496,7 +496,7 @@ Ultron|6|8|R S|On Reveal: Create Drones at each other location.
 Death|8|12|D|Costs 1 less for each card destroyed this game.`;
 
 const TAGS = { R: "On Reveal", O: "Ongoing", D: "Destroy", X: "Discard", M: "Move", B: "Buff", C: "Disrupt", J: "Gives cards", P: "Energy", S: "Adds cards", L: "Location", H: "Big body" };
-const RARITIES = ["Rare", "Super Rare", "Amazing", "Sensational", "Exquisite", "Ultimate"];
+const RARITIES = ["Rare", "Super Rare", "Spotlight", "Amazing", "Sensational", "Exquisite", "Ultimate"];
 const VAR_SOURCES = ["General Pool", "Token Shop", "Bundle", "Season Pass", "Spotlight", "Album", "Promo", "Live Release", "Conquest Shop", "Champion Arena", "Sanctum Showdown", "Deadpool's Diner", "High Voltage", "Team-Up", "Overloaded", "Event"];
 const COS = { cardback: "Card back", avatar: "Avatar", title: "Title", emote: "Emote" };
 const SHOPS = { snap: "Snap Shop", collector: "Collector's Shop", web: "Web Shop" };
@@ -1648,7 +1648,7 @@ async function loadVariantDetails() {
   }
 }
 /* Marvel Snap Zone's "rarity" mixes real rarities with where a variant comes from. Split it when snap.fan has nothing. */
-const RAR_WORDS = /^(common|uncommon|rare|super rare|epic|legendary|ultra|infinity|ultimate|amazing|sensational|exquisite)$/i;
+const RAR_WORDS = /^(common|uncommon|rare|super rare|epic|legendary|ultra|infinity|ultimate|amazing|sensational|exquisite|spotlight)$/i;
 function mszRarity(r) { r = String(r || ""); return RAR_WORDS.test(r) ? r : /ultimate/i.test(r) ? "Ultimate" : ""; }
 function mszSource(r) {
   r = String(r || "");
@@ -1670,7 +1670,7 @@ function normSource(r) {
   if (/^deadpool'?s diner$/i.test(r)) return "Deadpool's Diner";
   return r;
 }
-const RARITY_RANK = { common: 1, uncommon: 2, rare: 3, "super rare": 4, epic: 5, legendary: 6, ultra: 7, infinity: 8, amazing: 9, sensational: 10, exquisite: 11, ultimate: 12 };
+const RARITY_RANK = { common: 1, uncommon: 2, rare: 3, "super rare": 4, epic: 5, legendary: 6, ultra: 7, infinity: 8, spotlight: 8.5, amazing: 9, sensational: 10, exquisite: 11, ultimate: 12 };
 const rarityRank = (r) => RARITY_RANK[String(r || "").toLowerCase()] || 0;
 
 function catCollectible(d) { return /^released$/i.test(d.status || "") && !!d.source && !/^none$|not available|token|unreleased/i.test(d.source) && (!d.type || /character/i.test(d.type)); }
@@ -1721,8 +1721,10 @@ function mergeCatalog(map) {
       const id = `${d.id || k}:${v.id || i + 1}`, order = num(v.order) || i + 1;
       const det = VD && d.id ? obj(VD.variants[`${d.id}_${String(order).padStart(2, "0")}`]) : {};
       const rel = det.d || v.release || "";
+      const src = normSource(det.s || mszSource(v.rarity));
       const cv = { cat: id, card: k, art, name: String(det.n || catVarName(v)).slice(0, 80), artist: String(det.a || v.artist || "").slice(0, 120),
-        rarity: String(det.r || det.t || mszRarity(v.rarity)).slice(0, 40), tier: String(det.t || ""), source: normSource(det.s || mszSource(v.rarity)).slice(0, 60),
+        // Spotlight variants count as their own rarity.
+        rarity: String(src === "Spotlight" ? "Spotlight" : det.r || det.t || mszRarity(v.rarity)).slice(0, 40), tier: String(det.t || ""), source: src.slice(0, 60),
         release: /^\d{4}-\d{2}-\d{2}$/.test(rel) ? rel : "", order, unreleased: !!v.unreleased };
       if (!_catVars.has(id)) { _catVars.set(id, cv); vs.push(cv); }
     });
