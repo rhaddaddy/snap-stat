@@ -58,6 +58,24 @@ service cloud.firestore {
       allow read, delete: if isAppOwner();
     }
 
+    // Tournaments: anyone signed in can start one; only its organizer changes it (the app owner can remove one).
+    match /tournaments/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.by == request.auth.uid
+        && request.resource.data.players.size() <= 64 && request.resource.data.name.size() <= 60;
+      allow update: if signedIn() && resource.data.by == request.auth.uid && request.resource.data.by == resource.data.by
+        && request.resource.data.players.size() <= 64 && request.resource.data.name.size() <= 60;
+      allow delete: if signedIn() && (resource.data.by == request.auth.uid || isAppOwner());
+    }
+    // Signing up for a tournament: each player adds or removes only their own entry.
+    match /tjoin/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.resource.data.uid == request.auth.uid
+        && id == request.resource.data.tid + "_" + request.auth.uid
+        && request.resource.data.keys().hasOnly(["tid", "uid", "handle", "at"]);
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
     // Who owns the app. The first person to claim it gets it, and it can't be changed from the app.
     match /config/owner {
       allow read: if signedIn();

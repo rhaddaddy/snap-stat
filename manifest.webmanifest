@@ -29,6 +29,12 @@
   ],
   "shortcuts": [
     {
+      "name": "Quick log",
+      "short_name": "Quick log",
+      "description": "Log a match in one tap",
+      "url": "./#quicklog"
+    },
+    {
       "name": "Track a match",
       "url": "./#play"
     },
