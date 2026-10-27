@@ -1075,11 +1075,14 @@ function allCards() {
   const today = localDate(Date.now());
   for (const c of map.values()) {
     // Not out yet: a future release date, or (once the card data has loaded) Marvel Snap Zone lists it as unreleased or doesn't know it. Cards you own always count as out.
-    c.upcoming = !S.owned[c.key] && !!((c.release && c.release > today) || (!c.added && (c.catUnreleased || (CAT && c.catalog && !c.catId)))); if (!c.code) c.code = cardCode(c.name); c.unknownName = /^Unknown card \(/.test(c.name); }
+    c.upcoming = !S.owned[c.key] && !!((c.release && c.release > today) || (!c.added && (c.catUnreleased || (CAT && c.catalog && !c.catId)))); if (!c.code) c.code = cardCode(c.name); c.unknownName = /^Unknown card \(/.test(c.name);
+    // Versions that only exist inside a game mode (Champion, Web Slingers, Thunderbolts...) aren't part of anyone's collection, so they're left out of the lists unless you own one.
+    c.hidden = !S.owned[c.key] && !c.added && !!c.catModeOnly; }
   const costN = (c) => (c.cost === "?" || c.cost === "" ? 99 : num(c.cost));
-  _cardsCache = [...map.values()].sort((a, b) => costN(a) - costN(b) || a.name.localeCompare(b.name));
-  _byKey = new Map(_cardsCache.map((c) => [c.key, c])); _byCode = new Map(); _cardsCache.forEach((c) => { if (c.code && !_byCode.has(c.code)) _byCode.set(c.code, c); });
-  _cardsCache.forEach((c) => { const nk = keyOf(c.name); if (nk && !_byKey.has(nk)) _byKey.set(nk, c); });
+  const full = [...map.values()].sort((a, b) => costN(a) - costN(b) || a.name.localeCompare(b.name));
+  _byKey = new Map(full.map((c) => [c.key, c])); _byCode = new Map(); full.forEach((c) => { if (c.code && !_byCode.has(c.code)) _byCode.set(c.code, c); });
+  full.forEach((c) => { const nk = keyOf(c.name); if (nk && !_byKey.has(nk)) _byKey.set(nk, c); });
+  _cardsCache = full.filter((c) => !c.hidden);
   _cardsSig = sig;
   return _cardsCache;
 }
@@ -1588,6 +1591,7 @@ function mergeCatalog(map) {
     const c = map.get(k), up = { art: catArt(d.art), catId: d.id || "" };
     const ser = String(d.source || "").match(/^Series (\d)$/i); if (ser && !c.series) up.series = ser[1];
     up.catUnreleased = /unreleased/i.test(d.status || "");
+    up.catModeOnly = !up.catUnreleased && /^none$/i.test(String(d.source || "").trim());
     if (code && c.code !== code) { const owner = byCode.get(code); if (!owner || owner === k) up.code = code; }
     if (code && !byCode.has(code)) byCode.set(code, k);
     if (/^Unknown card \(/.test(c.name)) {
@@ -1623,7 +1627,7 @@ function allVariants() {
   if (sig === _avSig) return _avCache;
   const out = [], seen = new Set();
   for (const v of S.variants) { if (v.cat) seen.add(v.cat); out.push(v); }
-  for (const cv of _catVars.values()) if (!seen.has(cv.cat)) out.push({ id: "cat:" + cv.cat, cat: cv.cat, card: cv.card, name: cv.name, artist: cv.artist, rarity: cv.rarity, source: "", release: cv.release, owned: false, wish: false, favorite: false, virtual: true });
+  for (const cv of _catVars.values()) if (!seen.has(cv.cat) && !card(cv.card).hidden) out.push({ id: "cat:" + cv.cat, cat: cv.cat, card: cv.card, name: cv.name, artist: cv.artist, rarity: cv.rarity, source: "", release: cv.release, owned: false, wish: false, favorite: false, virtual: true });
   _avSig = sig; _avCache = out; return out;
 }
 function variantAny(id) {
