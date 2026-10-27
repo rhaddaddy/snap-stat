@@ -1,0 +1,68 @@
+rules_version = '2';
+
+// Security rules for SNAP Stat. Paste this into Firebase: Firestore Database > Rules, then tap Publish.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    // The app owner: whoever claimed config/owner first (Profile > App owner in the app).
+    function isAppOwner() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/config/owner)
+        && get(/databases/$(database)/documents/config/owner).data.uid == request.auth.uid;
+    }
+
+    // Each player's private data: matches, collection, decks, settings.
+    match /data/users/{uid}/{rest=**} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // Each player's public items: anyone signed in can read them, only that player can change them.
+    match /profiles/{uid}  { allow read: if signedIn(); allow write: if isOwner(uid); }
+    match /reactions/{uid} { allow read: if signedIn(); allow write: if isOwner(uid); }
+    match /decks/{uid}     { allow read: if signedIn(); allow write: if isOwner(uid); }
+    match /followreq/{uid} { allow read: if signedIn(); allow write: if isOwner(uid); }
+    match /approvals/{uid} { allow read: if signedIn(); allow write: if isOwner(uid); }
+    // Posts: the app owner can also remove a reported post.
+    match /posts/{uid}     { allow read: if signedIn(); allow write: if isOwner(uid) || isAppOwner(); }
+
+    // Uploaded profile banners, kept small.
+    match /images/{uid} {
+      allow read: if signedIn();
+      allow delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(["banner", "updated"])
+        && request.resource.data.banner is string
+        && request.resource.data.banner.size() < 400000;
+    }
+
+    // Seasons and events: everyone reads, only the app owner edits (they also fill in automatically).
+    match /seasons/{id} { allow read: if signedIn(); allow write: if isAppOwner(); }
+    match /events/{id}  { allow read: if signedIn(); allow write: if isAppOwner(); }
+
+    // Promo codes: anyone signed in can add one, anyone can mark one active or expired,
+    // and only whoever added it (or the app owner) can change the rest or remove it.
+    match /promos/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.by == request.auth.uid;
+      allow update: if signedIn() && (resource.data.by == request.auth.uid || isAppOwner()
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"]));
+      allow delete: if signedIn() && (resource.data.by == request.auth.uid || isAppOwner());
+    }
+
+    // Reports about posts: anyone signed in can send one; only the app owner reads or clears them.
+    match /reports/{id} {
+      allow create: if signedIn() && request.resource.data.by == request.auth.uid
+        && request.resource.data.keys().hasOnly(["author", "post", "reason", "note", "by", "at"])
+        && request.resource.data.note.size() <= 400;
+      allow read, delete: if isAppOwner();
+    }
+
+    // Who owns the app. The first person to claim it gets it, and it can't be changed from the app.
+    match /config/owner {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}

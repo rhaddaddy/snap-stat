@@ -229,6 +229,10 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 .ct.own { border-color: color-mix(in srgb, var(--snap-a) 55%, transparent); }
 .ct .tag { position: absolute; top: 34px; right: 6px; font-size: 13px; color: var(--snap-a); text-shadow: 0 1px 2px rgba(0,0,0,.7); }
 .ct .tag.l { left: 6px; right: auto; }
+.series-row { display: grid; grid-template-columns: 74px 1fr auto; align-items: center; gap: 10px; background: none; border: 0; padding: 4px 0; color: inherit; text-align: left; width: 100%; }
+.series-row .lbl { font-weight: 700; font-size: 13px; }
+.series-row[aria-pressed="true"] .lbl { color: var(--snap-text); }
+a.li { color: inherit; text-decoration: none; }
 .cwrap { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .cwrap .ct .nm { display: none; }
 .cname { display: flex; align-items: flex-start; min-width: 0; }
@@ -989,7 +993,7 @@ function avatarHtml(a, name, id, cls = "") {
   return `<span class="av art ${img ? "has-img" : ""} ${cls}" style="${artStyle(seed)}">${esc((label[0] || "?").toUpperCase())}${img}</span>`;
 }
 function bannerHtml(b, name) {
-  if (b && b.kind === "img" && b.url) return `<div class="banner"><img src="${esc(b.url)}" alt=""></div>`;
+  if (b && b.kind === "img" && (b.url || b.fs)) { const src = b.url || fsImage(b.fs); if (src) return `<div class="banner"><img src="${esc(src)}" alt=""></div>`; }
   const v = b && b.kind === "variant" ? (variantById(b.ref) || b.snap) : null;
   const cardName = v ? (v.cardName || card(v.card).name) : b && b.kind === "card" ? card(b.ref).name : "";
   const seed = (b && b.ref) || name || "banner";
@@ -1280,7 +1284,7 @@ function syncProfile() {
       if (!S.me.share || !S.me.handle.trim()) { if (shared.profiles[store.uid]) await ref.delete(); if (shared.decks[store.uid]) await dref.delete(); return; }
       const ms = realMatches(); const cur = currentSeasonPeriod();
       const fd = S.decks.find((d) => d.id === S.me.featuredDeck);
-      const bannerSnap = S.me.banner && S.me.banner.kind === "variant" && variantById(S.me.banner.ref) ? { ...S.me.banner, snap: { name: variantById(S.me.banner.ref).name, artist: variantById(S.me.banner.ref).artist || "", cardName: card(variantById(S.me.banner.ref).card).name, art: variantArt(variantById(S.me.banner.ref)) || "" } } : S.me.banner;
+      const bannerSnap = S.me.banner && S.me.banner.kind === "variant" && variantById(S.me.banner.ref) ? { ...S.me.banner, snap: { name: variantById(S.me.banner.ref).name, artist: variantById(S.me.banner.ref).artist || "", cardName: card(variantById(S.me.banner.ref).card).name, art: variantArt(variantById(S.me.banner.ref)) || "" } } : S.me.banner && S.me.banner.fs ? { kind: "img", fs: S.me.banner.fs } : S.me.banner;
       const avatarSnap = S.me.avatar && S.me.avatar.kind !== "img" ? { kind: "seed", ref: S.me.avatar.ref, label: S.me.avatar.kind === "card" ? card(S.me.avatar.ref).name : variantById(S.me.avatar.ref) ? card(variantById(S.me.avatar.ref).card).name : "", art: (S.me.avatar.kind === "card" ? card(S.me.avatar.ref).art : variantArt(variantById(S.me.avatar.ref))) || "" } : S.me.avatar;
       await ref.set({
         name: S.me.name.trim().slice(0, 40), handle: S.me.handle.trim().slice(0, 40), snapId: String(S.me.snapId || "").slice(0, 40), country: S.me.country || "", visibility: S.me.visibility === "private" ? "private" : "public",
@@ -1484,19 +1488,20 @@ const KIND_TXT = { card: "Card", variant: "Variant", avatar: "Avatar", title: "T
 /* ============ Shops & wishlist ============ */
 function wishItems() {
   const out = [];
-  for (const k of Object.keys(S.wishCards)) if (S.wishCards[k] && !S.owned[k]) out.push({ ref: "card:" + k, kind: "Card", name: card(k).name });
-  for (const v of S.variants) if (v.wish && !v.owned) out.push({ ref: "variant:" + v.id, kind: "Variant", name: `${card(v.card).name} · ${v.name}` });
+  for (const k of Object.keys(S.wishCards)) if (S.wishCards[k] && !S.owned[k]) out.push({ ref: "card:" + k, kind: "Card", name: card(k).name, cardKey: k });
+  for (const v of S.variants) if (v.wish && !v.owned) out.push({ ref: "variant:" + v.id, kind: "Variant", name: `${card(v.card).name} · ${v.name}`, cat: v.cat || "", cardKey: v.card });
   for (const c of S.cosmetics) if (c.wish && !c.owned) out.push({ ref: "cos:" + c.id, kind: COS[c.kind] || "Cosmetic", name: c.name });
   return out;
 }
 function offerMatches(o, w) {
+  if (o.auto) return o.variant ? !!(o.cat && w.cat && o.cat === w.cat) : !!(o.cardKey && w.ref === "card:" + o.cardKey);
   if (o.ref && o.ref === w.ref) return true; if (!o.item) return false;
   const a = keyOf(o.item), b = keyOf(w.name);
   return a && b && (a === b || (a.length > 3 && b.includes(a)) || (b.length > 3 && a.includes(b)));
 }
 function wishAlerts() {
-  const now = Date.now(); const offers = S.shops.filter((o) => !o.expires || dayEnd(o.expires) >= now); const out = [];
-  for (const w of wishItems()) for (const o of offers) if (offerMatches(o, w)) { const have = o.currency === "usd" ? null : num(S.wallet[o.currency]); out.push({ w, o, have, short: have === null ? null : Math.max(0, num(o.price) - have) }); }
+  const now = Date.now(); const offers = [...S.shops.filter((o) => !o.expires || dayEnd(o.expires) >= now), ...autoOffers()]; const out = [];
+  for (const w of wishItems()) for (const o of offers) if (offerMatches(o, w)) { const have = o.currency === "usd" || o.currency === "event" ? null : num(S.wallet[o.currency]); out.push({ w, o, have, short: have === null ? null : Math.max(0, num(o.price) - have) }); }
   return out;
 }
 
@@ -1573,7 +1578,7 @@ const SCHED_CACHE = "snapstat-schedule-v1";
 function useSchedule(j, fromCache) {
   if (!j || typeof j.seasons !== "object" || !Object.keys(obj(j.seasons)).length) return false;
   if (SCHED && fromCache) return false;
-  SCHED = { updated: String(j.updated || ""), seasons: obj(j.seasons), events: obj(j.events) }; schedVer++;
+  SCHED = { updated: String(j.updated || ""), seasons: obj(j.seasons), events: obj(j.events), shops: arr(j.shops) }; schedVer++;
   refreshView(); return true;
 }
 async function loadSchedule() {
@@ -1647,7 +1652,7 @@ function mergeCatalog(map) {
     }
     const c = map.get(k), up = { art: catArt(d.art), catId: d.id || "" };
     const ser = String(d.source || "").match(/^Series (\d)$/i); if (ser && !c.series) up.series = ser[1];
-    up.catUnreleased = /unreleased/i.test(d.status || "");
+    up.catUnreleased = /unreleased/i.test(d.status || ""); up.catSource = String(d.source || "");
     up.catModeOnly = !up.catUnreleased && /^none$/i.test(String(d.source || "").trim());
     if (code && c.code !== code) { const owner = byCode.get(code); if (!owner || owner === k) up.code = code; }
     if (code && !byCode.has(code)) byCode.set(code, k);
@@ -1699,6 +1704,398 @@ function materializeVar(id) {
   const real = { id: uid(), cat: v.cat, card: v.card, name: v.name, artist: v.artist, rarity: v.rarity, source: "", release: v.release || "", owned: false, wish: false, favorite: false };
   S.variants.push(real); return real;
 }
+
+/* ============ Balance history (balance-history.json, refreshed daily from snap.fan) ============ */
+let BAL = null, balVer = 0;
+const BAL_CACHE = "snapstat-balance-v1";
+function useHistory(j, fromCache) {
+  if (!j || !Array.isArray(j.entries) || !j.entries.length) return false;
+  if (BAL && fromCache) return false;
+  BAL = { updated: String(j.updated || ""), entries: j.entries }; balVer++;
+  refreshView(); return true;
+}
+async function loadHistory() {
+  if (!window.SNAPSTAT_STANDALONE) return;
+  try { const c = localStorage.getItem(BAL_CACHE); if (c) useHistory(JSON.parse(c), true); } catch { /* no saved copy */ }
+  for (const u of catUrls("balance-history.json")) {
+    try {
+      const r = await fetch(u, { cache: "no-cache" }); if (!r.ok) continue;
+      const text = await r.text(); const j = JSON.parse(text);
+      if (BAL && j.updated && j.updated === BAL.updated) return;
+      if (!useHistory(j, false)) continue;
+      try { localStorage.setItem(BAL_CACHE, text); } catch { /* fetched again next time */ }
+      return;
+    } catch { /* try the next copy */ }
+  }
+}
+let _balSig = "", _bal = [];
+/* Every change, newest first: { date, key, from, to, kind: buff | nerf | changed } */
+function balanceChanges() {
+  const sig = balVer + "|" + catVer;
+  if (sig === _balSig) return _bal;
+  const byCard = new Map();
+  for (const e of BAL ? BAL.entries : []) { if (!Array.isArray(e) || !e[1]) continue; (byCard.get(e[1]) || byCard.set(e[1], []).get(e[1])).push(e); }
+  const out = [];
+  for (const [id, list] of byCard) {
+    const c = cardByCode(cardCode(id)); if (!c || c.hidden) continue;
+    list.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+    for (let i = 1; i < list.length; i++) {
+      const a = list[i - 1], b = list[i];
+      const from = { cost: a[2], power: a[3], ability: a[4] || "" }, to = { cost: b[2], power: b[3], ability: b[4] || "" };
+      const dc = num(to.cost) - num(from.cost), dp = num(to.power) - num(from.power), ab = keyOf(from.ability) !== keyOf(to.ability);
+      if (!dc && !dp && !ab) continue;
+      const kind = !ab && dc <= 0 && dp >= 0 ? "buff" : !ab && dc >= 0 && dp <= 0 ? "nerf" : dc < 0 && dp >= 0 ? "buff" : dc > 0 && dp <= 0 ? "nerf" : "changed";
+      out.push({ date: b[0], key: c.key, from, to, kind, ab });
+    }
+  }
+  out.sort((x, y) => y.date.localeCompare(x.date) || card(x.key).name.localeCompare(card(y.key).name));
+  _balSig = sig; _bal = out; return out;
+}
+const BAL_LABEL = { buff: "Buff", nerf: "Nerf", changed: "Changed" };
+const BAL_PILL = { buff: "W", nerf: "L", changed: "gold" };
+function recentChange(key, days = 30) {
+  const since = localDate(Date.now() - days * DAY);
+  return balanceChanges().find((x) => x.key === key && x.date >= since) || null;
+}
+function deckCardKeys() { return new Set(S.decks.filter((d) => d.status !== "draft").flatMap((d) => arr(d.cards))); }
+function statLine(s) { return `${s.cost === "" ? "?" : s.cost}/${s.power === "" ? "?" : s.power}`; }
+function balanceRow(x, showCard = true) {
+  return `<div class="li" style="align-items:flex-start;flex-wrap:wrap">${showCard ? cardChip(x.key, { a: "cardOpen" }) : `<span class="muted small num">${esc(dateStr(x.date))}</span>`}
+    <span class="pill ${BAL_PILL[x.kind]}">${BAL_LABEL[x.kind]}</span><span class="num small">${statLine(x.from)} → <b>${statLine(x.to)}</b></span>
+    ${x.ab ? `<div class="small" style="width:100%"><span class="muted">Now:</span> ${esc(x.to.ability || "No ability")}<br><span class="muted">Was:</span> ${esc(x.from.ability || "No ability")}</div>` : ""}</div>`;
+}
+function vBalance() {
+  const f = ui.balFilter || "decks"; const inDecks = deckCardKeys();
+  const all = balanceChanges();
+  const list = all.filter((x) => f === "all" || (f === "decks" ? inDecks.has(x.key) : !!S.owned[x.key]));
+  const byDate = new Map(); for (const x of list.slice(0, 300)) (byDate.get(x.date) || byDate.set(x.date, []).get(x.date)).push(x);
+  const chip = (v, l) => `<button class="chip" data-a="balFilter" data-v="${v}" aria-pressed="${f === v}">${l}</button>`;
+  return `<section class="sec">${backBar("Balance changes")}
+    <p class="muted small">Every time a card's cost, power or ability changed${BAL ? ", updated daily from snap.fan's card history" : ""}. Buffs are green, nerfs are red, and reworks are gold.</p>
+    <div class="chips">${chip("decks", "Cards in my decks")}${chip("owned", "Cards I own")}${chip("all", "All cards")}</div>
+    ${!BAL ? `<div class="empty"><span>The balance history loads once the app's daily data update has run.</span></div>` : byDate.size ? [...byDate].map(([d, xs]) => `<h3>${esc(dateStr(d))}</h3><div class="list">${xs.map((x) => balanceRow(x)).join("")}</div>`).join("") : `<div class="empty"><span>No changes to ${f === "decks" ? "cards in your decks" : "your cards"} yet.</span></div>`}</section>`;
+}
+function balanceHomePanel() {
+  const since = localDate(Date.now() - 14 * DAY), inDecks = deckCardKeys();
+  const xs = balanceChanges().filter((x) => x.date >= since && inDecks.has(x.key));
+  if (!xs.length) return "";
+  const n = (k) => xs.filter((x) => x.kind === k).length;
+  return `<section class="sec"><div class="sec-h"><h2>Balance changes</h2><button class="btn sm ghost" data-a="go" data-to="balance">All changes</button></div>
+    <p class="small muted">In the last two weeks, cards in your decks got ${[n("buff") && `${n("buff")} buff${n("buff") > 1 ? "s" : ""}`, n("nerf") && `${n("nerf")} nerf${n("nerf") > 1 ? "s" : ""}`, n("changed") && `${n("changed")} rework${n("changed") > 1 ? "s" : ""}`].filter(Boolean).join(", ")}.</p>
+    <div class="list">${xs.slice(0, 5).map((x) => balanceRow(x)).join("")}</div></section>`;
+}
+function cardHistoryHtml(k) {
+  const xs = balanceChanges().filter((x) => x.key === k);
+  return xs.length ? `<h3>Balance history</h3><div class="list">${xs.slice(0, 12).map((x) => balanceRow(x, false)).join("")}</div>` : "";
+}
+
+/* ============ What's for sale (bundles and event shops in schedule.json) ============ */
+function autoOffers() {
+  if (!SCHED || !Array.isArray(SCHED.shops)) return [];
+  const today = localDate(Date.now()), out = [];
+  SCHED.shops.forEach((s, i) => {
+    if (!s || (s.end && s.end < today)) return;
+    arr(s.items).forEach((it, j) => {
+      const c = it.cardId ? cardByCode(cardCode(it.cardId)) : null;
+      out.push({ id: `auto${i}-${j}`, auto: true, shop: s.shop || "Shop", title: s.title || "", start: s.start || "", expires: s.end || "", price: s.price, currency: s.currency || "usd", gold: s.gold || "", item: it.label || it.cardName || "", cat: it.cat || "", cardKey: c ? c.key : "", variant: !!it.variantId, cardName: c ? c.name : it.cardName || "", group: i });
+    });
+  });
+  return out;
+}
+function offerPrice(o) { return o.currency === "usd" ? (o.price ? "$" + o.price : "price not listed") : o.currency === "event" ? `${fmt(o.price)} event currency${o.gold ? ` (≈ ${fmt(o.gold)} gold)` : ""}` : `${fmt(o.price)} ${CURR[o.currency] || ""}`; }
+function autoShopSection() {
+  const offers = autoOffers(); if (!offers.length) return "";
+  const wantCats = new Set(S.variants.filter((v) => v.wish && !v.owned && v.cat).map((v) => v.cat));
+  const groups = new Map(); for (const o of offers) (groups.get(o.group) || groups.set(o.group, []).get(o.group)).push(o);
+  const today = localDate(Date.now());
+  const rows = [...groups.values()].sort((a, b) => String(a[0].expires).localeCompare(String(b[0].expires))).map((g) => {
+    const o = g[0], soon = o.start && o.start > today;
+    return `<div class="li" style="align-items:flex-start;flex-wrap:wrap"><div class="grow"><div class="t">${esc(o.title || o.shop)}${soon ? ` <span class="pill gold">Soon</span>` : ""}</div><div class="s">${esc(o.shop)} · ${esc(offerPrice(o))}${o.expires ? ` · until ${esc(dateStr(o.expires))}` : ""}</div></div>
+      <div class="chiplist" style="width:100%">${g.map((x) => { const want = (x.cat && wantCats.has(x.cat)) || (!x.variant && x.cardKey && S.wishCards[x.cardKey]); const own = x.cat ? !!S.variants.find((v) => v.cat === x.cat && v.owned) : x.cardKey && !x.variant ? !!S.owned[x.cardKey] : false;
+        return `<span class="cchip ${own ? "" : "miss"}" title="${esc(x.cardName)}">${want ? "★ " : ""}${esc(x.cardName)}${x.variant ? ` <span class="muted">· ${esc(x.item)}</span>` : ""}${own ? ` <span class="muted">✓</span>` : ""}</span>`; }).join("")}</div></div>`;
+  });
+  return `<section class="sec"><h2>On sale now</h2><p class="muted small">Bundles and event shops from snap.fan, updated daily. ★ marks things on your wishlist, ✓ things you own.</p><div class="list">${rows.join("")}</div></section>`;
+}
+
+/* ============ Collection progress by series ============ */
+function seriesOf(c) {
+  const src = String(c.catSource || "");
+  const m = src.match(/^Series (\d)$/i) || String(c.series || "").match(/^(\d)$/);
+  if (m) return "Series " + m[1];
+  if (/starter|recruit|collection level/i.test(src)) return "Starter";
+  return "";
+}
+const SERIES_ORDER = ["Starter", "Series 1", "Series 2", "Series 3", "Series 4", "Series 5"];
+function seriesPanel() {
+  const cs = allCards().filter((c) => !c.upcoming && !c.custom);
+  const rows = SERIES_ORDER.map((s) => { const list = cs.filter((c) => seriesOf(c) === s); const own = list.filter((c) => S.owned[c.key]).length; return { s, total: list.length, own }; }).filter((r) => r.total);
+  if (!rows.length) return "";
+  return `<div class="panel stack" style="gap:8px"><span class="eyebrow">Progress by series</span>
+    ${rows.map((r) => `<button class="series-row" data-a="seriesFilter" data-v="${esc(r.s)}" aria-pressed="${ui.cardSeries === r.s}"><span class="lbl">${esc(r.s)}</span><span class="bar">${passBar(r.own, r.total)}</span><span class="num small">${r.own}/${r.total}</span></button>`).join("")}
+    <span class="muted small">Tap a series to see what you're missing from it.</span></div>`;
+}
+
+/* ============ Shareable deck picture ============ */
+function loadCorsImage(url) {
+  return new Promise((res) => {
+    if (!url) return res(null);
+    const img = new Image(); img.crossOrigin = "anonymous"; img.referrerPolicy = "no-referrer";
+    const t = setTimeout(() => res(null), 8000);
+    img.onload = () => { clearTimeout(t); res(img); }; img.onerror = () => { clearTimeout(t); res(null); };
+    img.src = url + (url.includes("?") ? "&" : "?") + "snapstat=1";
+  });
+}
+async function deckImageBlob(d, withArt = true) {
+  const keys = [...d.cards].sort((a, b) => num(card(a).cost) - num(card(b).cost) || card(a).name.localeCompare(card(b).name));
+  const W = 1080, cols = 4, cw = 240, ch = 320, gap = 16, top = 170, rows = Math.ceil(Math.max(keys.length, 1) / cols);
+  const H = top + rows * (ch + 46 + gap) + 150;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const g = cv.getContext("2d");
+  const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#1B1350"); bg.addColorStop(1, "#0A0918"); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  g.fillStyle = "#FFD23F"; g.font = "italic 800 56px system-ui, sans-serif"; g.fillText(d.name.slice(0, 28), 48, 92);
+  const r = statsFor(deckMatches(d).filter((m) => !m.example));
+  g.fillStyle = "#C9C3EE"; g.font = "600 28px system-ui, sans-serif";
+  g.fillText([`${keys.length} cards`, `avg cost ${avgCost(keys)}`, r.games ? `${r.w}-${r.l} · ${r.wr}% wins` : ""].filter(Boolean).join("  ·  "), 48, 138);
+  const imgs = withArt ? await Promise.all(keys.map((k) => { const c = card(k); return loadCorsImage(c.custom ? "" : variantArt(deckVariant(d, k)) || c.art); })) : keys.map(() => null);
+  const x0 = (W - (cols * cw + (cols - 1) * gap)) / 2;
+  keys.forEach((k, i) => {
+    const c = card(k), x = x0 + (i % cols) * (cw + gap), y = top + Math.floor(i / cols) * (ch + 46 + gap), img = imgs[i];
+    if (img) { const s = Math.min(cw / img.width, ch / img.height), w = img.width * s, h = img.height * s; g.drawImage(img, x + (cw - w) / 2, y + (ch - h) / 2, w, h); }
+    else {
+      const h = hue(c.key); const gr = g.createLinearGradient(x, y, x + cw, y + ch); gr.addColorStop(0, `hsl(${h} 70% 46%)`); gr.addColorStop(1, `hsl(${(h + 48) % 360} 65% 16%)`);
+      g.fillStyle = gr; g.beginPath(); g.roundRect ? g.roundRect(x, y, cw, ch, 22) : g.rect(x, y, cw, ch); g.fill();
+      g.fillStyle = "rgba(255,255,255,.3)"; g.font = "italic 800 120px system-ui, sans-serif"; g.textAlign = "center"; g.fillText((c.name[0] || "?").toUpperCase(), x + cw / 2, y + ch / 2 + 40);
+      g.fillStyle = "#fff"; g.font = "800 34px system-ui, sans-serif"; g.textAlign = "left"; g.fillText(String(c.cost), x + 18, y + 48); g.textAlign = "right"; g.fillText(String(c.power), x + cw - 18, y + 48); g.textAlign = "left";
+    }
+    g.fillStyle = "#fff"; g.font = "700 24px system-ui, sans-serif"; g.textAlign = "center"; g.fillText(c.name.length > 18 ? c.name.slice(0, 17) + "…" : c.name, x + cw / 2, y + ch + 32); g.textAlign = "left";
+  });
+  const code = deckCode(d);
+  g.fillStyle = "#8E88B8"; g.font = "500 20px ui-monospace, monospace";
+  const lines = code.match(/.{1,78}/g) || [];
+  lines.slice(0, 3).forEach((l, i) => g.fillText(l, 48, H - 108 + i * 26));
+  g.fillStyle = "#C9C3EE"; g.font = "600 22px system-ui, sans-serif"; g.fillText("Made with SNAP Stat · unofficial fan app", 48, H - 24);
+  return new Promise((res, rej) => { try { cv.toBlob((b) => (b ? res(b) : rej(new Error("no image"))), "image/png"); } catch (e) { rej(e); } });
+}
+async function shareDeckImage(d) {
+  toast("Making the picture…");
+  let blob;
+  try { blob = await deckImageBlob(d, true); } catch { try { blob = await deckImageBlob(d, false); } catch { toast("Couldn't make the picture."); return; } }
+  const name = (d.name || "deck").replace(/[^\w-]+/g, "-").slice(0, 40) + ".png";
+  const file = new File([blob], name, { type: "image/png" });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: d.name, text: deckCode(d) }); return; }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast("Picture saved");
+}
+
+/* ============ Meta: links out, decks popular with SNAP Stat players, and checking any deck code ============ */
+const META_LINKS = [["Untapped.gg tier list", "https://snap.untapped.gg/en/meta"], ["snap.fan meta decks", "https://snap.fan/decks/meta/"], ["Marvel Snap Zone tier list", "https://marvelsnapzone.com/tier-list/"]];
+function popularDecks() {
+  const groups = new Map();
+  for (const x of publicDecksAll()) {
+    const names = arr(x.cards).map((n) => keyOf(n)).filter(Boolean).sort(); if (names.length < 8) continue;
+    const k = names.join(","); const st = obj(x.stats);
+    const g = groups.get(k) || { ...x, players: new Set(), games: 0, w: 0, l: 0 };
+    g.players.add(x.owner); g.games += num(st.games); g.w += num(st.w); g.l += num(st.l); groups.set(k, g);
+  }
+  return [...groups.values()].filter((g) => g.games >= 3).map((g) => ({ ...g, wr: pct(g.w, g.w + g.l) })).sort((a, b) => b.players.size - a.players.size || b.games - a.games).slice(0, 10);
+}
+function publicDecksAll() { const out = []; for (const [owner, doc] of Object.entries(shared.decks)) { if (!canSee(owner)) continue; arr(doc.items).forEach((x) => out.push({ ...x, owner })); } return out; }
+function metaSection() {
+  const pop = store.mode === "cloud" ? popularDecks() : [];
+  return `<section class="sec"><h2>Meta</h2>
+    <div class="list">${META_LINKS.map(([l, u]) => `<a class="li" href="${u}" target="_blank" rel="noopener"><div class="grow"><div class="t">${esc(l)}</div></div><span class="muted">↗</span></a>`).join("")}</div>
+    <p class="muted small">Found a deck you like? Copy its code and check it here: what you own, what you're missing, and which of your decks is closest.</p>
+    <button class="btn" data-a="metaCheckOpen">Check a deck code</button>
+    ${pop.length ? `<h3>Popular with SNAP Stat players</h3><div class="list">${pop.map((g) => `<div class="li"><div class="grow"><div class="t">${esc(g.name || "Deck")}</div><div class="s">${g.players.size} player${g.players.size > 1 ? "s" : ""} · ${g.games} games · ${g.wr}% wins</div></div></div>`).join("")}</div>` : ""}</section>`;
+}
+const mc = { text: "", res: null };
+function metaCheckSheet() {
+  const r = mc.res; let body = "";
+  if (r && r.cards.length) {
+    const own = r.cards.filter((k) => S.owned[k]), miss = r.cards.filter((k) => !S.owned[k]);
+    const names = new Set(r.cards);
+    const near = S.decks.map((d) => ({ d, n: arr(d.cards).filter((k) => names.has(k)).length })).filter((x) => x.n).sort((a, b) => b.n - a.n)[0];
+    body = `<div class="panel stack"><div class="tiles"><div class="tile"><div class="k">You own</div><div class="v">${own.length}/${r.cards.length}</div></div><div class="tile"><div class="k">Missing</div><div class="v">${miss.length}</div></div></div>
+      ${miss.length ? `<span class="eyebrow">Missing</span><div class="chiplist">${miss.map((k) => cardChip(k)).join("")}</div>` : `<p class="small">You own every card in this deck.</p>`}
+      ${near ? `<p class="small">Closest of your decks: <b>${esc(near.d.name)}</b>, ${near.n} of ${r.cards.length} cards the same.</p>` : ""}
+      <button class="btn snap" data-a="metaSave">Save as a new deck</button></div>`;
+  } else if (r) body = `<p class="note">No cards found in that. Copy the deck code from the game or a deck site and paste it here.</p>`;
+  return `${sheetHead("Check a deck", "Paste a deck code from the game or any deck site")}
+    <textarea id="mc-text" class="code" data-mc="text" placeholder="Paste a deck code">${esc(mc.text)}</textarea><button class="btn" data-a="metaCheck">Check it</button>${body}`;
+}
+
+/* ============ Real AI with your own Anthropic key (stays on this device) ============ */
+const AI_KEY = "snapstat.aiKey", AI_MODEL = "snapstat.aiModel";
+const AI_MODELS = { "claude-sonnet-5-5": "Claude Sonnet 5.5 (best)", "claude-haiku-5-5": "Claude Haiku 5.5 (cheaper, faster)" };
+function aiKey() { try { return localStorage.getItem(AI_KEY) || ""; } catch { return ""; } }
+function aiModel() { try { const m = localStorage.getItem(AI_MODEL); return AI_MODELS[m] ? m : "claude-sonnet-5-5"; } catch { return "claude-sonnet-5-5"; } }
+function parseJsonLoose(text) {
+  const t = String(text || "").replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
+  try { return JSON.parse(t); } catch { /* find the JSON inside */ }
+  const a = t.indexOf("{"), b = t.lastIndexOf("}"), c = t.indexOf("["), e = t.lastIndexOf("]");
+  const objStr = a >= 0 && b > a ? t.slice(a, b + 1) : "", arrStr = c >= 0 && e > c ? t.slice(c, e + 1) : "";
+  for (const s of [c >= 0 && (a < 0 || c < a) ? arrStr : objStr, objStr, arrStr]) if (s) { try { return JSON.parse(s); } catch { /* next */ } }
+  throw new Error("The AI's answer wasn't in the expected format. Try again.");
+}
+async function claudeJson(prompt, opts = {}) {
+  const key = aiKey(); if (!key) throw new Error("Add your AI key in More › Profile first.");
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST", signal: opts.signal,
+    headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+    body: JSON.stringify({ model: aiModel(), max_tokens: 4000, messages: [{ role: "user", content: `${prompt}\n\nReply with only the JSON, no other text.` }] }),
+  });
+  if (!res.ok) {
+    const msg = res.status === 401 ? "Your AI key was turned down. Check it in More › Profile." : res.status === 429 ? "The AI is busy or your usage limit was reached. Try again in a minute." : res.status === 400 ? "The AI couldn't handle that request." : `The AI service answered ${res.status}. Try again.`;
+    const err = new Error(msg); err.status = res.status; throw err;
+  }
+  const j = await res.json();
+  return parseJsonLoose(arr(j.content).filter((b) => b.type === "text").map((b) => b.text).join(""));
+}
+function setupAI() { if (!window.SNAPSTAT_STANDALONE) return; store.sample = aiKey() ? { json: claudeJson, own: true } : null; }
+function aiPanel() {
+  if (!window.SNAPSTAT_STANDALONE) return "";
+  const on = !!aiKey();
+  return `<section class="sec"><h2>AI features</h2><div class="panel stack small">
+    <p>${on ? `AI is <b>on</b>, using ${esc(AI_MODELS[aiModel()])}. The deck builder, swap suggestions, opponent prediction and card fill-in use it.` : "Add an Anthropic API key to turn on the AI deck builder, swap suggestions, opponent prediction and card fill-in. Without one, they use the app's simpler built-in versions."}</p>
+    <p class="muted">Get a key at <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>. Each use costs a small amount on your Anthropic account. The key stays on this device and is only sent to Anthropic.</p>
+    <label class="f">API key<input type="password" id="ai-key" placeholder="${on ? "Saved. Paste a new one to replace it." : "sk-ant-…"}" autocomplete="off"></label>
+    <label class="f">Model<select id="ai-model">${Object.entries(AI_MODELS).map(([k, l]) => `<option value="${k}" ${aiModel() === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
+    <div class="row"><button class="btn snap" data-a="aiKeySave">Save</button>${on ? `<button class="btn" data-a="aiKeyTest">Test it</button><button class="btn ghost danger" data-a="aiKeyRemove">Remove key</button>` : ""}</div></div></section>`;
+}
+
+/* ============ Installable app, offline use and notifications ============ */
+let installEvt = null;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; if (ui.more === "account") refreshView(); });
+const isInstalled = () => window.matchMedia && window.matchMedia("(display-mode: standalone)").matches;
+async function registerSW() {
+  if (!window.SNAPSTAT_STANDALONE || !("serviceWorker" in navigator) || !/^https:|^http:\/\/(127\.0\.0\.1|localhost)/.test(location.href)) return null;
+  try { const reg = await navigator.serviceWorker.register("sw.js"); store.sw = reg; return reg; } catch { return null; }
+}
+function notifyPrefs() { return { on: false, wish: true, events: true, season: true, ...obj(S.notify) }; }
+/* What the background check needs: your wishlist, upcoming events and the season's end. Saved where the service worker can read it. */
+async function saveNotifyState() {
+  if (!("caches" in window)) return;
+  const p = notifyPrefs(), now = Date.now();
+  const state = {
+    prefs: p, urls: catUrls("schedule.json").map((u) => new URL(u, location.href).href), app: new URL("./", location.href).href,
+    wishCats: S.variants.filter((v) => v.wish && !v.owned && v.cat).map((v) => ({ cat: v.cat, name: `${card(v.card).name} · ${v.artist || v.name}` })),
+    wishCards: Object.keys(S.wishCards).filter((k) => S.wishCards[k] && !S.owned[k]).map((k) => { const c = card(k); return { id: c.catId || "", name: c.name }; }).filter((x) => x.id),
+    events: events().filter((e) => e.startTs > now - DAY && e.startTs < now + 30 * DAY).map((e) => ({ id: e.id, name: e.name, start: e.start })),
+    season: (() => { const s = currentSeason(); return s && Number.isFinite(s.endTs) ? { id: s.id, name: s.name, end: s.end } : null; })(),
+    saved: now,
+  };
+  try { const c = await caches.open("snapstat-notify"); await c.put("state.json", new Response(JSON.stringify(state), { headers: { "content-type": "application/json" } })); } catch { /* best effort */ }
+}
+async function enableNotifications() {
+  if (!("Notification" in window)) { toast("This browser can't show notifications."); return; }
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") { toast("Notifications are blocked. Allow them in Chrome's site settings."); S.notify = { ...notifyPrefs(), on: false }; save(); render(); return; }
+  S.notify = { ...notifyPrefs(), on: true }; save();
+  const reg = store.sw || (await registerSW());
+  let periodic = false;
+  if (reg && "periodicSync" in reg) {
+    try { const st = await navigator.permissions.query({ name: "periodic-background-sync" }); if (st.state === "granted") { await reg.periodicSync.register("snapstat-check", { minInterval: 12 * 3600e3 }); periodic = true; } } catch { periodic = false; }
+  }
+  store.periodic = periodic;
+  await saveNotifyState(); checkNotificationsNow();
+  render(); toast(periodic ? "Notifications on. The app checks about twice a day, even when it's closed." : "Notifications on. Install the app to get them while it's closed.");
+}
+function disableNotifications() { S.notify = { ...notifyPrefs(), on: false }; save(); saveNotifyState(); if (store.sw && store.sw.periodicSync) store.sw.periodicSync.unregister("snapstat-check").catch(() => {}); render(); toast("Notifications off"); }
+async function checkNotificationsNow() {
+  if (!notifyPrefs().on || !("serviceWorker" in navigator)) return;
+  try { const reg = await navigator.serviceWorker.ready; if (reg.active) reg.active.postMessage({ type: "check" }); } catch { /* best effort */ }
+}
+function appPanel() {
+  if (!window.SNAPSTAT_STANDALONE) return "";
+  const p = notifyPrefs(), perm = "Notification" in window ? Notification.permission : "unsupported";
+  const box = (k, l) => `<label class="check"><input type="checkbox" data-notifychk="${k}" ${p[k] ? "checked" : ""} ${p.on ? "" : "disabled"}> ${l}</label>`;
+  return `<section class="sec"><h2>App & notifications</h2><div class="panel stack small">
+    ${isInstalled() ? `<p>SNAP Stat is installed on this device.</p>` : installEvt ? `<p>Install SNAP Stat to open it like an app, use it offline and get notifications while it's closed.</p><div><button class="btn snap" data-a="installApp">Install the app</button></div>` : `<p>To install: open Chrome's ⋮ menu and tap <b>Add to Home screen</b> or <b>Install app</b>. Installed, it opens like an app, works offline and can notify you while it's closed.</p>`}
+    <div class="row between"><b>Notifications</b>${p.on && perm === "granted" ? `<button class="btn sm" data-a="notifyOff">Turn off</button>` : `<button class="btn sm snap" data-a="notifyOn">Turn on</button>`}</div>
+    ${box("wish", "A wishlist card or variant goes on sale")}${box("events", "An event or mode starts")}${box("season", "The season ends tomorrow")}
+    ${perm === "denied" ? `<p class="note">Chrome is blocking notifications for this site. Allow them in the site settings (the icon left of the address).</p>` : ""}</div></section>`;
+}
+
+/* ============ Moderation: report and mute (posts), app owner, account deletion ============ */
+function isMuted(uid) { return arr(S.muted).includes(uid); }
+function canEditShared() { return store.mode !== "cloud" || store.ownerUid === undefined || store.ownerUid === store.uid; }
+async function loadOwner() {
+  if (store.mode !== "cloud" || !store.db) return;
+  try { const s = await store.db.doc("config/owner").get(); store.ownerUid = s.exists ? String((s.data() || {}).uid || "") : ""; }
+  catch { store.ownerUid = undefined; } // older security rules: everyone can still edit
+  render();
+}
+const rp = { author: "", id: "", reason: "spam", note: "" };
+function reportSheet() {
+  const R = { spam: "Spam or ads", abuse: "Harassment or hate", nsfw: "Inappropriate content", cheat: "Cheating or scams", other: "Something else" };
+  return `${sheetHead("Report this post", "Only the app owner sees reports")}
+    <div class="stack">${Object.entries(R).map(([k, l]) => `<label class="check"><input type="radio" name="rp" data-rp="${k}" ${rp.reason === k ? "checked" : ""}> ${l}</label>`).join("")}</div>
+    <label class="f">Details (optional)<textarea id="rp-note" data-rpnote="1" maxlength="400">${esc(rp.note)}</textarea></label>
+    <div class="row"><button class="btn snap" data-a="reportSend">Send report</button><button class="btn ghost" data-a="muteAuthor" data-id="${esc(rp.author)}">${isMuted(rp.author) ? "Unmute this player" : "Mute this player"}</button></div>
+    <p class="muted small">Muting hides their posts from your feed. They aren't told.</p>`;
+}
+let reports = null;
+async function loadReports() {
+  reports = [];
+  try { const snap = await new Promise((res, rej) => { const un = store.db.collection("reports").onSnapshot((s) => { res(s); if (typeof un === "function") un(); }, rej); }); reports = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => num(b.at) - num(a.at)); }
+  catch { reports = null; toast("Couldn't load reports. Check the security rules."); }
+  render();
+}
+function vReports() {
+  if (reports === null && store.ownerUid === store.uid) { loadReports(); }
+  const list = arr(reports);
+  return `<section class="sec">${backBar("Reports")}
+    ${store.ownerUid !== store.uid ? `<p class="muted">Only the app owner can see reports.</p>` : list.length ? `<div class="list">${list.map((r) => { const post = arr(obj(shared.posts[r.author]).items).find((p) => p.id === r.post); return `<div class="li" style="flex-wrap:wrap"><div class="grow"><div class="t">${esc(obj(prof(r.author)).handle || "Player")} · ${esc(r.reason || "")}</div><div class="s">${post ? esc(String(post.text || "(no text)").slice(0, 140)) : "Post already removed"}${r.note ? " · “" + esc(r.note) + "”" : ""}</div></div>
+      <div class="row">${post ? `<button class="btn sm danger" data-a="modRemove" data-id="${esc(r.id)}">Remove post</button>` : ""}<button class="btn sm ghost" data-a="modDismiss" data-id="${esc(r.id)}">Dismiss</button></div></div>`; }).join("")}</div>` : `<div class="empty"><span>No reports. Nice.</span></div>`}</section>`;
+}
+function ownerPanel() {
+  if (store.mode !== "cloud" || store.provider !== "firebase") return "";
+  if (store.ownerUid === undefined) return `<section class="sec"><h2>App owner</h2><div class="panel stack small"><p>Paste the new security rules into Firebase (Firestore Database › Rules) to turn on owner-only editing of seasons and events, post reports and picture uploads.</p></div></section>`;
+  if (!store.ownerUid) return `<section class="sec"><h2>App owner</h2><div class="panel stack small"><p>Nobody owns this app yet. The owner is the only one who can edit seasons and events, and the one who sees post reports. Claim it now, from the account you'll always use. It can't be changed later from the app.</p><div><button class="btn snap" data-a="claimOwner">Make me the app owner</button></div></div></section>`;
+  if (store.ownerUid === store.uid) return `<section class="sec"><h2>App owner</h2><div class="panel stack small"><p>You're the app owner. You can edit seasons and events and review reported posts.</p><div><button class="btn" data-a="go" data-to="reports">Reported posts</button></div></div></section>`;
+  return "";
+}
+function dangerPanel() {
+  if (store.mode !== "cloud" || store.provider !== "firebase") return "";
+  return `<section class="sec"><h2>Delete account</h2><div class="panel stack small"><p>Deletes your profile, posts, decks, matches and everything else saved to your account, then removes the account itself. This can't be undone.</p>
+    <div><button class="btn ghost danger" data-a="deleteAccount">${ui.delArm ? "Tap again to delete everything" : "Delete my account"}</button></div></div></section>`;
+}
+async function deleteAccount() {
+  const uidNow = store.uid; if (!uidNow || !store.fb) return;
+  toast("Deleting your account…");
+  try {
+    const db = store.db, del = (p) => db.doc(p).delete().catch(() => {});
+    for (const wk of Object.keys(matchWeeks)) await del(`data/users/${uidNow}/matches/${wk}`);
+    for (const p of [`data/users/${uidNow}/state`, `profiles/${uidNow}`, `posts/${uidNow}`, `reactions/${uidNow}`, `decks/${uidNow}`, `followreq/${uidNow}`, `approvals/${uidNow}`, `images/${uidNow}`]) await del(p);
+    if (store.fb.deleteAccount) await store.fb.deleteAccount();
+    try { localStorage.clear(); } catch { /* ignore */ }
+    location.reload();
+  } catch (e) { toast(e && e.message ? e.message : "Couldn't delete the account. Sign in again and retry."); }
+}
+
+/* ============ Pictures stored in the database (Firebase version) ============ */
+const imgCache = {};
+function fsImage(uid) {
+  if (imgCache[uid] !== undefined) return imgCache[uid];
+  imgCache[uid] = "";
+  if (store.db) store.db.doc("images/" + uid).get().then((s) => { const d = s.exists ? s.data() || {} : {}; if (d.banner) { imgCache[uid] = d.banner; refreshView(); } }).catch(() => {});
+  return "";
+}
+const blobToDataUrl = (b) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(b); });
+const firebaseAssets = {
+  maxSize: (which) => (which === "banner" ? 900 : 160),
+  quality: (which) => (which === "banner" ? 0.72 : 0.8),
+  async upload(blob, which) {
+    const data = await blobToDataUrl(blob);
+    if (which === "banner") {
+      if (data.length > 390000) throw new Error("too big");
+      await store.db.doc("images/" + store.uid).set({ banner: data, updated: Date.now() });
+      imgCache[store.uid] = data; return { url: "", fs: store.uid };
+    }
+    return { url: data };
+  },
+};
 /* ============ Shared view bits ============ */
 function periodChips() { return `<div class="chips" role="group" aria-label="Time period">${periods().map((p) => `<button class="chip" data-a="period" data-v="${esc(p.id)}" aria-pressed="${ui.period === p.id}">${esc(p.label)}</button>`).join("")}</div>`; }
 function ring(v) {
@@ -1770,6 +2167,7 @@ function vHome() {
   <section class="sec">${wallet}</section>
   ${svSyncPanel()}
   ${eventsStrip()}
+  ${balanceHomePanel()}
   ${alerts.length ? `<section class="sec"><div class="sec-h"><h2>Wishlist alerts</h2><button class="btn sm ghost" data-a="go" data-to="shops">Shops</button></div><div class="list">${alerts.slice(0, 4).map(alertRow).join("")}</div></section>` : ""}
   <section class="sec"><h2>Match stats</h2>${periodChips()}${statsBlock}</section>
   ${pm.some((m) => m.tracked) ? cardLocSection(pm) : ""}
@@ -1790,9 +2188,9 @@ function cardLocSection(pm) {
   return `<section class="sec"><h2>Cards & locations</h2><p class="muted small">From matches you tracked live: how often you played each card, your win rate when you did, and the power it reached.</p>${seg}${body}</section>`;
 }
 function alertRow(a) {
-  const price = `${fmt(a.o.price)} ${CURR[a.o.currency] || ""}`;
-  const status = a.have === null ? `<span class="pill dim">Real-money offer</span>` : a.short === 0 ? `<span class="pill W">You can afford it</span>` : `<span class="pill warn">Need ${fmt(a.short)} more</span>`;
-  return `<div class="alert"><span class="dot ${a.short === 0 ? "ok-bg" : "short-bg"}"></span><div class="grow" style="min-width:0;flex:1"><div style="font-weight:600">${esc(a.w.name)}</div><div class="muted small">${esc(a.w.kind)} in ${esc(SHOPS[a.o.shop] || a.o.shop)} · ${esc(price)}${a.have !== null ? ` · you have ${fmt(a.have)}` : ""}${a.o.expires ? ` · until ${esc(dateStr(a.o.expires))}` : ""}</div></div>${status}</div>`;
+  const price = a.o.auto ? offerPrice(a.o) : `${fmt(a.o.price)} ${CURR[a.o.currency] || ""}`;
+  const status = a.have === null ? `<span class="pill dim">${a.o.currency === "event" ? "Event shop" : "Real-money offer"}</span>` : a.short === 0 ? `<span class="pill W">You can afford it</span>` : `<span class="pill warn">Need ${fmt(a.short)} more</span>`;
+  return `<div class="alert"><span class="dot ${a.short === 0 ? "ok-bg" : "short-bg"}"></span><div class="grow" style="min-width:0;flex:1"><div style="font-weight:600">${esc(a.w.name)}</div><div class="muted small">${esc(a.w.kind)} in ${esc(SHOPS[a.o.shop] || a.o.shop)}${a.o.title ? " · " + esc(a.o.title) : ""} · ${esc(price)}${a.have !== null ? ` · you have ${fmt(a.have)}` : ""}${a.o.expires ? ` · until ${esc(dateStr(a.o.expires))}` : ""}</div></div>${status}</div>`;
 }
 
 /* ============ Play: live tracker ============ */
@@ -1987,6 +2385,7 @@ function vCardGrid() {
   list = list.filter((c) => cardMatches(c, ui.cardQ)
     && (["all", "custom"].includes(ui.cardFilter) || (ui.cardFilter === "unknown" && (c.unknownName || c.cost === "?")) || (ui.cardFilter === "owned" && S.owned[c.key]) || (ui.cardFilter === "missing" && !S.owned[c.key] && !c.upcoming) || (ui.cardFilter === "wish" && S.wishCards[c.key]) || (ui.cardFilter === "fav" && (S.favCards[c.key] || favVariant(c.key))) || (ui.cardFilter === "upcoming" && c.upcoming))
     && (ui.cardFilter === "upcoming" || ui.cardFilter === "custom" || ui.cardFilter === "wish" || !c.upcoming || showSoon())
+    && (!ui.cardSeries || seriesOf(c) === ui.cardSeries)
     && (ui.cardCost === "any" || (ui.cardCost === "6" ? num(c.cost) >= 6 : String(c.cost) === ui.cardCost))
     && (c.power === "?" || (num(c.power) >= pMin && num(c.power) <= pMax)));
   const vcount = (k) => S.variants.filter((v) => v.card === k && v.owned).length;
@@ -1996,6 +2395,7 @@ function vCardGrid() {
   return `<section class="sec">
     <div class="panel stack halftone" style="gap:6px"><div class="row between"><span class="eyebrow">Cards owned</span><span class="num" style="font-weight:800">${ownedN} / ${all.length} · ${pct(ownedN, all.length)}%</span></div>${passBar(ownedN, all.length)}
       <p class="muted small">Stats change with balance patches: tap any card to edit it.</p><div class="row"><label class="btn sm snap">Sync from SnapVault<input type="file" accept=".json,application/json,text/plain" data-svquick="1" hidden></label><button class="btn sm ghost" data-a="svOpen">Preview an export first</button></div></div>
+    ${ui.cardFilter === "custom" ? "" : seriesPanel()}
     ${missingBanner()}
     <input type="search" id="card-q" data-ui="cardQ" value="${esc(ui.cardQ)}" placeholder="Search name, ability, variant, artist, rarity" aria-label="Search cards">
     <div class="chips">${f("all", "All")}${f("owned", "Owned")}${f("missing", "Missing")}${f("wish", "Wishlist")}${f("fav", "Favorites")}${f("custom", "Custom")}${f("upcoming", "Coming soon")}${f("unknown", "Needs details")}</div>
@@ -2004,7 +2404,7 @@ function vCardGrid() {
       <label class="f">Sort<select id="card-sort" data-uisel="cardSort">${[["cost", "Cost"], ["power", "Power"], ["name", "Name"], ["newest", "Newest"], ["variants", "Variants owned"]].map(([v, l]) => `<option value="${v}" ${ui.cardSort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
     <label class="check"><input type="checkbox" data-soonchk ${showSoon() ? "checked" : ""}> Show cards and variants that aren't out yet</label>
     <div class="row between"><label class="check"><input type="checkbox" data-uichk="quickOwn" ${ui.quickOwn ? "checked" : ""}> Quick mark: tap to switch owned / missing</label>${ui.cardFilter === "custom" ? `<button class="btn sm" data-a="go" data-to="custom">${ICON.plus} Design a card</button>` : `<button class="btn sm" data-a="cardAdd">${ICON.plus} Add card</button>`}</div>
-    <span class="muted small">${list.length} card${list.length === 1 ? "" : "s"}</span>
+    <div class="row between"><span class="muted small">${list.length} card${list.length === 1 ? "" : "s"}</span>${ui.cardSeries ? `<button class="chip" data-a="seriesClear" aria-pressed="true">${esc(ui.cardSeries)} ✕</button>` : ""}</div>
     ${list.length ? `<div class="cgrid">${list.slice(0, 800).map((c) => gridTile(cardFace(c, { a: c.custom ? "cdEdit" : ui.quickOwn ? "toggleOwn" : "cardOpen", cls: c.custom || S.owned[c.key] ? "own" : c.upcoming ? "" : "miss", extra: c.custom ? `data-id="${esc(c.key.slice(7))}"` : "", variant: favVariant(c.key), badges: c.upcoming ? `<span class="tag l pill gold" style="font-size:10px">Soon</span>` : "" }), c.name, c.custom ? "" : starBtn("wishCard", `data-k="${esc(c.key)}"`, !!S.wishCards[c.key], c.name))).join("")}</div>`
       : `<div class="empty"><strong>No cards match</strong><span>Clear the search or filters, or add a card that's missing from the list.</span></div>`}</section>`;
 }
@@ -2028,7 +2428,8 @@ function cardSheet(k) {
     <div class="row"><button class="btn sm" data-a="cardSaveEdit" data-k="${esc(k)}">Save card details</button>${S.cardEdits[k] ? `<button class="btn sm ghost" data-a="cardResetEdit" data-k="${esc(k)}">Reset to starter details</button>` : ""}${c.added ? `<button class="btn sm danger" data-a="cardDelete" data-k="${esc(k)}">Remove card</button>` : ""}</div>
     ${inDecks.length ? `<p class="small muted">In ${inDecks.length} deck${inDecks.length > 1 ? "s" : ""}: ${inDecks.map((d) => esc(d.name)).join(", ")}</p>` : ""}
     <div class="sec-h"><h3>Variants</h3><button class="btn sm" data-a="varNew" data-k="${esc(k)}">${ICON.plus} Add variant</button></div>
-    ${vs.length ? `<p class="muted small num">${vs.filter((v) => v.owned).length} of ${vs.length} owned</p><div class="list">${vs.map(variantRow).join("")}</div>` : `<p class="muted small">No variants tracked for this card yet.</p>`}`;
+    ${vs.length ? `<p class="muted small num">${vs.filter((v) => v.owned).length} of ${vs.length} owned</p><div class="list">${vs.map(variantRow).join("")}</div>` : `<p class="muted small">No variants tracked for this card yet.</p>`}
+    ${cardHistoryHtml(k)}`;
   };
 }
 function variantRow(v) {
@@ -2128,7 +2529,8 @@ function vDecks() {
     <button class="btn" data-a="svOpen">Import from SnapVault</button>
     <div class="chips">${chip("all", "All")}${chip("active", "Ready")}${chip("draft", "Drafts")}${chip("future", "Future")}</div></section>
   <section class="sec">${list.length ? `<div class="list">${list.map((d) => { const r = statsFor(deckMatches(d)); const avg = avgCost(d.cards); return `<button class="li" data-a="deckOpen" data-id="${esc(d.id)}">${deckCover(d)}<div class="grow"><div class="t">${esc(d.name)} ${d.status !== "active" ? `<span class="pill dim">${DECK_STATUS[d.status]}</span>` : ""}${S.me.featuredDeck === d.id ? ` <span class="pill gold">Featured</span>` : ""}${d.public ? ` <span class="pill dim">Public</span>` : ""}${d.example ? ` <span class="pill dim">Example</span>` : ""}</div><div class="s">${d.cards.length}/12 cards · avg cost ${avg}${r.games ? ` · ${r.w}-${r.l}-${r.t}` : ""}${d.svRecord && (d.svRecord.w || d.svRecord.l) ? ` · SnapVault ${num(d.svRecord.w)}-${num(d.svRecord.l)}` : ""}${d.from ? " · from " + esc(d.from) : ""}</div></div>${r.games ? `<span class="num" style="font-weight:800">${r.wr}%</span>` : ""}</button>`; }).join("")}</div>`
-    : `<div class="empty"><strong>No decks here</strong><span>Build one from your cards, paste a code copied from the game, draft one, or let AI build it.</span></div>`}</section>`;
+    : `<div class="empty"><strong>No decks here</strong><span>Build one from your cards, paste a code copied from the game, draft one, or let AI build it.</span></div>`}</section>
+  ${metaSection()}`;
 }
 function avgCost(keys) { const cs = keys.map(card).filter((c) => c.cost !== "?" && c.cost !== ""); const miss = keys.length - cs.length; return (cs.length ? (cs.reduce((s, c) => s + num(c.cost), 0) / cs.length).toFixed(1) : "—") + (miss ? ` (${miss} missing cost)` : ""); }
 function curveHtml(keys) {
@@ -2152,14 +2554,14 @@ function deckCardsHtml(d) {
   return `<label class="f">Deck name<input type="text" id="de-name" data-deck="name" value="${esc(d.name)}"></label>
     <div class="seg">${Object.entries(DECK_STATUS).map(([v, l]) => `<button data-a="deckStatus" data-v="${v}" aria-pressed="${d.status === v}">${l}</button>`).join("")}</div>
     <div class="row between"><span class="muted small">Avg cost ${avg}${missing ? ` · ${missing} not owned` : ""}</span><button class="btn sm" data-a="deckCover">Cover: ${esc(card(d.cover || d.cards[0] || "").name || "none")}</button></div>
-    <div class="list">${cs.map((k) => { const c = card(k); const vs = S.variants.filter((v) => v.card === k && v.owned); const cur = obj(d.variants)[k] || ""; return `<div class="li">${cardChip(k)}<div class="grow"></div>${c.custom ? `<span class="pill dim">Custom</span>` : vs.length ? `<select data-deckvar="${esc(k)}" aria-label="Variant for ${esc(c.name)}" style="width:auto;max-width:46%;padding:5px 8px;font-size:13px"><option value="">${favVariant(k) ? "Favorite: " + esc(favVariant(k).name) : "Default"}</option>${vs.map((v) => `<option value="${esc(v.id)}" ${cur === v.id ? "selected" : ""}>${esc(v.name + byArtist(v))}</option>`).join("")}</select>` : ""}<button class="x" data-a="deckRemove" data-k="${esc(k)}" aria-label="Remove ${esc(c.name)}">${ICON.x}</button></div>`; }).join("") || `<div class="li muted small">No cards yet.</div>`}</div>
+    <div class="list">${cs.map((k) => { const c = card(k); const vs = S.variants.filter((v) => v.card === k && v.owned); const cur = obj(d.variants)[k] || ""; return `<div class="li">${cardChip(k)}${(() => { const x = recentChange(k, 30); return x ? `<span class="pill ${BAL_PILL[x.kind]}" title="${esc(dateStr(x.date))}: ${statLine(x.from)} → ${statLine(x.to)}">${BAL_LABEL[x.kind]}</span>` : ""; })()}<div class="grow"></div>${c.custom ? `<span class="pill dim">Custom</span>` : vs.length ? `<select data-deckvar="${esc(k)}" aria-label="Variant for ${esc(c.name)}" style="width:auto;max-width:46%;padding:5px 8px;font-size:13px"><option value="">${favVariant(k) ? "Favorite: " + esc(favVariant(k).name) : "Default"}</option>${vs.map((v) => `<option value="${esc(v.id)}" ${cur === v.id ? "selected" : ""}>${esc(v.name + byArtist(v))}</option>`).join("")}</select>` : ""}<button class="x" data-a="deckRemove" data-k="${esc(k)}" aria-label="Remove ${esc(c.name)}">${ICON.x}</button></div>`; }).join("") || `<div class="li muted small">No cards yet.</div>`}</div>
     <button class="btn" data-a="deckAddCards">${ICON.plus} Add cards</button>
     ${cs.length ? curveHtml(cs) : ""}${cs.length ? `<div class="row">${tagSummary(cs)}</div>` : ""}
     ${hasCustom ? `<p class="note">Custom cards stay in the app. They're left out of the code you paste into the game.</p>` : ""}
     <label class="toggle-row check"><span>Public: show this deck and its record when others compare decks</span><input type="checkbox" data-deckchk="public" ${d.public ? "checked" : ""}></label>
     <label class="toggle-row check"><span>Featured deck on my profile</span><input type="checkbox" data-deckchk="featured" ${S.me.featuredDeck === d.id ? "checked" : ""}></label>
     <div class="grid2"><button class="btn snap" data-a="deckCopy" ${cs.length ? "" : "disabled"}>${ICON.copy} Copy deck code</button><button class="btn" data-a="deckCopyList" ${cs.length ? "" : "disabled"}>${ICON.copy} Copy card list</button>
-    <button class="btn" data-a="aiImprove">${ICON.spark} Improve with AI</button><button class="btn" data-a="postDeck" ${cs.length ? "" : "disabled"}>Post to feed</button></div>
+    <button class="btn" data-a="aiImprove">${ICON.spark} Improve with AI</button><button class="btn" data-a="postDeck" ${cs.length ? "" : "disabled"}>Post to feed</button><button class="btn" data-a="deckImage" ${cs.length ? "" : "disabled"}>Share as a picture</button></div>
     <button class="btn" data-a="deckDup">Duplicate</button>
     <p class="muted small">The deck code is in the game's own format: paste it in the game's deck menu. The card list shows your favorite variant for each card, for sharing anywhere else.</p>
     <button class="btn danger" data-a="deckDelete">${d.confirmDel ? "Tap again to delete this deck" : "Delete deck"}</button>`;
@@ -2326,7 +2728,7 @@ function onboardSheet() {
 /* ============ Social ============ */
 function allPosts() {
   const out = [];
-  for (const [author, doc] of Object.entries(shared.posts)) { if (!canSee(author)) continue; for (const p of arr(doc.items).slice(0, 80)) if (p && p.id) out.push({ ...p, author }); }
+  for (const [author, doc] of Object.entries(shared.posts)) { if (!canSee(author) || (author !== store.uid && isMuted(author))) continue; for (const p of arr(doc.items).slice(0, 80)) if (p && p.id) out.push({ ...p, author }); }
   return out.sort((a, b) => num(b.ts) - num(a.ts));
 }
 function reactionsFor(author, id) {
@@ -2383,7 +2785,7 @@ function postHtml(p) {
   return `<article class="post"><div class="post-h"><button data-a="profileOpen" data-id="${esc(p.author)}" style="background:none;border:0;padding:0">${avatarHtml(pr.avatar, handleOf(p.author), p.author)}</button><div class="who"><b>${esc(handleOf(p.author))}</b><span class="muted small">${pr.country ? flag(pr.country) + " " : ""}${pr.alliance ? esc(pr.alliance) + " · " : ""}${esc(ago(num(p.ts)))}</span></div>${POST_LABEL[p.type] ? `<span class="pill dim">${POST_LABEL[p.type]}</span>` : ""}</div>
     ${p.text ? `<div class="body">${esc(p.text)}</div>` : ""}${att}
     <div class="acts"><button class="${r.mine === 1 ? "on" : ""}" data-a="react" data-v="1" data-k="${esc(r.k)}" aria-pressed="${r.mine === 1}" aria-label="Like">${ICON.up}${r.likes || ""}</button><button class="down ${r.mine === -1 ? "on" : ""}" data-a="react" data-v="-1" data-k="${esc(r.k)}" aria-pressed="${r.mine === -1}" aria-label="Dislike">${ICON.down}${r.dislikes || ""}</button><button data-a="toggleComments" data-k="${esc(r.k)}">${ICON.talk}${r.comments.length || ""}</button>
-    ${p.author === store.uid ? `<button data-a="postDelete" data-id="${esc(p.id)}" style="margin-left:auto">Delete</button>` : ""}</div>
+    ${p.author === store.uid ? `<button data-a="postDelete" data-id="${esc(p.id)}" style="margin-left:auto">Delete</button>` : store.mode === "cloud" ? `<button data-a="reportOpen" data-k="${esc(p.author)}" data-id="${esc(p.id)}" style="margin-left:auto">Report</button>` : ""}</div>
     ${open ? `<div class="stack">${r.comments.map((c) => `<div class="cmt"><b>${esc(handleOf(c.who))}</b><span style="overflow-wrap:anywhere">${esc(c.text)}</span></div>`).join("")}
       <div class="row nowrap"><input type="text" id="cm-${esc(r.k.replace(/[^a-zA-Z0-9]/g, ""))}" placeholder="Add a comment" aria-label="Add a comment"><button class="btn sm" data-a="comment" data-k="${esc(r.k)}">Send</button></div></div>` : ""}</article>`;
 }
@@ -2413,7 +2815,7 @@ function profileSheet(id) {
     return `${sheetHead(esc(p.handle || "Player"), [p.name, p.country ? flag(p.country) + " " + countryName(p.country) : ""].filter(Boolean).map(esc).join(" · "))}
       ${bannerHtml(p.banner, p.handle)}
       <div class="prof-head">${avatarHtml(p.avatar, p.handle, id, "lg")}<div class="stack" style="gap:2px;flex:1;min-width:0"><span class="small muted">${[p.alliance, p.snapId ? "ID " + p.snapId : ""].filter(Boolean).map(esc).join(" · ")}</span><span class="small">${followersOf(id).length} followers · ${arr(p.following).length} following${p.colLevel ? ` · CL ${fmt(p.colLevel)}` : ""}</span></div>${rankBadge(p.rank)}</div>
-      <div class="row">${isMe ? `<button class="btn sm" data-a="go" data-to="account">Edit profile</button>` : followBtn(id)}${p.visibility === "private" ? `<span class="pill dim">${ICON.lock} Private</span>` : ""}${p.peak ? `<span class="pill gold">Peak ${esc(p.peak)}</span>` : ""}</div>
+      <div class="row">${isMe ? `<button class="btn sm" data-a="go" data-to="account">Edit profile</button>` : followBtn(id) + `<button class="btn sm ghost" data-a="muteAuthor" data-id="${esc(id)}">${isMuted(id) ? "Unmute" : "Mute"}</button>`}${p.visibility === "private" ? `<span class="pill dim">${ICON.lock} Private</span>` : ""}${p.peak ? `<span class="pill gold">Peak ${esc(p.peak)}</span>` : ""}</div>
       ${!see ? `<div class="empty"><strong>${ICON.lock} This profile is private</strong><span>Send a follow request. Once approved you'll see their stats, decks and posts.</span></div>` : `
       <div class="tiles">${blk("All time", st.all)}${blk(p.seasonLabel || "This season", st.season)}${blk("Last 30", st.d30)}</div>
       ${pass ? `<div class="stack" style="gap:4px"><span class="small">Season pass level <b>${num(pass.level)}</b> / ${num(pass.of)}${pass.tier && pass.tier !== "free" ? " · " + esc(PASS_TIERS[pass.tier] || "") : ""}</span>${passBar(num(pass.level), num(pass.of) || 50)}</div>` : ""}
@@ -2478,7 +2880,7 @@ function composeSheet() {
 }
 /* ============ More ============ */
 function vMore() {
-  if (ui.more) return { shops: vShops, promos: vPromos, seasons: vSeasons, events: vEvents, locations: vLocations, custom: vCustom, account: vAccount, about: vAbout }[ui.more]();
+  if (ui.more) return { shops: vShops, promos: vPromos, seasons: vSeasons, events: vEvents, locations: vLocations, balance: vBalance, reports: vReports, custom: vCustom, account: vAccount, about: vAbout }[ui.more]();
   const item = (to, t, s) => `<button class="li" data-a="go" data-to="${to}"><div class="grow"><div class="t">${t}</div><div class="s">${s}</div></div><span class="muted">›</span></button>`;
   const alerts = wishAlerts().length; const promos = promoList().filter((p) => p.status === "active" && !S.redeemed[p.id]).length;
   const cs = currentSeason(); const liveEv = events().filter((e) => timeState(e) === "live").length;
@@ -2486,6 +2888,8 @@ function vMore() {
     ${item("seasons", "Seasons, ranks & passes", cs ? `${esc(cs.name)} · ends in ${esc(countdown(cs.endTs))}` : `${seasons().length} tracked`)}
     ${item("events", "Events & limited-time modes", liveEv ? `${liveEv} live now` : `${events().length} tracked`)}
     ${item("locations", "Locations", allLocations().length ? `${allLocations().filter((l) => !l.soon).length} locations, their effects and how you do on them` : "How you do on each location")}
+    ${item("balance", "Balance changes", (() => { const n = balanceChanges().filter((x) => x.date >= localDate(Date.now() - 14 * DAY) && deckCardKeys().has(x.key)).length; return n ? `${n} change${n > 1 ? "s" : ""} to cards in your decks lately` : "Every buff, nerf and rework"; })())}
+    ${store.ownerUid && store.ownerUid === store.uid ? item("reports", "Reported posts", "Review what players reported") : ""}
     ${item("shops", "Shops & wishlist alerts", alerts ? `${alerts} wishlist item${alerts > 1 ? "s" : ""} on sale` : "Credits, gold, tokens and current offers")}
     ${item("promos", "Promo codes", promos ? `${promos} active code${promos > 1 ? "s" : ""} you haven't redeemed` : "Codes for the web shop")}
     ${item("custom", "Custom cards", `${S.custom.length} designed`)}
@@ -2500,6 +2904,7 @@ function vAbout() {
     <p>SNAP Stat is an unofficial fan-made app. It is not affiliated with, endorsed, sponsored or approved by Marvel or Second Dinner.</p>
     <p>MARVEL SNAP and all related names, characters, cards and images are trademarks and copyrights of their respective owners and are used here only to identify them.</p>
     ${showArt() ? `<p class="muted small">Card art, variant art, card details and the variant list are loaded from Marvel Snap Zone (marvelsnapzone.com), a fan site. The art belongs to Marvel and Second Dinner. SNAP Stat doesn't store or host it, and shows a styled tile when it can't load.</p>` : `<p class="muted small">SNAP Stat doesn't use official card art or logos. Card tiles, avatars and banners are drawn by the app or uploaded by players.</p>`}
+    ${window.SNAPSTAT_STANDALONE ? `<p class="small">${privacyLink()}</p>` : ""}
     <p class="muted small">Card, season and event details are entered by players or gathered from public community sources${showArt() ? " (Marvel Snap Zone for cards, variants and locations; snap.fan for seasons and limited-time events)" : ""}, and may be incomplete or out of date. Season dates from snap.fan are estimated.</p></div></section>`;
 }
 /* Locations: every one in the game (from the card data file) plus your results on each */
@@ -2537,8 +2942,8 @@ function vSeasons() {
   return `<section class="sec">${backBar("Seasons")}
     <p class="muted small">Each season's dates, pass card, new cards, variants and rewards, plus your rank, pass level and what you collected.${store.mode === "cloud" ? " Season info is shared with everyone using this app." : ""}</p>
     ${stateTabs("seasonTab", counts)}
-    ${list.length ? `<div class="list">${list.map(seasonRow).join("")}</div>` : `<div class="empty"><span>${ui.seasonTab === "current" ? "No season running right now in your list." : ui.seasonTab === "upcoming" ? "No upcoming seasons added yet." : "No past seasons added yet."}</span>${store.provider === "firebase" && store.mode === "cloud" && !seasons().length && !events().length ? `<button class="btn snap" data-a="loadSeed">Load season & event history</button>` : ""}</div>`}
-    <button class="btn snap" data-a="seasonNew">${ICON.plus} Add season</button></section>`;
+    ${list.length ? `<div class="list">${list.map(seasonRow).join("")}</div>` : `<div class="empty"><span>${ui.seasonTab === "current" ? "No season running right now in your list." : ui.seasonTab === "upcoming" ? "No upcoming seasons added yet." : "No past seasons added yet."}</span>${store.provider === "firebase" && store.mode === "cloud" && canEditShared() && !seasons().length && !events().length ? `<button class="btn snap" data-a="loadSeed">Load season & event history</button>` : ""}</div>`}
+    ${canEditShared() ? `<button class="btn snap" data-a="seasonNew">${ICON.plus} Add season</button>` : `<p class="muted small">Seasons fill in automatically. The app owner can add or fix them.</p>`}</section>`;
 }
 function seasonRow(s) {
   const st = timeState(s); const p = obj(S.passes[s.id]); const r = obj(S.ranks["s:" + s.id]); const items = collectibleItems(s); const got = items.filter((it) => findCollectible(it, s.name).owned).length;
@@ -2565,7 +2970,7 @@ function seasonSheet() {
     ${items.length ? collectibleList(items, s.name) : `<p class="muted small">No rewards listed. Edit the season to add them.</p>`}
     ${evs.length ? `<h3>Events this season</h3><div class="list">${evs.map((e) => `<button class="li" data-a="eventOpen" data-id="${esc(e.id)}"><div class="grow"><div class="t">${esc(e.name)}</div><div class="s">${esc(EVENT_TYPES[e.type] || "Event")} · ${esc(dateStr(e.start))}${e.end ? " – " + esc(dateStr(e.end)) : ""}</div></div><span class="muted">›</span></button>`).join("")}</div>` : ""}
     ${s.notes ? `<p class="small muted" style="white-space:pre-wrap">${esc(s.notes)}</p>` : ""}${srcLink(s)}
-    <div class="row"><button class="btn" data-a="seasonEdit">Edit season info</button></div>`;
+    ${canEditShared() ? `<div class="row"><button class="btn" data-a="seasonEdit">Edit season info</button></div>` : ""}`;
 }
 let lastColl = { items: [], src: "" };
 function collectibleList(items, srcName) {
@@ -2594,8 +2999,8 @@ function vEvents() {
     <p class="muted small">Events and limited-time game modes with their dates, reward tracks and collectibles, plus your progress on each pass.${store.mode === "cloud" ? " Event info is shared with everyone using this app." : ""}</p>
     ${stateTabs("eventTab", counts)}
     ${list.length ? `<div class="list">${list.map((e) => { const st = timeState(e); const pr = obj(S.eventProg[e.id]); const items = collectibleItems(e); const got = items.filter((it) => findCollectible(it, e.name).owned).length; return `<button class="li" data-a="eventOpen" data-id="${esc(e.id)}"><span class="pill ${st === "live" ? "live" : "dim"}">${st === "live" ? "LIVE" : esc(dayStr(e.startTs))}</span><div class="grow"><div class="t">${esc(e.name)}</div><div class="s">${esc(EVENT_TYPES[e.type] || "Event")} · ${st === "live" ? "ends in " + esc(countdown(e.endTs)) : st === "upcoming" ? "starts in " + esc(countdown(e.startTs)) : esc(dateStr(e.start))}${items.length ? ` · ${got}/${items.length} collected` : ""}${num(e.passLevels) ? ` · pass ${num(pr.level)}/${num(e.passLevels)}` : ""}</div></div><span class="muted">›</span></button>`; }).join("")}</div>`
-      : `<div class="empty"><span>${ui.eventTab === "current" ? "Nothing live right now in your list." : ui.eventTab === "upcoming" ? "No upcoming events added yet." : "No past events added yet."}</span>${store.provider === "firebase" && store.mode === "cloud" && !seasons().length && !events().length ? `<button class="btn snap" data-a="loadSeed">Load season & event history</button>` : ""}</div>`}
-    <button class="btn snap" data-a="eventNew">${ICON.plus} Add event or mode</button></section>`;
+      : `<div class="empty"><span>${ui.eventTab === "current" ? "Nothing live right now in your list." : ui.eventTab === "upcoming" ? "No upcoming events added yet." : "No past events added yet."}</span>${store.provider === "firebase" && store.mode === "cloud" && canEditShared() && !seasons().length && !events().length ? `<button class="btn snap" data-a="loadSeed">Load season & event history</button>` : ""}</div>`}
+    ${canEditShared() ? `<button class="btn snap" data-a="eventNew">${ICON.plus} Add event or mode</button>` : `<p class="muted small">Events fill in automatically. The app owner can add or fix them.</p>`}</section>`;
 }
 let ee = null;
 function eventSheet() {
@@ -2613,7 +3018,7 @@ function eventSheet() {
       ${stat.games ? `<span class="small">Logged event games: ${stat.w}-${stat.l}-${stat.t} · ${stat.wr}%</span>` : `<span class="muted small">Log games with mode “Event” or “Limited-time mode” during these dates to see your record here.</span>`}</div>` : ""}
     <div class="sec-h"><h3>Rewards & collectibles</h3><span class="muted small">${got}/${items.length} collected</span></div>
     ${items.length ? collectibleList(items, e.name) : `<p class="muted small">No rewards listed. Edit the event to add them.</p>`}
-    <div class="row"><button class="btn" data-a="eventEdit">Edit event info</button></div>`;
+    ${canEditShared() ? `<div class="row"><button class="btn" data-a="eventEdit">Edit event info</button></div>` : ""}`;
 }
 function eventEditHtml() {
   return `${sheetHead(ee.isNew ? "Add event or mode" : "Edit event")}
@@ -2634,6 +3039,7 @@ function vShops() {
     <div class="grid3">${[["credits", "Credits"], ["gold", "Gold"], ["tokens", "Collector's Tokens"]].map(([k, l]) => `<label class="f">${l}<input type="number" id="w-${k}" data-bind="wallet.${k}" data-num="1" value="${esc(S.wallet[k])}" inputmode="numeric"></label>`).join("")}</div>
     <p class="muted small">Update these from the game when they change. Alerts compare offer prices against them.</p></section>
   <section class="sec"><h2>Wishlist alerts</h2><div id="shop-alerts">${shopAlertsHtml()}</div></section>
+  ${autoShopSection()}
   ${byShop.map(({ s, list }) => `<section class="sec"><h2>${SHOPS[s]}</h2>${list.length ? `<div class="list">${list.map((o) => { const exp = o.expires && dayEnd(o.expires) < now; return `<div class="li"><div class="grow"><div class="t">${esc(o.item)}</div><div class="s">${esc(o.kind)} · ${fmt(o.price)} ${esc(CURR[o.currency] || "")}${o.expires ? ` · ${exp ? "ended" : "until"} ${esc(dateStr(o.expires))}` : ""}</div></div>${exp ? `<span class="pill dim">Ended</span>` : ""}<button class="x" data-a="offerDel" data-id="${esc(o.id)}" aria-label="Remove offer">${ICON.x}</button></div>`; }).join("")}</div>` : `<p class="muted small">No offers added.</p>`}</section>`).join("")}
   <section class="sec"><div class="panel stack"><h3>Add an offer you see in game</h3>
     <div class="grid2"><label class="f">Shop<select id="no-shop">${Object.entries(SHOPS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select></label><label class="f">Type<select id="no-kind">${["Card", "Variant", "Card back", "Avatar", "Title", "Emote", "Bundle"].map((x) => `<option>${x}</option>`).join("")}</select></label></div>
@@ -2703,11 +3109,15 @@ function vAccount() {
   <section class="sec"><h2>Account</h2><div class="panel stack small">
     ${store.provider === "firebase" ? `<p><b>${accountLine()}</b></p><p>${store.mode === "cloud" ? "Your data follows you to any device where you sign in." : "Sign in to keep your data across devices and use the social features. Anything saved here moves into your account when you sign in."}</p>${store.mode === "cloud" ? `<div><button class="btn sm" data-a="signOut">Sign out</button></div>` : store.fb ? `<div><button class="btn sm snap" data-a="signIn">Sign in</button></div>` : ""}`
       : `<p>${store.mode === "cloud" ? "You're signed in with your Claude account, and your data follows you across devices." : "Your data is saved on this device. Open the app signed in to Claude to keep it across devices and use the social features."}</p>`}
-    <p>MARVEL SNAP doesn't offer a public sign-in that outside apps can connect to. Trackers that sync on their own read the files the game writes on a PC install, so they don't work from a phone. Your user ID here is for friends to find you.</p></div></section>
+    <p>MARVEL SNAP has no official way for other apps to read your account. To bring in your collection and decks, use SnapVault sync on the Home screen.</p></div></section>
+  ${aiPanel()}${appPanel()}${ownerPanel()}
   <section class="sec"><h2>Backup</h2><div class="row"><button class="btn" data-a="backupCopy">${ICON.copy} Copy backup</button>${store.downloads ? `<button class="btn" data-a="backupSave">Save backup file</button>` : ""}<button class="btn" data-a="restoreOpen">Restore</button><button class="btn" data-a="svOpen">Import from SnapVault</button></div>
     ${allMatches().some((m) => m.example) || S.decks.some((d) => d.example) ? `<button class="btn ghost" data-a="clearExamples">Clear example data</button>` : ""}
-    <button class="btn ghost danger" data-a="resetAll">${ui.resetArm ? "Tap again to erase everything" : "Erase all my data"}</button></section>`;
+    <button class="btn ghost danger" data-a="resetAll">${ui.resetArm ? "Tap again to erase everything" : "Erase all my data"}</button></section>
+  ${dangerPanel()}
+  <section class="sec"><p class="muted small">${privacyLink()} · <a href="#about">About & legal</a></p></section>`;
 }
+function privacyLink() { return window.SNAPSTAT_STANDALONE ? `<a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a>` : "Privacy: your data stays in your Claude account"; }
 /* ============ SnapVault import ============ */
 const sv = { text: "", res: null, err: "", owned: true, decks: true, showAll: false };
 function ensureCodeCard(code) {
@@ -2837,7 +3247,7 @@ function render() {
   updateBadge();
 }
 const TABS = Object.keys(VIEWS);
-const MORE = ["shops", "promos", "seasons", "events", "locations", "custom", "account", "about"];
+const MORE = ["shops", "promos", "seasons", "events", "locations", "balance", "reports", "custom", "account", "about"];
 function route() {
   const h = location.hash.slice(1);
   if (TABS.includes(h)) { ui.tab = h; ui.more = null; } else if (MORE.includes(h)) { ui.tab = "more"; ui.more = h; } else { ui.tab = "home"; ui.more = null; }
@@ -2875,12 +3285,12 @@ async function uploadImage(file, which) {
   try {
     const url = URL.createObjectURL(file);
     const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
-    const max = which === "banner" ? 1400 : 480; const sc = Math.min(1, max / Math.max(img.width, img.height));
+    const max = store.assets.maxSize ? store.assets.maxSize(which) : which === "banner" ? 1400 : 480; const sc = Math.min(1, max / Math.max(img.width, img.height));
     const cv = document.createElement("canvas"); cv.width = Math.round(img.width * sc); cv.height = Math.round(img.height * sc);
     cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url);
-    const blob = await new Promise((res) => cv.toBlob(res, "image/jpeg", 0.85));
-    const r = await store.assets.upload(blob);
-    S.me[which] = { kind: "img", url: r.url, id: r.id }; save(); render(); toast(which === "banner" ? "Banner updated" : "Profile picture updated");
+    const blob = await new Promise((res) => cv.toBlob(res, "image/jpeg", store.assets.quality ? store.assets.quality(which) : 0.85));
+    const r = await store.assets.upload(blob, which);
+    S.me[which] = r.fs ? { kind: "img", fs: r.fs } : { kind: "img", url: r.url, id: r.id }; save(); render(); toast(which === "banner" ? "Banner updated" : "Profile picture updated");
   } catch (e) { toast(e && e.code === "quota_exceeded" ? "Storage is full, so the picture wasn't saved." : "Couldn't upload that picture. Try a smaller image."); }
 }
 
@@ -3033,6 +3443,26 @@ const A = {
   },
   wishCard: (el) => { const k = el.dataset.k; if (S.wishCards[k]) delete S.wishCards[k]; else S.wishCards[k] = true; save(); if (ui.cardFilter === "wish") render(); else starFlip(el, !!S.wishCards[k]); },
   wishVar: (el) => { const v = materializeVar(el.dataset.id); if (!v) return; v.wish = !v.wish; save(); if (ui.varFilter === "wish") render(); else starFlip(el, v.wish); },
+  balFilter: (el) => { ui.balFilter = el.dataset.v; render(); },
+  seriesFilter: (el) => { const v = el.dataset.v; if (ui.cardSeries === v) { ui.cardSeries = ""; ui.cardFilter = "all"; } else { ui.cardSeries = v; ui.cardFilter = "missing"; } render(); },
+  seriesClear: () => { ui.cardSeries = ""; render(); },
+  deckImage: () => { const d = deckEdit(); if (d) shareDeckImage(d); },
+  metaCheckOpen: () => { mc.text = ""; mc.res = null; openSheet(metaCheckSheet); },
+  metaCheck: () => { mc.text = ($("#mc-text") || {}).value || mc.text; mc.res = parseDeckCode(mc.text); refreshSheet(); },
+  metaSave: () => { const r = mc.res; if (!r || !r.cards.length) return; S.decks.push({ id: uid(), name: r.name || "Checked deck", cards: r.cards.slice(0, 12), status: "future", variants: {}, created: Date.now() }); save(); closeSheet(); ui.deckFilter = "all"; go("decks"); toast("Saved to your decks as a future deck"); },
+  aiKeySave: () => { const k = ($("#ai-key") || {}).value.trim(), m = ($("#ai-model") || {}).value; try { if (k) localStorage.setItem(AI_KEY, k); if (m) localStorage.setItem(AI_MODEL, m); } catch { toast("This browser won't save the key."); return; } if (!aiKey()) { toast("Paste your key first"); return; } setupAI(); render(); toast(k ? "AI key saved on this device" : "Model saved"); },
+  aiKeyRemove: () => { try { localStorage.removeItem(AI_KEY); } catch { /* ignore */ } setupAI(); render(); toast("AI key removed"); },
+  aiKeyTest: async () => { toast("Asking the AI…"); try { const r = await claudeJson('Return {"ok": true, "card": "the name of any MARVEL SNAP card"}'); toast(r && r.ok ? `AI works. It picked ${r.card || "a card"}.` : "The AI answered, but oddly."); } catch (e) { toast(e.message); } },
+  installApp: async () => { if (!installEvt) return; installEvt.prompt(); try { await installEvt.userChoice; } catch { /* ignore */ } installEvt = null; render(); },
+  notifyOn: () => enableNotifications(),
+  notifyOff: () => disableNotifications(),
+  claimOwner: async () => { try { await store.db.doc("config/owner").set({ uid: store.uid, at: Date.now() }); store.ownerUid = store.uid; render(); toast("You're the app owner now"); } catch (e) { toast("Couldn't claim it. Paste the new security rules first, or someone already owns the app."); loadOwner(); } },
+  deleteAccount: () => { if (!ui.delArm) { ui.delArm = true; render(); setTimeout(() => { ui.delArm = false; if (ui.more === "account") render(); }, 6000); return; } ui.delArm = false; deleteAccount(); },
+  reportOpen: (el) => { rp.author = el.dataset.k; rp.id = el.dataset.id; rp.reason = "spam"; rp.note = ""; openSheet(reportSheet); },
+  reportSend: async () => { try { await store.db.collection("reports").doc().set({ author: rp.author, post: rp.id, reason: rp.reason, note: String(rp.note || "").slice(0, 400), by: store.uid, at: Date.now() }); closeSheet(); toast("Report sent. Thanks."); } catch { toast("Couldn't send the report right now."); } },
+  muteAuthor: (el) => { const id = el.dataset.id; if (!id || id === store.uid) return; S.muted = isMuted(id) ? arr(S.muted).filter((x) => x !== id) : [...arr(S.muted), id]; save(); closeSheet(); render(); toast(isMuted(id) ? "Muted. Their posts are hidden from your feed." : "Unmuted"); },
+  modRemove: async (el) => { const r = arr(reports).find((x) => x.id === el.dataset.id); if (!r) return; const doc = obj(shared.posts[r.author]); const items = arr(doc.items).filter((p) => p.id !== r.post); try { await store.db.doc("posts/" + r.author).set({ ...doc, items }); await store.db.doc("reports/" + r.id).delete(); reports = reports.filter((x) => x.id !== r.id); render(); toast("Post removed"); } catch { toast("Couldn't remove it. Check the security rules."); } },
+  modDismiss: async (el) => { try { await store.db.doc("reports/" + el.dataset.id).delete(); reports = arr(reports).filter((x) => x.id !== el.dataset.id); render(); } catch { toast("Couldn't dismiss it."); } },
   varTick: (el) => { const v = materializeVar(el.dataset.id); if (!v) return; v.owned = !v.owned; save(); render(); },
   varMore: () => { ui.varLimit = (ui.varLimit || 200) + 200; render(); },
   veSave: () => {
@@ -3184,6 +3614,8 @@ document.addEventListener("input", (e) => {
     if (d.bind === "me.rank" || d.bind === "me.peak") { const cs = currentSeason(); if (cs) { const r = (S.ranks["s:" + cs.id] = obj(S.ranks["s:" + cs.id])); r[d.bind === "me.rank" ? "end" : "peak"] = t.value; } }
     return;
   }
+  if (d.rpnote) { rp.note = t.value; return; }
+  if (d.mc) { mc.text = t.value; return; }
   if (d.ui) { ui[d.ui] = t.value; render(); return; }
   if (d.live) { if (d.live.startsWith("loc")) { live.locs[num(d.live.slice(3))] = t.value; showLocInfo(t); } else live[d.live] = t.value; saveLive(); return; }
   if (d.livewp) { live.sig.winPct = t.value; saveLive(); return; }
@@ -3211,6 +3643,8 @@ document.addEventListener("change", (e) => {
   if (d.pickchk) { picker[d.pickchk] = t.checked; refreshSheet(); return; }
   if (d.mfchk) { mf[d.mfchk] = t.checked; return; }
   if (d.uichk) { ui[d.uichk] = t.checked; render(); return; }
+  if (d.notifychk) { S.notify = { ...notifyPrefs(), [d.notifychk]: t.checked }; save(); saveNotifyState(); return; }
+  if (d.rp) { rp.reason = d.rp; return; }
   if ("soonchk" in d) { S.showSoon = t.checked; save(); render(); return; }
   if (d.uisel) { ui[d.uisel] = t.value; render(); return; }
   if (d.cardchk) { const k = d.k; const tgt = d.cardchk === "owned" ? S.owned : d.cardchk === "wish" ? S.wishCards : S.favCards; if (t.checked) tgt[k] = true; else delete tgt[k]; save(); render(); return; }
@@ -3253,7 +3687,7 @@ function signInSheet() {
     ${apple ? `<button class="btn block" data-a="signInApple" ${fbui.busy ? "disabled" : ""}>Continue with Apple</button>` : ""}
     ${fbui.err ? `<p class="note">${esc(fbui.err)}</p>` : ""}
     <button class="btn ghost block" data-a="skipSignIn">Use without an account</button>
-    <p class="muted small">Without an account, everything is saved on this device only.</p>`;
+    <p class="muted small">Without an account, everything is saved on this device only. ${privacyLink()}</p>`;
 }
 function setupSheet() {
   return `${sheetHead("Connect your Firebase project", "One-time setup")}
@@ -3297,7 +3731,8 @@ async function initFirebase(local, lm) {
       store.user = { uid: user.uid, name: user.displayName || "", email: user.email || "" };
       store.db = api.db; store.uid = user.uid; store.mode = "cloud"; started = true;
       if (!S.me.name && store.user.name) S.me.name = store.user.name;
-      subscribeCloud(local, lm); store.ready = true; render();
+      store.assets = firebaseAssets;
+      subscribeCloud(local, lm); store.ready = true; render(); loadOwner();
     } else {
       if (started) { location.reload(); return; }
       store.mode = "local"; store.ready = true; render();
@@ -3326,11 +3761,14 @@ Object.assign(A, {
 });
 document.addEventListener("input", (e) => { if (e.target.dataset && e.target.dataset.fbcfg) fbui.cfgText = e.target.value; });
 /* ============ Boot ============ */
-window.addEventListener("pagehide", () => { if (dirty) flushState(); if (dirtyWeeks.size) flushWeeks(); });
+window.addEventListener("pagehide", () => { if (dirty) flushState(); if (dirtyWeeks.size) flushWeeks(); if (notifyPrefs().on) saveNotifyState(); });
 if (location.hash.slice(1)) route(); else render();
 initCaps();
 loadCardData();
 loadSchedule();
+loadHistory();
+setupAI();
+registerSW().then(() => { if (notifyPrefs().on) setTimeout(() => { saveNotifyState().then(checkNotificationsNow); }, 4000); });
 
 </script>
 </body>

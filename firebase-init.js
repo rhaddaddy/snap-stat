@@ -1,7 +1,7 @@
 // Connects SNAP Stat to your Firebase project: Google/Apple sign-in and the Firestore database.
 // Loads Firebase from Google's CDN. The settings come from firebase-config.js (or the in-app setup screen).
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut, onAuthStateChanged, deleteUser, reauthenticateWithPopup } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 import { initializeFirestore, doc, collection, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
 function readConfig() {
@@ -44,6 +44,18 @@ if (!cfg) {
         return signInWithPopup(auth, p);
       },
       signOut: () => signOut(auth),
+      // Removes the sign-in account itself. Firebase asks you to confirm with Google again if you signed in a while ago.
+      deleteAccount: async () => {
+        const u = auth.currentUser; if (!u) return;
+        try { await deleteUser(u); }
+        catch (e) {
+          if (e && e.code === "auth/requires-recent-login") {
+            const apple = u.providerData.some((p) => p.providerId === "apple.com");
+            await reauthenticateWithPopup(u, apple ? new OAuthProvider("apple.com") : new GoogleAuthProvider());
+            await deleteUser(u);
+          } else throw e;
+        }
+      },
     });
   } catch (e) {
     console.error(e);

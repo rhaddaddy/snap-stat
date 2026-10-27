@@ -1,5 +1,5 @@
-// Builds schedule.json: every MARVEL SNAP season (name, pass cards, rewards) and limited-time event (name, dates)
-// from snap.fan's public season and event pages. GitHub runs it once a day after update-cards.mjs.
+// Builds schedule.json: every MARVEL SNAP season (name, pass cards, rewards), limited-time event (name, dates),
+// and what's for sale (bundles and event shops) from snap.fan's public pages. GitHub runs it once a day after update-cards.mjs.
 // Season dates aren't listed on those pages, so they're estimated: seasons start on the first Tuesday of the month.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
@@ -26,8 +26,14 @@ async function get(path) {
   return null;
 }
 
-let names = {};
-try { for (const c of JSON.parse(readFileSync("card-data.json", "utf8")).cards) if (c.id) names[c.id] = c.name; } catch { /* names fall back to splitting the ID */ }
+let names = {}, varByOrder = {};
+try {
+  for (const c of JSON.parse(readFileSync("card-data.json", "utf8")).cards) {
+    if (!c.id) continue; names[c.id] = c.name;
+    // snap.fan names variants like GhostRider_18; Marvel Snap Zone numbers the same variant 18.
+    for (const v of c.variants || []) varByOrder[`${c.id}_${String(v.order).padStart(2, "0")}`] = `${c.id}:${v.id}`;
+  }
+} catch { /* names fall back to splitting the ID */ }
 const cardName = (id) => names[id] || String(id).replace(/([a-z])([A-Z])/g, "$1 $2");
 
 const firstTuesday = (y, m) => { const d = new Date(Date.UTC(y, m, 1)); while (d.getUTCDay() !== 2) d.setUTCDate(d.getUTCDate() + 1); return d; };
@@ -101,7 +107,40 @@ if (evPage) {
 }
 if (Object.keys(events).length < 5) { console.log("The event list looked wrong, so the previous events were kept."); Object.assign(events, prev.events || {}); }
 
-const body = JSON.stringify({ seasons, events });
-try { if (JSON.stringify({ seasons: prev.seasons, events: prev.events }) === body) { console.log("No changes since last time."); process.exit(0); } } catch { /* write it */ }
-writeFileSync(OUT, JSON.stringify({ updated: new Date().toISOString(), source: "snap.fan", seasons, events }));
-console.log(`Saved ${OUT}: ${Object.keys(seasons).length} seasons, ${Object.keys(events).length} events.`);
+/* ---------- What's for sale: bundles and event shops ---------- */
+const itemsFrom = (html) => [...html.matchAll(/<a href="\/cards\/([A-Za-z0-9]+)\/(?:([A-Za-z0-9_]+)\/)?"[\s\S]*?bundle-card__item-text">([^<]+)</g)]
+  .map(([, cid, vid, label]) => { const isVar = !!vid && /_\d+$/.test(vid); return { cardId: cid, cardName: cardName(cid), variantId: isVar ? vid : "", cat: isVar ? varByOrder[vid] || "" : "", label: strip(label) }; });
+const shops = [];
+const nowMs = Date.now();
+for (let pageNo = 1; pageNo <= 6; pageNo++) {
+  const page = await get(pageNo === 1 ? "/bundles/" : `/bundles/page/${pageNo}/`); await sleep(800);
+  if (!page) break;
+  const cards = page.split('<article class="bundle-card"').slice(1);
+  if (!cards.length) break;
+  for (const b of cards) {
+    const name = strip((b.match(/bundle-card__name">([^<]+)</) || [])[1]);
+    const start = (b.match(/data-start="([^"]+)"/) || [])[1] || "", end = (b.match(/data-end="([^"]+)"/) || [])[1] || "";
+    const price = (b.match(/bundle-card__cost">\s*\$([\d.,]+)/) || [])[1] || "";
+    const items = itemsFrom(b);
+    if (!name || !items.length || (end && Date.parse(end) < nowMs - 864e5)) continue;
+    shops.push({ source: "bundle", shop: "Bundle", title: name, start: start.slice(0, 10), end: end.slice(0, 10), endsAt: end, price: price ? Number(price.replace(/,/g, "")) : "", currency: "usd", items });
+  }
+}
+for (const [id, e] of Object.entries(events)) {
+  const end = Date.parse(e.end + "T23:59:59Z"), start = Date.parse(e.start + "T00:00:00Z");
+  if (end < nowMs || start > nowMs + 14 * 864e5 || !e.link) continue;
+  const page = await get(e.link.replace("https://snap.fan", "")); await sleep(800);
+  const shopHtml = page ? (page.match(/<h2>Shop<\/h2>([\s\S]*?)(?:<h2>|<\/main>)/) || [])[1] || "" : "";
+  for (const part of shopHtml.split(/(?=<div class="event-card__section">)|(?=<div class="event-card__offer">)/)) {
+    const items = itemsFrom(part), cost = part.match(/([\d,]+)\s*<span class="event-card__cost-label">([^<]+)<\/span>(?:\s*<span class="event-card__gold">\(≈ ([\d,]+) Gold\))?/);
+    if (!items.length || !cost) continue;
+    const sec = strip((part.match(/event-card__section-name">([^<]+)</) || [])[1]);
+    shops.push({ source: "event", eventId: id, shop: `${e.name} shop`, title: sec && !/all offers/i.test(sec) ? sec : "", start: e.start, end: e.end, price: Number(cost[1].replace(/,/g, "")), currency: "event", gold: cost[3] ? Number(cost[3].replace(/,/g, "")) : "", items });
+  }
+}
+console.log(`Found ${shops.length} shop offers.`);
+
+const body = JSON.stringify({ seasons, events, shops });
+try { if (JSON.stringify({ seasons: prev.seasons, events: prev.events, shops: prev.shops || [] }) === body) { console.log("No changes since last time."); process.exit(0); } } catch { /* write it */ }
+writeFileSync(OUT, JSON.stringify({ updated: new Date().toISOString(), source: "snap.fan", seasons, events, shops }));
+console.log(`Saved ${OUT}: ${Object.keys(seasons).length} seasons, ${Object.keys(events).length} events, ${shops.length} shop offers.`);
