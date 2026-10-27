@@ -1,4 +1,4 @@
-# Temporary: saves copies of a few public pages so the season, event and location formats can be checked. Safe to delete.
+# Temporary (round 2): saves copies of a few public pages so the season, event and location formats can be checked. Safe to delete.
 name: Peek at data sources
 on:
   push:
@@ -18,13 +18,13 @@ jobs:
           mkdir -p debug
           UA="Mozilla/5.0 (compatible; SNAP-Stat-card-updater/1.0)"
           get() { curl -sSL -A "$UA" --max-time 60 -o "debug/$1" -w "$1 %{http_code} %{size_download}\n" "$2" || echo "$1 failed"; }
-          get msz-locations.json "https://marvelsnapzone.com/getinfo/?searchtype=locations&searchcardstype=true"
-          get msz-seasons.html "https://marvelsnapzone.com/seasons/"
-          get msz-getinfo-seasons.json "https://marvelsnapzone.com/getinfo/?searchtype=seasons"
-          get msz-getinfo-events.json "https://marvelsnapzone.com/getinfo/?searchtype=events"
-          get msz-events.html "https://marvelsnapzone.com/events/"
-          get snapfan-seasons.html "https://snap.fan/seasons/"
-          get snapfan-events.html "https://snap.fan/events/"
+          get sf-season-nov26.html "https://snap.fan/seasons/november2026/"
+          get sf-season-sep26.html "https://snap.fan/seasons/september2026/"
+          get sf-season-dec26.html "https://snap.fan/seasons/december2026/"
+          get sf-event-ca-oct26.html "https://snap.fan/events/ChampionArena_Oct26/"
+          get sf-event-hst-oct26.html "https://snap.fan/events/HighStakesTables_Oct26/"
+          get sf-schedule.html "https://snap.fan/schedule/"
+          get sf-locations.html "https://snap.fan/locations/"
           ls -la debug
           # keep the files small
           for f in debug/*; do head -c 400000 "$f" > "$f.tmp" && mv "$f.tmp" "$f"; done
