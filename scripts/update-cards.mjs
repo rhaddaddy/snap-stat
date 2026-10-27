@@ -39,7 +39,8 @@ function tidyRarity(r) {
 function toDate(v) {
   if (v === "" || v === null || v === undefined) return "";
   const n = Number(v);
-  if (!isNaN(n) && n > 0) return new Date(n < 1e11 ? n * 1000 : n).toISOString().slice(0, 10);
+  // 2038-01-19 (the largest 32-bit timestamp) is a placeholder for "no date yet".
+  if (!isNaN(n) && n > 0) { if (n >= 2147483647 && n < 1e11) return ""; return new Date(n < 1e11 ? n * 1000 : n).toISOString().slice(0, 10); }
   const d = new Date(String(v)); return isNaN(d) ? "" : d.toISOString().slice(0, 10);
 }
 // The comic a variant's art comes from is the first link in its description, like "Immortal Hulk (2018) #22 (Variant)".
@@ -73,7 +74,7 @@ function trimCard(c) {
     type: strip(pick(c, "type")),
     cost: numOr(c.cost),
     power: numOr(c.power),
-    ability: strip(pick(c, "ability")),
+    ability: strip(pick(c, "ability")).replace(/^!+\s*/, ""),
     status: strip(pick(c, "status")),
     source: strip(pick(c, "source")),
     art: String(pick(c, "art", "image", "img")),
