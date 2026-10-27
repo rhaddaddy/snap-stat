@@ -1,0 +1,36 @@
+# Temporary: saves copies of a few public pages so the season, event and location formats can be checked. Safe to delete.
+name: Peek at data sources
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/peek.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  peek:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download
+        run: |
+          mkdir -p debug
+          UA="Mozilla/5.0 (compatible; SNAP-Stat-card-updater/1.0)"
+          get() { curl -sSL -A "$UA" --max-time 60 -o "debug/$1" -w "$1 %{http_code} %{size_download}\n" "$2" || echo "$1 failed"; }
+          get msz-locations.json "https://marvelsnapzone.com/getinfo/?searchtype=locations&searchcardstype=true"
+          get msz-seasons.html "https://marvelsnapzone.com/seasons/"
+          get msz-getinfo-seasons.json "https://marvelsnapzone.com/getinfo/?searchtype=seasons"
+          get msz-getinfo-events.json "https://marvelsnapzone.com/getinfo/?searchtype=events"
+          get msz-events.html "https://marvelsnapzone.com/events/"
+          get snapfan-seasons.html "https://snap.fan/seasons/"
+          get snapfan-events.html "https://snap.fan/events/"
+          ls -la debug
+          # keep the files small
+          for f in debug/*; do head -c 400000 "$f" > "$f.tmp" && mv "$f.tmp" "$f"; done
+      - name: Save
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
+          git add debug
+          git diff --cached --quiet || (git commit -m "Peek at data sources" && git pull --rebase && git push)
