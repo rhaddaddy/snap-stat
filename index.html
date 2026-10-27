@@ -142,6 +142,7 @@ button.li:hover { background: var(--surface-2); }
 
 /* Controls */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); padding: 9px 14px; font-weight: 600; min-height: 40px; }
+a.btn { color: var(--fg); text-decoration: none; }
 .btn:hover { border-color: var(--muted); }
 .btn.snap { background: linear-gradient(180deg, var(--snap-a), var(--snap-b)); color: var(--snap-ink); border-color: transparent; font-family: var(--ui); font-weight: 800; font-size: 16px; letter-spacing: .04em; text-transform: uppercase; box-shadow: 0 3px 0 rgba(0,0,0,.35); }
 .btn.ghost { background: transparent; }
@@ -1767,6 +1768,7 @@ function vHome() {
   return `${seasonHero()}
   ${!S.me.onboarded ? `<div class="panel stack halftone"><h3>Create your profile</h3><p class="muted small">Add your in-game name, country and alliance so friends can follow your stats.</p><div><button class="btn snap" data-a="onboard">Get started</button></div></div>` : ""}
   <section class="sec">${wallet}</section>
+  ${svSyncPanel()}
   ${eventsStrip()}
   ${alerts.length ? `<section class="sec"><div class="sec-h"><h2>Wishlist alerts</h2><button class="btn sm ghost" data-a="go" data-to="shops">Shops</button></div><div class="list">${alerts.slice(0, 4).map(alertRow).join("")}</div></section>` : ""}
   <section class="sec"><h2>Match stats</h2>${periodChips()}${statsBlock}</section>
@@ -1993,7 +1995,7 @@ function vCardGrid() {
   const f = (v, l) => `<button class="chip" data-a="cardFilter" data-v="${v}" aria-pressed="${ui.cardFilter === v}">${l}</button>`;
   return `<section class="sec">
     <div class="panel stack halftone" style="gap:6px"><div class="row between"><span class="eyebrow">Cards owned</span><span class="num" style="font-weight:800">${ownedN} / ${all.length} · ${pct(ownedN, all.length)}%</span></div>${passBar(ownedN, all.length)}
-      <p class="muted small">Stats change with balance patches: tap any card to edit it.</p><div><button class="btn sm" data-a="svOpen">Import from SnapVault</button></div></div>
+      <p class="muted small">Stats change with balance patches: tap any card to edit it.</p><div class="row"><label class="btn sm snap">Sync from SnapVault<input type="file" accept=".json,application/json,text/plain" data-svquick="1" hidden></label><button class="btn sm ghost" data-a="svOpen">Preview an export first</button></div></div>
     ${missingBanner()}
     <input type="search" id="card-q" data-ui="cardQ" value="${esc(ui.cardQ)}" placeholder="Search name, ability, variant, artist, rarity" aria-label="Search cards">
     <div class="chips">${f("all", "All")}${f("owned", "Owned")}${f("missing", "Missing")}${f("wish", "Wishlist")}${f("fav", "Favorites")}${f("custom", "Custom")}${f("upcoming", "Coming soon")}${f("unknown", "Needs details")}</div>
@@ -2762,6 +2764,29 @@ function applySnapVault() {
   return { owned, made, updated };
 }
 
+/* One-step sync: pick the newest SnapVault export and it's imported right away (cards marked owned, decks added or updated). */
+function svSyncPanel() {
+  const last = num(S.svImported), days = last ? Math.floor((Date.now() - last) / DAY) : -1;
+  const when = !last ? "Not synced yet" : days === 0 ? "Synced today" : days === 1 ? "Synced yesterday" : `Synced ${days} days ago`;
+  const stale = !last || days >= 3, lr = obj(S.svLast);
+  return `<section class="sec"><div class="panel stack ${stale ? "halftone" : ""}" style="gap:8px">
+    <div class="row between"><span class="eyebrow">SnapVault sync</span><span class="small ${stale ? "" : "muted"}">${when}</span></div>
+    <p class="small muted">In SnapVault, tap <b>Export decks &amp; collections</b>. Then tap <b>Sync now</b> and pick that file. It's usually the first one in the list.</p>
+    <div class="row"><a class="btn" href="https://www.snapvault.app/" target="_blank" rel="noopener">Open SnapVault ↗</a><label class="btn snap">Sync now<input type="file" accept=".json,application/json,text/plain" data-svquick="1" hidden></label></div>
+    ${last && (lr.owned || lr.made || lr.updated) ? `<span class="muted small">Last sync: ${svSummary(lr)}</span>` : ""}</div></section>`;
+}
+function svSummary(r) { const p = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`; return [r.owned ? p(r.owned, "new card") : "", r.made ? p(r.made, "new deck") : "", r.updated ? p(r.updated, "deck") + " updated" : ""].filter(Boolean).join(", ") || "nothing new"; }
+function svQuickSync(text) {
+  const r = parseSnapVault(text);
+  if (r.err) { toast(r.err); return; }
+  const at = Date.parse(r.date || ""), prev = Date.parse(S.svExportDate || "");
+  if (at && prev && at < prev) { toast(`That export is from ${dateStr(localDate(at))}, older than your last sync. Export again in SnapVault to get the newest one.`); return; }
+  sv.res = r; sv.owned = true; sv.decks = true;
+  const out = applySnapVault();
+  S.svLast = out; if (r.date) S.svExportDate = r.date; save(); render();
+  toast(`Synced with SnapVault: ${svSummary(out)}`);
+}
+
 /* ============ Fill in missing card details with AI ============ */
 const fill = { busy: false, done: 0, total: 0 };
 function missingDetails() { return allCards().filter((c) => (c.cost === "?" || c.power === "?") && !c.unknownName && !c.upcoming); }
@@ -3034,7 +3059,7 @@ const A = {
   svOpen: () => { sv.text = ""; sv.res = null; sv.err = ""; sv.showAll = false; openSheet(svSheet); },
   svParse: () => { sv.text = $("#sv-text").value; const r = parseSnapVault(sv.text); sv.err = r.err || ""; sv.res = r.err ? null : r; refreshSheet(); },
   svShowAll: () => { sv.showAll = true; refreshSheet(); },
-  svImport: () => { const r = applySnapVault(); closeSheet(); render(); toast(`Imported: ${r.owned} cards marked owned, ${r.made} new deck${r.made === 1 ? "" : "s"}, ${r.updated} updated`); },
+  svImport: () => { const r = applySnapVault(); S.svLast = r; if (sv.res && sv.res.date) S.svExportDate = sv.res.date; save(); closeSheet(); render(); toast(`Imported: ${r.owned} cards marked owned, ${r.made} new deck${r.made === 1 ? "" : "s"}, ${r.updated} updated`); },
   aiFill: () => aiFillCards(),
   deckDup: () => { const d = deckEdit(); const n = newDeck(d.name + " copy", d.cards, d.status, { variants: { ...obj(d.variants) }, cover: d.cover }); render(); openDeck(n.id); toast("Deck duplicated"); },
   deckDelete: () => { const d = deckEdit(); if (!d.confirmDel) { d.confirmDel = true; refreshSheet(); return; } S.decks = S.decks.filter((x) => x.id !== d.id); if (S.me.featuredDeck === d.id) S.me.featuredDeck = ""; save(); closeSheet(); render(); toast("Deck deleted"); },
@@ -3207,6 +3232,7 @@ document.addEventListener("change", (e) => {
   if (d.evchk) { (S.eventProg[d.id] = obj(S.eventProg[d.id]))[d.evchk] = t.checked; save(); return; }
   if (d.avsel) { if (t.value) { S.me[d.avsel] = { kind: "variant", ref: t.value }; save(); render(); toast(d.avsel === "banner" ? "Banner updated" : "Profile picture updated"); } return; }
   if (d.upload) { const f = t.files && t.files[0]; t.value = ""; if (f) uploadImage(f, d.upload); return; }
+  if (d.svquick) { const f = t.files && t.files[0]; t.value = ""; if (!f) return; f.text().then(svQuickSync).catch(() => toast("Couldn't read that file.")); return; }
   if (d.svfile) { const f = t.files && t.files[0]; t.value = ""; if (!f) return; f.text().then((txt) => { sv.text = ""; const r = parseSnapVault(txt); sv.err = r.err || ""; sv.res = r.err ? null : r; refreshSheet(); }).catch(() => { sv.err = "Couldn't read that file."; refreshSheet(); }); return; }
   if (d.svchk) { sv[d.svchk] = t.checked; refreshSheet(); return; }
   if (d.deck) { render(); return; }
