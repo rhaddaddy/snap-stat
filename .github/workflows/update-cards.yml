@@ -2,6 +2,7 @@
 #   card-data.json        card art, details, every variant and location (Marvel Snap Zone)
 #   schedule.json         seasons, limited-time events, bundles and event shops (snap.fan)
 #   balance-history.json  every cost, power and ability change (snap.fan)
+#   variant-details.json  each variant's name, artists, rarity, source and release date (snap.fan)
 name: Update card data
 
 on:
@@ -15,6 +16,7 @@ on:
       - "scripts/update-cards.mjs"
       - "scripts/update-schedule.mjs"
       - "scripts/update-history.mjs"
+      - "scripts/update-variants.mjs"
 
 permissions:
   contents: write
@@ -26,7 +28,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,12 +42,15 @@ jobs:
       - name: Download balance history
         run: node scripts/update-history.mjs
         continue-on-error: true
+      - name: Download variant details
+        run: node scripts/update-variants.mjs
+        continue-on-error: true
       - name: Save changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
           git add card-data.json card-data-sample.json
-          for f in schedule.json balance-history.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          for f in schedule.json balance-history.json variant-details.json; do if [ -f "$f" ]; then git add "$f"; fi; done
           if git diff --cached --quiet; then
             echo "Nothing new."
           else
