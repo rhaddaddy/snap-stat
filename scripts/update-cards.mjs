@@ -4,6 +4,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 const SOURCE = process.env.CARD_SOURCE || "https://marvelsnapzone.com/getinfo/?searchtype=cards&searchcardstype=true";
+const LOC_SOURCE = process.env.LOC_SOURCE || "https://marvelsnapzone.com/getinfo/?searchtype=locations&searchcardstype=true";
 const OUT = "card-data.json";
 const SAMPLE = "card-data-sample.json";
 
@@ -15,11 +16,11 @@ const strip = (s) => String(s ?? "")
 const pick = (o, ...keys) => { for (const k of keys) { const v = o && o[k]; if (v !== undefined && v !== null && v !== "") return v; } return ""; };
 const numOr = (v) => (v === "" || v === null || v === undefined || isNaN(Number(v)) ? "" : Number(v));
 
-async function download() {
+async function download(url = SOURCE) {
   let last;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const res = await fetch(SOURCE, { headers: { "User-Agent": "Mozilla/5.0 (compatible; SNAP-Stat-card-updater/1.0)", Accept: "application/json,text/plain,*/*" } });
+      const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; SNAP-Stat-card-updater/1.0)", Accept: "application/json,text/plain,*/*" } });
       if (!res.ok) throw new Error(`Marvel Snap Zone answered ${res.status} ${res.statusText}`);
       const text = await res.text();
       try { return JSON.parse(text); } catch { throw new Error("Marvel Snap Zone didn't send JSON. It started with: " + text.slice(0, 200)); }
@@ -106,9 +107,20 @@ const counts = {};
 for (const c of cards) for (const u of [c.art, ...c.variants.map((v) => v.art)]) { const m = String(u).match(/^(https?:\/\/.+\/)[^/]+$/); if (m) counts[m[1]] = (counts[m[1]] || 0) + 1; }
 const artBase = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
 if (artBase) for (const c of cards) { if (c.art.startsWith(artBase)) c.art = c.art.slice(artBase.length); for (const v of c.variants) if (v.art.startsWith(artBase)) v.art = v.art.slice(artBase.length); }
-const body = JSON.stringify({ artBase, cards });
+// Locations. If they don't come through, keep the last good list.
+let locations = [];
+try {
+  const lraw = await download(LOC_SOURCE);
+  const ll = lraw?.success?.locations ?? lraw?.success?.cards ?? lraw?.locations ?? [];
+  locations = ll.map((l) => ({ id: String(pick(l, "carddefid", "defId", "id")), name: strip(l.name), ability: strip(pick(l, "ability")).replace(/^!+\s*/, ""), art: String(pick(l, "art")), status: strip(pick(l, "status")) })).filter((l) => l.name);
+  console.log(`Found ${locations.length} locations.`);
+} catch (e) { console.log("Locations didn't download: " + e.message); }
+if (locations.length < 50) { try { locations = JSON.parse(readFileSync(OUT, "utf8")).locations || []; } catch { locations = []; } }
+if (artBase) for (const l of locations) if (l.art.startsWith(artBase)) l.art = l.art.slice(artBase.length);
+
+const body = JSON.stringify({ artBase, cards, locations });
 if (existsSync(OUT)) {
-  try { const prev = JSON.parse(readFileSync(OUT, "utf8")); if (JSON.stringify({ artBase: prev.artBase || "", cards: prev.cards }) === body) { console.log("No changes since last time."); process.exit(0); } } catch { /* rewrite it */ }
+  try { const prev = JSON.parse(readFileSync(OUT, "utf8")); if (JSON.stringify({ artBase: prev.artBase || "", cards: prev.cards, locations: prev.locations || [] }) === body) { console.log("No changes since last time."); process.exit(0); } } catch { /* rewrite it */ }
 }
-writeFileSync(OUT, JSON.stringify({ updated: new Date().toISOString(), source: "Marvel Snap Zone (marvelsnapzone.com)", count: cards.length, variants: variantCount, artBase, cards }));
+writeFileSync(OUT, JSON.stringify({ updated: new Date().toISOString(), source: "Marvel Snap Zone (marvelsnapzone.com)", count: cards.length, variants: variantCount, artBase, cards, locations }));
 console.log("Saved " + OUT);

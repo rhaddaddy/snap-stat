@@ -263,6 +263,11 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .loc { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
 .loc .lh { background: linear-gradient(160deg, #3A2A8C, #191245); padding: 6px; }
+.loc .lab { margin-top: 4px; font-size: 10.5px; line-height: 1.25; color: rgba(255,255,255,.85); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.lrow { align-items: flex-start; }
+.lrow .s { white-space: normal; overflow: visible; text-overflow: clip; }
+.lrow .lph { position: relative; overflow: hidden; width: 56px; height: 56px; border-radius: 10px; flex: none; display: grid; place-items: center; font-family: var(--comic); font-size: 24px; color: #fff; }
+.lrow .lthumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .loc .lh input { font-size: 13px; padding: 5px 7px; font-weight: 700; background: rgba(0,0,0,.25); border-color: rgba(255,255,255,.18); color: #fff; }
 .loc .side { display: flex; flex-direction: column; gap: 4px; min-height: 34px; padding: 6px; }
 .loc .side.opp { border-bottom: 1px dashed var(--line); }
@@ -1134,12 +1139,12 @@ function removeMatch(id) { const f = findMatch(id); if (!f) return; matchWeeks[f
 
 /* ============ Seasons, events & periods ============ */
 function seasons() {
-  const src = store.mode === "cloud" ? Object.entries(shared.seasons).map(([id, s]) => ({ ...s, id })) : S.localSeasons;
+  const src = mergeSchedule(store.mode === "cloud" ? Object.entries(shared.seasons).map(([id, s]) => ({ ...s, id })) : S.localSeasons, "seasons");
   return src.filter((s) => s && s.name && s.start).map((s) => ({ ...s, startTs: dayStart(s.start), endTs: s.end ? dayEnd(s.end) : Infinity }))
     .filter((s) => Number.isFinite(s.startTs)).sort((a, b) => b.startTs - a.startTs);
 }
 function events() {
-  const src = store.mode === "cloud" ? Object.entries(shared.events).map(([id, e]) => ({ ...e, id })) : S.localEvents;
+  const src = mergeSchedule(store.mode === "cloud" ? Object.entries(shared.events).map(([id, e]) => ({ ...e, id })) : S.localEvents, "events");
   return src.filter((e) => e && e.name && e.start).map((e) => ({ ...e, startTs: dayStart(e.start), endTs: e.end ? dayEnd(e.end) : dayEnd(e.start) }))
     .filter((e) => Number.isFinite(e.startTs)).sort((a, b) => a.startTs - b.startTs);
 }
@@ -1531,20 +1536,20 @@ const showArt = () => !!window.SNAPSTAT_STANDALONE;
 function artFail(img) { const p = img.parentNode; if (p) p.classList.remove("has-img"); img.remove(); }
 function imgTag(src, cls) { const u = safeUrl(src); return u && showArt() ? `<img class="${cls}" src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="artFail(this)">` : ""; }
 
-function catUrls() {
+function catUrls(file = "card-data.json") {
   const o = window.SNAPSTAT_OPTIONS || {}, urls = [];
-  if (o.cardData) urls.push(o.cardData);
+  if (file === "card-data.json" && o.cardData) urls.push(o.cardData);
   const m = location.hostname.match(/^([^.]+)\.github\.io$/i), repo = location.pathname.split("/").filter(Boolean)[0];
-  if (m && repo && !/\.html?$/i.test(repo)) urls.push(`https://raw.githubusercontent.com/${m[1]}/${repo}/main/card-data.json`);
-  urls.push("card-data.json");
+  if (m && repo && !/\.html?$/i.test(repo)) urls.push(`https://raw.githubusercontent.com/${m[1]}/${repo}/main/${file}`);
+  urls.push(file);
   return urls;
 }
+function refreshView() { const el = document.activeElement; if (!(el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) { render(); if (typeof sheetFn !== "undefined" && sheetFn) refreshSheet(); } }
 function useCardData(j, fromCache) {
   if (!j || !Array.isArray(j.cards) || j.cards.length < 50) return false;
   if (CAT && fromCache) return false;
-  CAT = { updated: String(j.updated || ""), source: String(j.source || ""), artBase: safeUrl(j.artBase) ? j.artBase : "", cards: j.cards }; catVer++;
-  const el = document.activeElement;
-  if (!(el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) { render(); if (typeof sheetFn !== "undefined" && sheetFn) refreshSheet(); }
+  CAT = { updated: String(j.updated || ""), source: String(j.source || ""), artBase: safeUrl(j.artBase) ? j.artBase : "", cards: j.cards, locations: arr(j.locations) }; catVer++;
+  refreshView();
   return true;
 }
 async function loadCardData() {
@@ -1561,6 +1566,57 @@ async function loadCardData() {
     } catch { /* try the next copy */ }
   }
 }
+/* Seasons and limited-time events (schedule.json, refreshed daily from snap.fan). They fill in what the shared list doesn't have. */
+let SCHED = null, schedVer = 0;
+const SCHED_CACHE = "snapstat-schedule-v1";
+function useSchedule(j, fromCache) {
+  if (!j || typeof j.seasons !== "object" || !Object.keys(obj(j.seasons)).length) return false;
+  if (SCHED && fromCache) return false;
+  SCHED = { updated: String(j.updated || ""), seasons: obj(j.seasons), events: obj(j.events) }; schedVer++;
+  refreshView(); return true;
+}
+async function loadSchedule() {
+  if (!window.SNAPSTAT_STANDALONE) return;
+  try { const c = localStorage.getItem(SCHED_CACHE); if (c) useSchedule(JSON.parse(c), true); } catch { /* no saved copy */ }
+  for (const u of catUrls("schedule.json")) {
+    try {
+      const r = await fetch(u, { cache: "no-cache" }); if (!r.ok) continue;
+      const text = await r.text(); const j = JSON.parse(text);
+      if (SCHED && j.updated && j.updated === SCHED.updated) return;
+      if (!useSchedule(j, false)) continue;
+      try { localStorage.setItem(SCHED_CACHE, text); } catch { /* fetched again next time */ }
+      return;
+    } catch { /* try the next copy */ }
+  }
+}
+function mergeSchedule(list, kind) {
+  if (!SCHED) return list;
+  const out = list.map((x) => ({ ...x }));
+  for (const [id, x] of Object.entries(kind === "seasons" ? SCHED.seasons : SCHED.events)) {
+    if (!x || !x.name || !x.start || arr(S.hiddenSched).includes(id)) continue;
+    const st = dayStart(x.start);
+    const same = out.find((y) => y.id === id) || (kind === "seasons" ? out.find((y) => String(y.start || "").slice(0, 7) === x.start.slice(0, 7)) : out.find((y) => keyOf(y.name) === keyOf(x.name) && Math.abs(dayStart(y.start) - st) <= 3 * DAY));
+    if (same) {
+      // Players' edits win. Only empty fields are filled in.
+      for (const f of ["passCard", "superCard", "link"]) if (!same[f] && x[f]) same[f] = x[f];
+      for (const f of ["cards", "variants"]) if (!arr(same[f]).length && arr(x[f]).length) same[f] = x[f];
+      continue;
+    }
+    out.push({ ...x, id, auto: true });
+  }
+  return out;
+}
+
+/* Locations from the card data file */
+let _locSig = -1, _locs = [];
+function allLocations() {
+  if (_locSig === catVer) return _locs;
+  _locs = CAT ? arr(CAT.locations).filter((l) => l && l.name).map((l) => ({ ...l, art: catArt(l.art), soon: /unreleased/i.test(l.status || "") })).sort((a, b) => a.name.localeCompare(b.name)) : [];
+  _locSig = catVer; return _locs;
+}
+function locByName(n) { const k = keyOf(n); return k ? allLocations().find((l) => keyOf(l.name) === k) || null : null; }
+function locDatalist() { const ls = allLocations().filter((l) => !l.soon); return ls.length ? `<datalist id="loc-names">${ls.map((l) => `<option value="${esc(l.name)}">`).join("")}</datalist>` : ""; }
+
 function catCollectible(d) { return /^released$/i.test(d.status || "") && !!d.source && !/^none$|not available|token|unreleased/i.test(d.source) && (!d.type || /character/i.test(d.type)); }
 const catArt = (u) => safeUrl(!u ? "" : /^https?:\/\//i.test(u) ? u : (CAT.artBase || "") + u);
 function catVarName(v) {
@@ -1754,7 +1810,8 @@ function vLive() {
   const theirs = (z) => L.opp.map((o, i) => ({ ...o, i })).filter((o) => o.zone === z);
   const score = botScore(L.sig, L.turn, L.oppSnap), lab = botLabel(score);
   const loc = (i) => { const t = locTotals(i); const st = t.my > t.opp ? "win" : t.my < t.opp ? "lose" : "";
-    return `<div class="loc"><div class="lh"><input type="text" id="live-loc-${i}" data-live="loc${i}" value="${esc(L.locs[i])}" placeholder="Location ${i + 1}" aria-label="Location ${i + 1} name"></div>
+    const info = locByName(L.locs[i]);
+    return `<div class="loc"><div class="lh"><input type="text" id="live-loc-${i}" data-live="loc${i}" value="${esc(L.locs[i])}" placeholder="Location ${i + 1}" aria-label="Location ${i + 1} name" list="loc-names" autocomplete="off">${info && info.ability ? `<div class="lab">${esc(info.ability)}</div>` : ""}</div>
     <div class="side opp">${theirs("L" + i).map((o) => cardChip(o.key, { a: "oppCard", noOwn: true, pow: o.power, extra: `data-i="${o.i}"` })).join("")}</div>
     <button class="tot ${st}" data-a="locAdj" data-v="${i}" style="background:none;border:0;width:100%" aria-label="Adjust location totals"><span>${t.opp}</span><span class="muted small">vs</span><span>${t.my}</span></button>
     <div class="side">${mine("L" + i).map((k) => cardChip(k, { a: "myCard", noOwn: true, pow: L.myPow[k] ?? card(k).power })).join("")}</div></div>`; };
@@ -1766,7 +1823,7 @@ function vLive() {
       <div class="stepper"><button data-a="turn" data-v="-1" aria-label="Previous turn">−</button><span>${L.turn}</span><button data-a="turn" data-v="1" aria-label="Next turn">+</button></div></div>
     <div class="row"><label class="check"><input type="checkbox" data-livechk="mySnap" ${L.mySnap ? "checked" : ""}> You snapped</label><label class="check"><input type="checkbox" data-livechk="oppSnap" ${L.oppSnap ? "checked" : ""}> They snapped</label><label class="check"><input type="checkbox" data-livechk="extra" ${L.lastTurn === 7 ? "checked" : ""}> 7-turn game</label></div>
     <div class="row">${cubes(stakes)}<span class="muted small">at stake right now · you're winning ${wins} of 3 locations</span></div></section>
-  <section class="sec"><div class="sec-h"><h2>Board</h2><span class="muted small">Them on top, you below. Tap a total to add location bonuses.</span></div><div class="board">${loc(0)}${loc(1)}${loc(2)}</div>
+  <section class="sec"><div class="sec-h"><h2>Board</h2><span class="muted small">Them on top, you below. Tap a total to add location bonuses.</span></div><div class="board">${loc(0)}${loc(1)}${loc(2)}</div>${locDatalist()}
     <div class="row"><button class="btn sm" data-a="oppAdd">${ICON.plus} Add their card</button><span class="muted small">Their hand</span><div class="stepper"><button data-a="oppHand" data-v="-1" aria-label="One fewer">−</button><span>${L.oppHand}</span><button data-a="oppHand" data-v="1" aria-label="One more">+</button></div></div>
     ${theirs("hand").length ? `<div class="row"><span class="eyebrow">Known in their hand</span>${theirs("hand").map((o) => cardChip(o.key, { a: "oppCard", noOwn: true, extra: `data-i="${o.i}"` })).join("")}</div>` : ""}</section>
   ${L.deckId || Object.keys(L.my).length ? `<section class="sec"><h2>Your hand <span class="muted small num">(${mine("hand").length})</span></h2><div class="chiplist">${mine("hand").map((k) => cardChip(k, { a: "myCard", noOwn: true })).join("") || `<span class="muted small">Tap cards in your deck below as you draw them.</span>`}</div>
@@ -1891,8 +1948,8 @@ function matchSheet() {
   <label class="f">Mode<select id="mf-mode" data-mf="mode">${["Ranked", "Conquest", "Friendly", "Event", "Limited-time mode", "Other"].map((x) => `<option ${mf.mode === x ? "selected" : ""}>${x}</option>`).join("")}</select></label></div>
   <label class="f">Your deck<select id="mf-deck" data-mf="deckId"><option value="">No deck</option>${S.decks.map((d) => `<option value="${esc(d.id)}" ${mf.deckId === d.id ? "selected" : ""}>${esc(d.name)}</option>`).join("")}</select></label>
   <div class="grid2"><label class="f">Opponent<input type="text" id="mf-opp" data-mf="oppName" value="${esc(mf.oppName)}"></label><label class="f">Final turn<input type="number" id="mf-turn" data-mf="turn" value="${esc(mf.turn)}" min="1" max="8"></label></div>
-  <div class="stack" style="gap:6px"><span class="eyebrow">Locations at the end (optional)</span>
-    ${mf.locs.map((l, i) => `<div class="grid3"><input type="text" id="mf-ln${i}" data-mfloc="name" data-i="${i}" value="${esc(l.name)}" placeholder="Location ${i + 1}" aria-label="Location ${i + 1}"><input type="number" id="mf-lm${i}" data-mfloc="my" data-i="${i}" value="${esc(l.my)}" placeholder="Your power" aria-label="Your power"><input type="number" id="mf-lo${i}" data-mfloc="opp" data-i="${i}" value="${esc(l.opp)}" placeholder="Their power" aria-label="Their power"></div>`).join("")}
+  <div class="stack" style="gap:6px"><span class="eyebrow">Locations at the end (optional)</span>${locDatalist()}
+    ${mf.locs.map((l, i) => `<div class="grid3"><input type="text" id="mf-ln${i}" data-mfloc="name" data-i="${i}" value="${esc(l.name)}" placeholder="Location ${i + 1}" aria-label="Location ${i + 1}" list="loc-names" autocomplete="off"><input type="number" id="mf-lm${i}" data-mfloc="my" data-i="${i}" value="${esc(l.my)}" placeholder="Your power" aria-label="Your power"><input type="number" id="mf-lo${i}" data-mfloc="opp" data-i="${i}" value="${esc(l.opp)}" placeholder="Their power" aria-label="Their power"></div>`).join("")}
     ${arr(mf.plays).length ? `<div class="chiplist">${mf.plays.map((p) => cardChip(p.k, { noOwn: true, pow: p.power })).join("")}</div>` : ""}
     ${lw ? `<span class="muted small">You won ${lw} location${lw > 1 ? "s" : ""}.</span>` : ""}</div>
   <div class="stack" style="gap:6px"><span class="eyebrow">Cards they played</span><div class="chiplist">${arr(mf.oppCards).map((n, i) => `<button class="cchip" data-a="mfOppRemove" data-i="${i}" aria-label="Remove ${esc(n)}"><span>${esc(n)}</span>${ICON.x}</button>`).join("")}<button class="btn sm" data-a="mfOppAdd">${ICON.plus} Add</button></div></div>
@@ -2419,13 +2476,14 @@ function composeSheet() {
 }
 /* ============ More ============ */
 function vMore() {
-  if (ui.more) return { shops: vShops, promos: vPromos, seasons: vSeasons, events: vEvents, custom: vCustom, account: vAccount, about: vAbout }[ui.more]();
+  if (ui.more) return { shops: vShops, promos: vPromos, seasons: vSeasons, events: vEvents, locations: vLocations, custom: vCustom, account: vAccount, about: vAbout }[ui.more]();
   const item = (to, t, s) => `<button class="li" data-a="go" data-to="${to}"><div class="grow"><div class="t">${t}</div><div class="s">${s}</div></div><span class="muted">›</span></button>`;
   const alerts = wishAlerts().length; const promos = promoList().filter((p) => p.status === "active" && !S.redeemed[p.id]).length;
   const cs = currentSeason(); const liveEv = events().filter((e) => timeState(e) === "live").length;
   return `<section class="sec"><h1>More</h1><div class="list">
     ${item("seasons", "Seasons, ranks & passes", cs ? `${esc(cs.name)} · ends in ${esc(countdown(cs.endTs))}` : `${seasons().length} tracked`)}
     ${item("events", "Events & limited-time modes", liveEv ? `${liveEv} live now` : `${events().length} tracked`)}
+    ${item("locations", "Locations", allLocations().length ? `${allLocations().filter((l) => !l.soon).length} locations, their effects and how you do on them` : "How you do on each location")}
     ${item("shops", "Shops & wishlist alerts", alerts ? `${alerts} wishlist item${alerts > 1 ? "s" : ""} on sale` : "Credits, gold, tokens and current offers")}
     ${item("promos", "Promo codes", promos ? `${promos} active code${promos > 1 ? "s" : ""} you haven't redeemed` : "Codes for the web shop")}
     ${item("custom", "Custom cards", `${S.custom.length} designed`)}
@@ -2440,8 +2498,32 @@ function vAbout() {
     <p>SNAP Stat is an unofficial fan-made app. It is not affiliated with, endorsed, sponsored or approved by Marvel or Second Dinner.</p>
     <p>MARVEL SNAP and all related names, characters, cards and images are trademarks and copyrights of their respective owners and are used here only to identify them.</p>
     ${showArt() ? `<p class="muted small">Card art, variant art, card details and the variant list are loaded from Marvel Snap Zone (marvelsnapzone.com), a fan site. The art belongs to Marvel and Second Dinner. SNAP Stat doesn't store or host it, and shows a styled tile when it can't load.</p>` : `<p class="muted small">SNAP Stat doesn't use official card art or logos. Card tiles, avatars and banners are drawn by the app or uploaded by players.</p>`}
-    <p class="muted small">Card, season and event details are entered by players or gathered from public community sources, and may be incomplete or out of date.</p></div></section>`;
+    <p class="muted small">Card, season and event details are entered by players or gathered from public community sources${showArt() ? " (Marvel Snap Zone for cards, variants and locations; snap.fan for seasons and limited-time events)" : ""}, and may be incomplete or out of date. Season dates from snap.fan are estimated.</p></div></section>`;
 }
+/* Locations: every one in the game (from the card data file) plus your results on each */
+function vLocations() {
+  const q = keyOf(ui.locQ || ""), ql = String(ui.locQ || "").toLowerCase();
+  const stats = new Map(locationAnalytics(realMatches()).map((r) => [keyOf(r.name), r]));
+  let all = allLocations();
+  if (!all.length) all = [...stats.values()].map((r) => ({ name: r.name, ability: "", art: "", soon: false }));
+  const soonN = all.filter((l) => l.soon).length;
+  let list = all.filter((l) => (showSoon() || !l.soon || stats.has(keyOf(l.name))) && (!q || keyOf(l.name).includes(q) || String(l.ability || "").toLowerCase().includes(ql)));
+  const st = (l) => stats.get(keyOf(l.name));
+  const sorters = { name: (a, b) => a.name.localeCompare(b.name), played: (a, b) => ((st(b) || {}).games || 0) - ((st(a) || {}).games || 0) || a.name.localeCompare(b.name), win: (a, b) => (st(b) ? st(b).wr : -1) - (st(a) ? st(a).wr : -1) || ((st(b) || {}).games || 0) - ((st(a) || {}).games || 0) || a.name.localeCompare(b.name) };
+  list = [...list].sort(sorters[ui.locSort] || sorters.name);
+  const row = (l) => { const r = st(l);
+    return `<div class="li lrow"><span class="lph art" style="${artStyle(l.name)}">${esc((l.name[0] || "?").toUpperCase())}${imgTag(l.art, "lthumb")}</span>
+      <div class="grow"><div class="t">${esc(l.name)} ${l.soon ? `<span class="pill gold">Soon</span>` : ""}</div>${l.ability ? `<div class="s">${esc(l.ability)}</div>` : ""}
+      ${r ? `<div class="s num">You: ${r.games} game${r.games === 1 ? "" : "s"} · ${r.wr}% match wins · won it ${r.lwr}% · avg power ${r.avg}</div>` : ""}</div></div>`; };
+  return `<section class="sec">${backBar("Locations")}
+    <p class="muted small">${CAT ? "Every location in the game with its effect, updated daily from Marvel Snap Zone. " : ""}Your numbers come from matches where you named the locations, in the live tracker or when logging a match.</p>
+    <input type="search" id="loc-q" data-ui="locQ" value="${esc(ui.locQ || "")}" placeholder="Search name or effect" aria-label="Search locations">
+    <div class="grid2"><label class="f">Sort<select id="loc-sort" data-uisel="locSort">${[["name", "Name"], ["played", "Most played"], ["win", "Best win rate"]].map(([v, l]) => `<option value="${v}" ${(ui.locSort || "name") === v ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
+    ${soonN ? `<label class="check"><input type="checkbox" data-soonchk ${showSoon() ? "checked" : ""}> Show ones that aren't out yet</label>` : ""}
+    <span class="muted small">${list.length} location${list.length === 1 ? "" : "s"}</span>
+    ${list.length ? `<div class="list">${list.map(row).join("")}</div>` : `<div class="empty"><strong>No locations here</strong><span>${all.length ? "Try a different search." : "Name the locations when you track a match and they'll show up here."}</span></div>`}</section>`;
+}
+function srcLink(x) { const u = safeUrl(x.link); return u ? `<p class="small"><a href="${esc(u)}" target="_blank" rel="noopener">${x.auto ? "Filled in from snap.fan · " : ""}Rewards and details on snap.fan ↗</a></p>` : ""; }
 function backBar(t) { return `<div class="row"><button class="btn sm ghost" data-a="go" data-to="more">‹ More</button></div><h1>${t}</h1>`; }
 function stateTabs(key, counts) { const v = ui[key]; const b = (x, l) => `<button data-a="tabState" data-k="${key}" data-v="${x}" aria-pressed="${v === x}">${l} ${counts[x] ? `<span class="num">${counts[x]}</span>` : ""}</button>`; return `<div class="seg">${b("current", "Now")}${b("upcoming", "Upcoming")}${b("past", "Past")}</div>`; }
 const st2tab = (s) => (s === "live" ? "current" : s);
@@ -2480,7 +2562,7 @@ function seasonSheet() {
     <div class="sec-h"><h3>Collectibles</h3><span class="muted small">${got}/${items.length} collected</span></div>
     ${items.length ? collectibleList(items, s.name) : `<p class="muted small">No rewards listed. Edit the season to add them.</p>`}
     ${evs.length ? `<h3>Events this season</h3><div class="list">${evs.map((e) => `<button class="li" data-a="eventOpen" data-id="${esc(e.id)}"><div class="grow"><div class="t">${esc(e.name)}</div><div class="s">${esc(EVENT_TYPES[e.type] || "Event")} · ${esc(dateStr(e.start))}${e.end ? " – " + esc(dateStr(e.end)) : ""}</div></div><span class="muted">›</span></button>`).join("")}</div>` : ""}
-    ${s.notes ? `<p class="small muted" style="white-space:pre-wrap">${esc(s.notes)}</p>` : ""}
+    ${s.notes ? `<p class="small muted" style="white-space:pre-wrap">${esc(s.notes)}</p>` : ""}${srcLink(s)}
     <div class="row"><button class="btn" data-a="seasonEdit">Edit season info</button></div>`;
 }
 let lastColl = { items: [], src: "" };
@@ -2520,7 +2602,7 @@ function eventSheet() {
   const st = timeState(e); const pr = obj(S.eventProg[e.id]); const items = collectibleItems(e); const got = items.filter((it) => findCollectible(it, e.name).owned).length;
   const ms = realMatches().filter((m) => (m.mode === "Event" || m.mode === "Limited-time mode") && m.ts >= e.startTs && m.ts <= e.endTs); const stat = statsFor(ms);
   return `${sheetHead(esc(e.name), `${esc(EVENT_TYPES[e.type] || "Event")} · ${esc(dateStr(e.start))}${e.end ? " – " + esc(dateStr(e.end)) : ""} · ${st === "live" ? "ends in " + esc(countdown(e.endTs)) : st === "upcoming" ? "starts in " + esc(countdown(e.startTs)) : "ended"}`)}
-    ${e.shopUntil ? `<p class="small">Event shop open until ${esc(dateStr(e.shopUntil))}</p>` : ""}${e.desc ? `<p class="small" style="white-space:pre-wrap">${esc(e.desc)}</p>` : ""}
+    ${e.shopUntil ? `<p class="small">Event shop open until ${esc(dateStr(e.shopUntil))}</p>` : ""}${e.desc ? `<p class="small" style="white-space:pre-wrap">${esc(e.desc)}</p>` : ""}${srcLink(e)}
     ${st !== "upcoming" ? `<div class="panel stack"><h3>My progress</h3>
       ${num(e.passLevels) ? `<div class="row between"><span>Event pass level</span><div class="stepper"><button data-a="evStep" data-id="${esc(e.id)}" data-v="-1" aria-label="Lower">−</button><span>${num(pr.level)}</span><button data-a="evStep" data-id="${esc(e.id)}" data-v="1" aria-label="Higher">+</button></div></div>${passBar(num(pr.level), num(e.passLevels))}<span class="muted small">${num(pr.level)} of ${num(e.passLevels)}</span>
       <div class="seg">${Object.entries(PASS_TIERS).map(([k, l]) => `<button data-a="evTier" data-id="${esc(e.id)}" data-v="${k}" aria-pressed="${(pr.tier || "free") === k}">${l}</button>`).join("")}</div>` : ""}
@@ -2730,7 +2812,7 @@ function render() {
   updateBadge();
 }
 const TABS = Object.keys(VIEWS);
-const MORE = ["shops", "promos", "seasons", "events", "custom", "account", "about"];
+const MORE = ["shops", "promos", "seasons", "events", "locations", "custom", "account", "about"];
 function route() {
   const h = location.hash.slice(1);
   if (TABS.includes(h)) { ui.tab = h; ui.more = null; } else if (MORE.includes(h)) { ui.tab = "more"; ui.more = h; } else { ui.tab = "home"; ui.more = null; }
@@ -2816,6 +2898,8 @@ function saveSeasonLike(kind, rec, body) {
 }
 function deleteSeasonLike(kind, id) {
   const coll = kind === "season" ? "seasons" : "events", local = kind === "season" ? "localSeasons" : "localEvents";
+  // Seasons and events from the daily schedule would come back, so remember that you removed this one.
+  if (SCHED && (SCHED.seasons[id] || SCHED.events[id])) { S.hiddenSched = [...new Set([...arr(S.hiddenSched), id])]; save(); }
   if (store.mode === "cloud") { delete shared[coll][id]; sharedVer++; store.db.doc(coll + "/" + id).delete().catch((e) => handleDbErr(e, "delete that")); }
   else { S[local] = S[local].filter((s) => s.id !== id); save(); }
 }
@@ -2835,6 +2919,12 @@ function liveEndToForm() {
 }
 
 /* ============ Click actions ============ */
+/* Shows a location's effect under its name as soon as it's recognized */
+function showLocInfo(input) {
+  const lh = input.closest(".lh"); if (!lh) return;
+  let lab = lh.querySelector(".lab"); const info = locByName(input.value);
+  if (info && info.ability) { if (!lab) { lab = document.createElement("div"); lab.className = "lab"; lh.appendChild(lab); } lab.textContent = info.ability; } else if (lab) lab.remove();
+}
 function starFlip(el, on) { el.setAttribute("aria-pressed", on); el.textContent = on ? "★" : "☆"; el.setAttribute("aria-label", el.getAttribute("aria-label").replace(/^(On|Add to) wishlist/, on ? "On wishlist" : "Add to wishlist")); }
 const A = {
   go: (el) => go(el.dataset.to), close: () => closeSheet(),
@@ -3070,7 +3160,7 @@ document.addEventListener("input", (e) => {
     return;
   }
   if (d.ui) { ui[d.ui] = t.value; render(); return; }
-  if (d.live) { if (d.live.startsWith("loc")) live.locs[num(d.live.slice(3))] = t.value; else live[d.live] = t.value; saveLive(); return; }
+  if (d.live) { if (d.live.startsWith("loc")) { live.locs[num(d.live.slice(3))] = t.value; showLocInfo(t); } else live[d.live] = t.value; saveLive(); return; }
   if (d.livewp) { live.sig.winPct = t.value; saveLive(); return; }
   if (d.pick) { picker.q = t.value; refreshSheet(); return; }
   if (d.mf) { mf[d.mf] = d.mf === "ts" ? (new Date(t.value).getTime() || mf.ts) : d.mf === "turn" ? num(t.value, 6) : t.value; return; }
@@ -3214,6 +3304,7 @@ window.addEventListener("pagehide", () => { if (dirty) flushState(); if (dirtyWe
 if (location.hash.slice(1)) route(); else render();
 initCaps();
 loadCardData();
+loadSchedule();
 
 </script>
 </body>
