@@ -228,6 +228,12 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 .ct.own { border-color: color-mix(in srgb, var(--snap-a) 55%, transparent); }
 .ct .tag { position: absolute; top: 34px; right: 6px; font-size: 13px; color: var(--snap-a); text-shadow: 0 1px 2px rgba(0,0,0,.7); }
 .ct .tag.l { left: 6px; right: auto; }
+.cwrap { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cwrap .ct .nm { display: none; }
+.cname { display: flex; align-items: flex-start; min-width: 0; }
+.cname .t { flex: 1; min-width: 0; padding: 4px 0 0 2px; font-size: 12px; font-weight: 700; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.star { flex: none; width: 32px; height: 28px; margin: 0 -4px 0 0; padding: 0; border: 0; background: none; font-size: 19px; line-height: 1; color: var(--muted); cursor: pointer; }
+.star[aria-pressed="true"] { color: var(--snap-text); }
 .ct .cimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .ct.has-img { background: transparent; border-color: transparent; padding: 0; width: 100%; }
 .ct.has-img.miss { border-color: transparent; }
@@ -1904,13 +1910,17 @@ function cardMatches(c, q) {
   if (c.from && keyOf(c.from).includes(qk)) return true;
   return S.variants.some((v) => v.card === c.key && (keyOf(v.name).includes(qk) || keyOf(v.artist).includes(qk) || keyOf(v.rarity).includes(qk)));
 }
+/* A grid tile with the card's name and a wishlist star underneath */
+function starBtn(a, attrs, on, name) { return `<button class="star" data-a="${a}" ${attrs} aria-pressed="${on}" aria-label="${on ? "On" : "Add to"} wishlist: ${esc(name)}">${on ? "★" : "☆"}</button>`; }
+function gridTile(face, name, star) { return `<div class="cwrap">${face}<div class="cname"><span class="t">${esc(name)}</span>${star || ""}</div></div>`; }
+const showSoon = () => !!S.showSoon;
 function vCardGrid() {
   const all = allCards().filter((c) => !c.upcoming); const ownedN = all.filter((c) => S.owned[c.key]).length;
   const pMin = ui.powMin === "" ? -Infinity : num(ui.powMin), pMax = ui.powMax === "" ? Infinity : num(ui.powMax);
   let list = ui.cardFilter === "custom" ? S.custom.map((c) => customCard(c.id)) : allCards();
   list = list.filter((c) => cardMatches(c, ui.cardQ)
     && (["all", "custom"].includes(ui.cardFilter) || (ui.cardFilter === "unknown" && (c.unknownName || c.cost === "?")) || (ui.cardFilter === "owned" && S.owned[c.key]) || (ui.cardFilter === "missing" && !S.owned[c.key] && !c.upcoming) || (ui.cardFilter === "wish" && S.wishCards[c.key]) || (ui.cardFilter === "fav" && (S.favCards[c.key] || favVariant(c.key))) || (ui.cardFilter === "upcoming" && c.upcoming))
-    && (ui.cardFilter === "upcoming" || ui.cardFilter === "custom" || ui.cardFilter === "wish" || !c.upcoming)
+    && (ui.cardFilter === "upcoming" || ui.cardFilter === "custom" || ui.cardFilter === "wish" || !c.upcoming || showSoon())
     && (ui.cardCost === "any" || (ui.cardCost === "6" ? num(c.cost) >= 6 : String(c.cost) === ui.cardCost))
     && (c.power === "?" || (num(c.power) >= pMin && num(c.power) <= pMax)));
   const vcount = (k) => S.variants.filter((v) => v.card === k && v.owned).length;
@@ -1926,14 +1936,16 @@ function vCardGrid() {
     <div class="chips">${["any", "0", "1", "2", "3", "4", "5", "6"].map((v) => `<button class="chip" data-a="cardCost" data-v="${v}" aria-pressed="${ui.cardCost === v}">${v === "any" ? "Any cost" : v === "6" ? "6+" : v}</button>`).join("")}</div>
     <div class="grid3"><label class="f">Power from<input type="number" id="card-pmin" data-ui="powMin" value="${esc(ui.powMin)}" inputmode="numeric"></label><label class="f">Power to<input type="number" id="card-pmax" data-ui="powMax" value="${esc(ui.powMax)}" inputmode="numeric"></label>
       <label class="f">Sort<select id="card-sort" data-uisel="cardSort">${[["cost", "Cost"], ["power", "Power"], ["name", "Name"], ["newest", "Newest"], ["variants", "Variants owned"]].map(([v, l]) => `<option value="${v}" ${ui.cardSort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
+    <label class="check"><input type="checkbox" data-soonchk ${showSoon() ? "checked" : ""}> Show cards and variants that aren't out yet</label>
     <div class="row between"><label class="check"><input type="checkbox" data-uichk="quickOwn" ${ui.quickOwn ? "checked" : ""}> Quick mark: tap to switch owned / missing</label>${ui.cardFilter === "custom" ? `<button class="btn sm" data-a="go" data-to="custom">${ICON.plus} Design a card</button>` : `<button class="btn sm" data-a="cardAdd">${ICON.plus} Add card</button>`}</div>
     <span class="muted small">${list.length} card${list.length === 1 ? "" : "s"}</span>
-    ${list.length ? `<div class="cgrid">${list.slice(0, 800).map((c) => cardFace(c, { a: c.custom ? "cdEdit" : ui.quickOwn ? "toggleOwn" : "cardOpen", cls: c.custom || S.owned[c.key] ? "own" : c.upcoming ? "" : "miss", extra: c.custom ? `data-id="${esc(c.key.slice(7))}"` : "", variant: favVariant(c.key), badges: `${S.wishCards[c.key] ? `<span class="tag" aria-hidden="true">★</span>` : ""}${c.upcoming ? `<span class="tag l pill gold" style="font-size:10px">Soon</span>` : ""}` })).join("")}</div>`
+    ${list.length ? `<div class="cgrid">${list.slice(0, 800).map((c) => gridTile(cardFace(c, { a: c.custom ? "cdEdit" : ui.quickOwn ? "toggleOwn" : "cardOpen", cls: c.custom || S.owned[c.key] ? "own" : c.upcoming ? "" : "miss", extra: c.custom ? `data-id="${esc(c.key.slice(7))}"` : "", variant: favVariant(c.key), badges: c.upcoming ? `<span class="tag l pill gold" style="font-size:10px">Soon</span>` : "" }), c.name, c.custom ? "" : starBtn("wishCard", `data-k="${esc(c.key)}"`, !!S.wishCards[c.key], c.name))).join("")}</div>`
       : `<div class="empty"><strong>No cards match</strong><span>Clear the search or filters, or add a card that's missing from the list.</span></div>`}</section>`;
 }
 function cardSheet(k) {
   return () => {
-    const c = card(k); const vs = allVariants().filter((v) => v.card === k).sort((a, b) => (b.owned ? 1 : 0) - (a.owned ? 1 : 0) || catOrder(a) - catOrder(b));
+    const today = localDate(Date.now());
+    const c = card(k); const vs = allVariants().filter((v) => v.card === k && (showSoon() || v.owned || !varUpcoming(v, today))).sort((a, b) => (b.owned ? 1 : 0) - (a.owned ? 1 : 0) || catOrder(a) - catOrder(b));
     const inDecks = S.decks.filter((d) => d.cards.includes(k));
     const a = cardAnalytics(allMatches()).find((r) => r.k === k);
     return `${sheetHead(esc(c.name), [c.tags.map((t) => TAGS[t] || t).join(" · "), c.from ? "From " + esc(c.from) : "", c.upcoming ? "Releases " + esc(dateStr(c.release)) : ""].filter(Boolean).join(" · "))}
@@ -1965,7 +1977,7 @@ function vVariants() {
   const all = allVariants();
   const rarities = [...new Set(all.map((v) => v.rarity).filter(Boolean))].sort();
   const artists = [...new Set(all.map((v) => v.artist).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  let list = all.filter((v) => {
+  let list = all.filter((v) => ui.varFilter === "upcoming" || ui.varFilter === "wish" || showSoon() || v.owned || !varUpcoming(v, today)).filter((v) => {
     const c = cc(v.card);
     const hit = !q || [v.name, v.artist, v.rarity, v.source, c.name].some((s) => keyOf(s).includes(qk)) || String(c.ability || "").toLowerCase().includes(q);
     const up = varUpcoming(v, today);
@@ -1978,16 +1990,17 @@ function vVariants() {
   list = list.sort(sorters[ui.varSort] || sorters.card);
   const f = (v, l) => `<button class="chip" data-a="varFilter" data-v="${v}" aria-pressed="${ui.varFilter === v}">${l}</button>`;
   const own = all.filter((v) => v.owned).length, lim = ui.varLimit || 200, soon = all.filter((v) => !v.owned && varUpcoming(v, today)).length;
-  return `<section class="sec"><div class="sec-h"><h2>Variants</h2><span class="muted small num">${own} owned · ${all.length - own - soon} missing${soon ? ` · ${soon} coming` : ""}</span></div>
+  return `<section class="sec"><div class="sec-h"><h2>Variants</h2><span class="muted small num">${own} owned · ${all.length - own - soon} missing${soon && showSoon() ? ` · ${soon} coming` : ""}</span></div>
     <input type="search" id="var-q" data-ui="varQ" value="${esc(ui.varQ)}" placeholder="Search card, variant, artist, rarity, ability" aria-label="Search variants">
     <div class="chips">${f("all", "All")}${f("owned", "Owned")}${f("missing", "Missing")}${f("wish", "Wishlist")}${f("fav", "Favorites")}${f("upcoming", "Coming soon")}</div>
     <div class="chips">${["any", "0", "1", "2", "3", "4", "5", "6"].map((v) => `<button class="chip" data-a="varCost" data-v="${v}" aria-pressed="${(ui.varCost || "any") === v}">${v === "any" ? "Any cost" : v === "6" ? "6+" : v}</button>`).join("")}</div>
     <div class="grid3"><label class="f">Rarity<select id="var-rar" data-uisel="varRarity"><option value="">Any</option>${rarities.map((r) => `<option ${ui.varRarity === r ? "selected" : ""}>${esc(r)}</option>`).join("")}</select></label>
       <label class="f">Artist<select id="var-art" data-uisel="varArtist"><option value="">Any</option>${artists.map((r) => `<option ${ui.varArtist === r ? "selected" : ""}>${esc(r)}</option>`).join("")}</select></label>
       <label class="f">Sort<select id="var-sort" data-uisel="varSort">${[["card", "Card A–Z"], ["artist", "Artist"], ["rarity", "Rarity"], ["newest", "Newest"], ["oldest", "Oldest"], ["cost", "Cost"], ["power", "Power"], ["owned", "Owned first"]].map(([v, l]) => `<option value="${v}" ${ui.varSort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
+    <label class="check"><input type="checkbox" data-soonchk ${showSoon() ? "checked" : ""}> Show cards and variants that aren't out yet</label>
     <div class="row between"><label class="check"><input type="checkbox" data-uichk="varQuick" ${ui.varQuick ? "checked" : ""}> Quick mark: tap to switch owned / missing</label><button class="btn sm snap" data-a="varNew" data-k="">${ICON.plus} Add variant</button></div>
     <div class="row between"><span class="muted small">${list.length} variant${list.length === 1 ? "" : "s"}</span>${CAT ? `<span class="muted small">Art and variant list from Marvel Snap Zone${CAT.updated ? ", updated " + esc(dateStr(CAT.updated.slice(0, 10))) : ""}</span>` : ""}</div>
-    ${list.length ? `<div class="cgrid">${list.slice(0, lim).map((v) => cardFace(cc(v.card), { a: ui.varQuick ? "varTick" : "varOpen", extra: `data-id="${esc(v.id)}"`, variant: v, sub: v.artist || v.name, cls: v.owned ? "own" : varUpcoming(v, today) ? "" : "miss", badges: `${v.favorite ? `<span class="tag l" aria-hidden="true">♥</span>` : ""}${v.wish ? `<span class="tag" aria-hidden="true">★</span>` : ""}` })).join("")}</div>`
+    ${list.length ? `<div class="cgrid">${list.slice(0, lim).map((v) => gridTile(cardFace(cc(v.card), { a: ui.varQuick ? "varTick" : "varOpen", extra: `data-id="${esc(v.id)}"`, variant: v, sub: v.artist || v.name, cls: v.owned ? "own" : varUpcoming(v, today) ? "" : "miss", badges: `${v.favorite ? `<span class="tag l" aria-hidden="true">♥</span>` : ""}${varUpcoming(v, today) ? `<span class="tag pill gold" style="font-size:10px">Soon</span>` : ""}` }), cc(v.card).name, starBtn("wishVar", `data-id="${esc(v.id)}"`, !!v.wish, cc(v.card).name + " · " + (v.artist || v.name)))).join("")}</div>`
       : `<div class="empty"><strong>No variants here yet</strong><span>${showArt() && !CAT ? "The full variant list loads once the card data file is in your app's GitHub repository. " : ""}Add the variants you own and the ones you're hunting for, with artist and rarity so you can sort and filter them.</span></div>`}
     ${list.length > lim ? `<div class="row" style="justify-content:center"><button class="btn" data-a="varMore">Show more (${list.length - lim} left)</button></div>` : ""}</section>`;
 }
@@ -2033,7 +2046,7 @@ function vWishlist() {
   return `<section class="sec"><div class="sec-h"><h2>Wishlist</h2><button class="btn sm ghost" data-a="go" data-to="shops">Shops</button></div>
     <p class="muted small">Star cards, variants and cosmetics you want. When an offer you add in Shops matches, you'll see what it costs and how much more you need.</p>
     ${items.length ? `<div class="list">${items.map((w) => { const hit = alerts.filter((a) => a.w.ref === w.ref); return hit.length ? hit.map(alertRow).join("") : `<div class="alert"><span class="dot" style="background:var(--line)"></span><div class="grow"><div style="font-weight:600">${esc(w.name)}</div><div class="muted small">${esc(w.kind)} · not in your shops right now</div></div></div>`; }).join("")}</div>`
-      : `<div class="empty"><strong>Your wishlist is empty</strong><span>Open a card and tick “On wishlist”, or tick “Want” on a variant.</span></div>`}</section>`;
+      : `<div class="empty"><strong>Your wishlist is empty</strong><span>Tap the ☆ under any card or variant in Collection.</span></div>`}</section>`;
 }
 /* ============ Decks ============ */
 let deId = null; const deckEdit = () => S.decks.find((d) => d.id === deId);
@@ -2815,6 +2828,7 @@ function liveEndToForm() {
 }
 
 /* ============ Click actions ============ */
+function starFlip(el, on) { el.setAttribute("aria-pressed", on); el.textContent = on ? "★" : "☆"; el.setAttribute("aria-label", el.getAttribute("aria-label").replace(/^(On|Add to) wishlist/, on ? "On wishlist" : "Add to wishlist")); }
 const A = {
   go: (el) => go(el.dataset.to), close: () => closeSheet(),
   period: (el) => { ui.period = el.dataset.v; render(); }, playSeg: (el) => { ui.playSeg = el.dataset.v; render(); }, statView: (el) => { ui.statView = el.dataset.v; render(); },
@@ -2895,6 +2909,8 @@ const A = {
     else ve = { artist: "", rarity: "", source: "", release: "", ...clone(v) };
     openSheet(variantSheet);
   },
+  wishCard: (el) => { const k = el.dataset.k; if (S.wishCards[k]) delete S.wishCards[k]; else S.wishCards[k] = true; save(); if (ui.cardFilter === "wish") render(); else starFlip(el, !!S.wishCards[k]); },
+  wishVar: (el) => { const v = materializeVar(el.dataset.id); if (!v) return; v.wish = !v.wish; save(); if (ui.varFilter === "wish") render(); else starFlip(el, v.wish); },
   varTick: (el) => { const v = materializeVar(el.dataset.id); if (!v) return; v.owned = !v.owned; save(); render(); },
   varMore: () => { ui.varLimit = (ui.varLimit || 200) + 200; render(); },
   veSave: () => {
@@ -3073,6 +3089,7 @@ document.addEventListener("change", (e) => {
   if (d.pickchk) { picker[d.pickchk] = t.checked; refreshSheet(); return; }
   if (d.mfchk) { mf[d.mfchk] = t.checked; return; }
   if (d.uichk) { ui[d.uichk] = t.checked; render(); return; }
+  if ("soonchk" in d) { S.showSoon = t.checked; save(); render(); return; }
   if (d.uisel) { ui[d.uisel] = t.value; render(); return; }
   if (d.cardchk) { const k = d.k; const tgt = d.cardchk === "owned" ? S.owned : d.cardchk === "wish" ? S.wishCards : S.favCards; if (t.checked) tgt[k] = true; else delete tgt[k]; save(); render(); return; }
   if (d.varchk) { const v = materializeVar(d.id); if (v) { v[d.varchk] = t.checked; save(); render(); if (sheetFn) refreshSheet(); } return; }
