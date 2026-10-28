@@ -2065,7 +2065,8 @@ function parseJsonLoose(text) {
 }
 function aiFail(p, status, msg, extra = {}) { const e = new Error(msg); e.status = status; e.provider = p; return Object.assign(e, extra); }
 // Waits up to 45 seconds for an answer, so a stuck request ends with a message instead of hanging.
-const aiWait = () => num(window.__aiWait) || 45e3;
+let aiWaitNow = 0; // shorter wait while testing a key
+const aiWait = () => num(window.__aiWait) || aiWaitNow || 45e3;
 const aiTests = {}; // the last "Test it" result for each service, shown under its row
 async function aiFetch(p, url, init = {}) {
   const n = AI_PROVIDERS[p].name, ctl = new AbortController(), outer = init.signal; let late = false;
@@ -2090,14 +2091,50 @@ async function aiFetch(p, url, init = {}) {
     try { return await res.json(); } catch (e) { if (late) throw slow(); throw e; }
   } finally { clearTimeout(tm); if (outer) outer.removeEventListener("abort", onOuter); }
 }
-/* Gemini keys go in a header. If Google turns that down (it has with some of its newer "AQ." keys), try the key in the address instead. */
+/* How the app sends Gemini requests. "header" is Google's usual way. "query" puts the key in the address.
+   "plain" also sends the question as plain text, so the browser makes one simple request instead of asking permission first.
+   If the usual way doesn't work on a phone, the key test finds one that does and remembers it. */
+const GEM = "https://generativelanguage.googleapis.com/v1beta";
+const gemMode = () => { const st = obj(aiState().gemini); return st.mode || (st.byQuery ? "query" : "header"); };
+const gemKeyUrl = (url, key) => url + (url.includes("?") ? "&" : "?") + "key=" + encodeURIComponent(key);
+function gemInit(mode, init, key) {
+  const h = { ...obj(init.headers) };
+  if (mode === "header") h["x-goog-api-key"] = key;
+  if (mode === "plain") delete h["content-type"];
+  return { ...init, headers: h };
+}
 async function gemFetch(url, init, key) {
-  const inAddress = () => aiFetch("gemini", url + (url.includes("?") ? "&" : "?") + "key=" + encodeURIComponent(key), init);
-  if (obj(aiState().gemini).byQuery) return inAddress();
-  try { return await aiFetch("gemini", url, { ...init, headers: { ...obj(init.headers), "x-goog-api-key": key } }); } catch (e) {
-    if (e.status !== 401 && e.status !== 403) throw e;
-    try { const r = await inAddress(); setAiState("gemini", { byQuery: true }); return r; } catch (e2) { throw e2.status === 401 || e2.status === 403 ? e : e2; }
+  const mode = gemMode();
+  if (mode !== "header") return aiFetch("gemini", gemKeyUrl(url, key), gemInit(mode, init, key));
+  try { return await aiFetch("gemini", url, gemInit("header", init, key)); } catch (e) {
+    if (e.status !== 401 && e.status !== 403) throw e; // Google turned down the key in the header: try it in the address
+    try { const r = await aiFetch("gemini", gemKeyUrl(url, key), init); setAiState("gemini", { mode: "query" }); return r; } catch (e2) { throw e2.status === 401 || e2.status === 403 ? e : e2; }
   }
+}
+/* Connection check: tries each way at once and notes what happened, so a problem can be pinned down from a screenshot. */
+async function gemProbe(key) {
+  const run = async (label, url, init, wait) => {
+    const t0 = performance.now(), ctl = new AbortController(); let late = false; const tm = setTimeout(() => { late = true; ctl.abort(); }, wait);
+    const secs = () => ((performance.now() - t0) / 1000).toFixed(1) + " s";
+    try {
+      const r = await fetch(url, { ...init, signal: ctl.signal }); let txt = ""; try { txt = await r.text(); } catch { /* cut off */ }
+      let j = {}; try { j = obj(JSON.parse(txt)); } catch { /* not JSON */ }
+      const er = obj(j.error), why = String(arr(er.details).map((d) => obj(d).reason).find(Boolean) || er.status || "").slice(0, 60);
+      return { label, ok: r.ok, status: r.status, json: j, text: r.ok ? `worked in ${secs()}` : `Google said ${r.status}${why ? " " + why : ""} in ${secs()}` };
+    } catch (e) { return { label, ok: false, status: 0, text: late ? `no answer after ${Math.round(wait / 1000)} s` : `couldn't connect (${secs()})` }; }
+    finally { clearTimeout(tm); }
+  };
+  const lists = await Promise.all([
+    run("Reach Google, key in address", gemKeyUrl(`${GEM}/models?pageSize=1000`, key), {}, num(window.__aiWait) || 15e3),
+    run("Reach Google, key in header", `${GEM}/models?pageSize=1000`, { headers: { "x-goog-api-key": key } }, num(window.__aiWait) || 15e3),
+  ]);
+  const listed = lists.find((x) => x.ok); let model = arr(obj(aiState().gemini).models)[0] || "gemini-flash-latest";
+  if (listed) { const ids = arr(listed.json.models).filter((m) => arr(m.supportedGenerationMethods).includes("generateContent")).map((m) => String(m.name).replace(/^models\//, "")); const pick = AI_PICK.gemini(ids); if (pick.length) { model = pick[0]; setAiState("gemini", { models: pick, modelsAt: Date.now() }); } }
+  const url = `${GEM}/models/${encodeURIComponent(model)}:generateContent`;
+  const body = JSON.stringify({ contents: [{ role: "user", parts: [{ text: 'Reply with only this JSON: {"ok": true}' }] }] });
+  const asks = await Promise.all(["plain", "query", "header"].map((mode) =>
+    run(`Ask ${model}, ${mode === "plain" ? "simple request" : mode === "query" ? "key in address" : "usual way"}`, mode === "header" ? url : gemKeyUrl(url, key), gemInit(mode, { method: "POST", headers: { "content-type": "application/json" }, body }, key), num(window.__aiWait) || 30e3).then((r) => ({ ...r, mode }))));
+  return { steps: [...lists, ...asks], works: ["header", "query", "plain"].find((m) => asks.find((a) => a.mode === m && a.ok)) || "" };
 }
 /* Perplexity (and maybe Grok) don't accept calls straight from web pages; then the request goes through your relay. */
 async function viaRelay(p, direct, path, init) {
@@ -2202,7 +2239,8 @@ function aiPanel() {
         <div class="row nowrap" style="gap:4px"><button class="btn sm ghost" data-a="aiMove" data-p="${p}" data-v="-1" ${i === 0 ? "disabled" : ""} aria-label="Try ${P.name} sooner">↑</button><button class="btn sm ghost" data-a="aiMove" data-p="${p}" data-v="1" ${i === order.length - 1 ? "disabled" : ""} aria-label="Try ${P.name} later">↓</button></div></div>
       <span class="muted small">${esc(P.cost)} Get a key at <a href="${P.keyUrl}" target="_blank" rel="noopener">${esc(P.keySite)}</a>.</span>
       ${has && s.msg && num(s.until) > Date.now() && !aiTests[p] ? `<span class="small">${esc(s.msg)}</span>` : ""}
-      ${has && aiTests[p] && !aiTests[p].busy ? `<span class="small ${aiTests[p].ok ? "" : "note"}">${aiTests[p].ok ? "✓ " : ""}${esc(aiTests[p].msg)}</span>` : has && obj(aiTests[p]).busy ? `<span class="small muted">Asking ${P.name}. This can take up to 30 seconds…</span>` : ""}
+      ${has && aiTests[p] && !aiTests[p].busy ? `<span class="small ${aiTests[p].ok ? "" : "note"}">${aiTests[p].ok ? "✓ " : ""}${esc(aiTests[p].msg)}</span>` : has && obj(aiTests[p]).busy ? `<span class="small muted">${esc(aiTests[p].msg || `Asking ${P.name}. This can take up to 30 seconds…`)}</span>` : ""}
+      ${has && arr(obj(aiTests[p]).steps).length ? `<div class="small muted stack" style="gap:2px"><b>Connection check</b>${aiTests[p].steps.map((x) => `<span>${x.ok ? "✓" : "✗"} ${esc(x.label)}: ${esc(x.text)}</span>`).join("")}</div>` : ""}
       <div class="row nowrap"><input type="password" id="ai-key-${p}" placeholder="${has ? "Saved. Paste a new one to replace it." : P.ph}" autocomplete="off" aria-label="${P.name} key" style="flex:1;min-width:0"><button class="btn sm snap" data-a="aiKeySave" data-p="${p}">Save</button></div>
       ${has ? `<div class="row"><button class="btn sm" data-a="aiKeyTest" data-p="${p}" ${obj(aiTests[p]).busy ? "disabled" : ""}>${obj(aiTests[p]).busy ? "Testing…" : "Test it"}</button><button class="btn sm ghost danger" data-a="aiKeyRemove" data-p="${p}">Remove key</button>${p === "claude" ? `<select id="ai-model" data-aimodel="1" aria-label="Claude model" style="width:auto;flex:1;min-width:0">${Object.entries(AI_MODELS).map(([k, l]) => `<option value="${k}" ${aiModel() === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : ""}</div>` : ""}</div>`;
   };
@@ -3760,10 +3798,21 @@ const A = {
   aiKeyRemove: (el) => { const p = el.dataset.p; lsPut(aiKeyName(p), ""); setAiState(p, null); delete aiTests[p]; setupAI(); render(); toast(`${AI_PROVIDERS[p].name} key removed`); },
   aiKeyTest: async (el) => {
     const p = el.dataset.p, n = AI_PROVIDERS[p].name; if (obj(aiTests[p]).busy) return;
+    const ask = () => aiJson('Return {"ok": true, "card": "the name of any MARVEL SNAP card"}', { only: p });
+    const good = (r) => (r && r.ok ? { ok: true, msg: `${n} works. It picked ${r.card || "a card"}.` } : { ok: false, msg: `${n} answered, but not in the expected way. Try again.` });
     aiTests[p] = { busy: true }; toast(`Asking ${n}…`); refreshView();
-    try { const r = await aiJson('Return {"ok": true, "card": "the name of any MARVEL SNAP card"}', { only: p }); aiTests[p] = r && r.ok ? { ok: true, msg: `${n} works. It picked ${r.card || "a card"}.` } : { ok: false, msg: `${n} answered, but not in the expected way. Try again.` }; }
-    catch (e) { aiTests[p] = { ok: false, msg: e.message || `${n} didn't answer.` }; }
-    toast(aiTests[p].msg); render();
+    aiWaitNow = 20e3;
+    try { aiTests[p] = good(await ask()); }
+    catch (e) {
+      aiTests[p] = { ok: false, msg: e.message || `${n} didn't answer.` };
+      if (p === "gemini") { // find out why, and switch to a way that works if there is one
+        const first = aiTests[p].msg; aiTests[p] = { busy: true, msg: `${first} Checking the connection (up to 45 seconds)…` }; render();
+        const pr = await gemProbe(aiKeyFor("gemini"));
+        if (pr.works) { setAiState("gemini", { mode: pr.works, until: 0, why: "", msg: "" }); try { const r = good(await ask()); aiTests[p] = { ...r, msg: r.ok ? `Fixed. ${r.msg}` : r.msg, steps: pr.steps }; } catch (e2) { aiTests[p] = { ok: false, msg: e2.message, steps: pr.steps }; } }
+        else aiTests[p] = { ok: false, msg: first, steps: pr.steps };
+      }
+    }
+    aiWaitNow = 0; toast(aiTests[p].msg); render();
   },
   aiMove: (el) => { const o = aiOrder(); const i = o.indexOf(el.dataset.p), j = i + num(el.dataset.v); if (i < 0 || j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; lsPut(AI_ORDER_KEY, o.join(",")); render(); },
   aiRelaySave: () => { const v = String(($("#ai-relay") || {}).value || "").trim().replace(/\/+$/, ""); if (v && !/^https:\/\/[^\s/]+/.test(v)) { toast("The relay address starts with https://"); return; } lsPut(AI_RELAY_KEY, v); setAiState("perplexity", null); setAiState("xai", null); render(); toast(v ? "Relay saved" : "Relay removed"); },
