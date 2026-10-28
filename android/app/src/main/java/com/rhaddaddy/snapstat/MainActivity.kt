@@ -72,6 +72,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         TrackerService.channels(this)
         TrackerLog.attach(applicationContext)
+        Alerts.channel(this)
         bridge = Bridge(this)
 
         val root = FrameLayout(this).apply { setBackgroundColor(Color.parseColor("#0A0918")) }
@@ -191,6 +192,11 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIntent(intent: Intent?) {
         intent ?: return
+        // A tapped notification: open that part of the app
+        intent.getStringExtra("route")?.let { r ->
+            if (r.startsWith("#")) emit("route", JSONObject.quote(r))
+            intent.removeExtra("route")
+        }
         val data = intent.data
         if (intent.action == Intent.ACTION_VIEW && data?.scheme == "snapstat" && data.host == "signin") {
             val token = data.getQueryParameter("token") ?: intent.getStringExtra("token") ?: ""

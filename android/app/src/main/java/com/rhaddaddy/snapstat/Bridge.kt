@@ -178,6 +178,13 @@ class Bridge(private val act: MainActivity) {
         }
     }
 
+    // ---- Sale, event and reminder notifications ----
+    /** What to watch for (the same state the web version gives its service worker). */
+    @JavascriptInterface fun setAlerts(json: String): Boolean = Alerts.save(ctx, json)
+    @JavascriptInterface fun showAlert(title: String, body: String, tag: String, route: String): Boolean = Alerts.show(ctx, title.take(120), body.take(400), tag.take(120), if (route.startsWith("#")) route.take(40) else "#home")
+    @JavascriptInterface fun canNotify(): Boolean = Alerts.canNotify(ctx)
+    @JavascriptInterface fun checkAlertsNow() { kotlin.concurrent.thread { try { Alerts.check(ctx) } catch (e: Exception) { TrackerLog.add("Alert check failed: ${e.message}") } } }
+
     @JavascriptInterface fun openSnap() {
         act.runOnUiThread {
             val i = ctx.packageManager.getLaunchIntentForPackage(ShotQueue.SNAP_PACKAGE)

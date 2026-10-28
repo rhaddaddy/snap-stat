@@ -58,7 +58,7 @@ except Exception as e: print("snap.fan names:", e)
 def spaced(x): return re.sub(r"([a-z])([A-Z])", r"\1 \2", x).replace("_", " ").strip()
 for b in borders:
     n = b["name"]
-    if n.startswith("Faction_"): n = "Faction · " + spaced(n[8:]).replace("XMen", "X-Men").replace(" Of ", " of ").replace(" The ", " the ")
+    if n.startswith("Faction_"): n = "Faction · " + spaced(n[8:]).replace("XMen", "X-Men").replace("X Men", "X-Men").replace(" Of ", " of ").replace(" The ", " the ")
     if n == b["id"]: n = spaced(n)
     n = re.sub(r"^Border ", "", n)
     if b["source"] and n.endswith(" " + b["source"]) and n != b["source"]: n = n[: -len(b["source"]) - 1]
