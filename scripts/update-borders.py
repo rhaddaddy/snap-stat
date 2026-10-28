@@ -88,6 +88,35 @@ def build(side_tex, top_tex):
     return fr
 
 
+HW, HH, HR = 231, 200, 17  # a hexagon with flat top and bottom, like the game's profile pictures (width:height = 2:√3)
+
+
+def build_hex(top_tex):
+    """The same frame bent round a hexagon: the top texture (inner edge at the bottom) laid along all six sides, mitred at the corners."""
+    W, H, R = HW, HH, HR
+    cx, cy, a = W / 2, H / 2, H / 2
+    P = [(W / 4, 0), (3 * W / 4, 0), (W, H / 2), (3 * W / 4, H), (W / 4, H), (0, H / 2)]
+    k = (a - R) / a
+    Q = [(cx + (x - cx) * k, cy + (y - cy) * k) for x, y in P]
+    L = W / 2
+    strip = top_tex.convert("RGBA").resize((int(L + 2 * R), R), Image.LANCZOS)
+    sw, sh = strip.size
+    fr = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    for i in range(6):
+        (x0, y0), (x1, y1) = P[i], P[(i + 1) % 6]
+        ex, ey = x1 - x0, y1 - y0; n = (ex * ex + ey * ey) ** 0.5; ex, ey = ex / n, ey / n
+        nx, ny = ey, -ex  # the side's outward normal is (ey, -ex) for a clockwise outline; the strip runs inwards
+        ox, oy = (x0 + x1) / 2, (y0 + y1) / 2
+        inx, iny = -nx, -ny
+        # output (x, y) -> strip (u, v): u along the side from its middle, v inwards from the outer edge
+        data = (ex, ey, -(ex * ox + ey * oy) + sw / 2, inx, iny, -(inx * ox + iny * oy))
+        layer = strip.transform((W, H), Image.AFFINE, data, resample=Image.BICUBIC)
+        m = Image.new("L", (W, H), 0); ImageDraw.Draw(m).polygon([P[i], P[(i + 1) % 6], Q[(i + 1) % 6], Q[i]], fill=255)
+        a_ = Image.composite(layer.split()[3], Image.new("L", (W, H), 0), m); layer.putalpha(a_)
+        fr.alpha_composite(layer)
+    return fr
+
+
 def flatten_tilted(im):
     """Marvel Snap Zone's tilted frame picture: take the left side of the frame and use it all round."""
     im = im.convert("RGBA")
@@ -107,7 +136,8 @@ def flatten_tilted(im):
     tex = Image.new("RGBA", (bw, len(segs)))
     for i, (y, x0, _) in enumerate(segs): tex.paste(im.crop((x0, y, x0 + bw, y + 1)), (0, i))
     side = tex.transpose(Image.FLIP_LEFT_RIGHT)  # inner edge on the left, like a right-hand side
-    return build(side, side.rotate(90, expand=True))
+    top = side.rotate(90, expand=True)
+    return build(side, top), build_hex(top)
 
 
 def line_fit(ys, xs):
@@ -177,7 +207,7 @@ def flatten_anim(data):
         ttex = Image.new("RGB", (cols[1] - cols[0], tt))
         for j, x in enumerate(range(*cols)):
             y = int(round(ft[0] * x + ft[1])); ttex.paste(img.crop((x, y - tt + 1, x + 1, y + 1)), (j, 0))
-        out.append(build(stex, ttex))
+        out.append((build(stex, ttex), build_hex(ttex)))
     return out if len(out) >= 12 else None
 
 
@@ -212,33 +242,39 @@ except Exception: prev_src = {}
 src_log, out, report = {}, [], {"anim": [], "still": [], "drawn": [], "kept": []}
 for b in borders:
     bid = b["id"]; item = {"id": bid, "name": b["name"], "rarity": b["rarity"], "source": b["source"], "added": b["added"], "frame": "", "anim": "", "fx": "", "c": color_of(bid)}
-    still_p, anim_p = f"{OUT_DIR}/{bid}.webp", f"{OUT_DIR}/{bid}.anim.webp"
+    still_p, anim_p, hex_p, hexa_p = f"{OUT_DIR}/{bid}.webp", f"{OUT_DIR}/{bid}.anim.webp", f"{OUT_DIR}/{bid}.hex.webp", f"{OUT_DIR}/{bid}.hex.anim.webp"
+    item.update(hex="", hexAnim="")
     # moving version first
-    try: head = get(ANIM.format(bid), method="HEAD"); sig = "a2:" + str(head.get("Content-Length") or head.get("content-length")) + ":" + str(head.get("Last-Modified") or head.get("ETag") or "")
+    try: head = get(ANIM.format(bid), method="HEAD"); sig = "a3:" + str(head.get("Content-Length") or head.get("content-length")) + ":" + str(head.get("Last-Modified") or head.get("ETag") or "")
     except Exception: head, sig = None, ""
-    if head and prev_src.get(bid) == sig and os.path.exists(anim_p) and os.path.exists(still_p):
-        item.update(frame=still_p, anim=anim_p); src_log[bid] = sig; report["kept"].append(bid); out.append(item); continue
+    if head and prev_src.get(bid) == sig and all(os.path.exists(f) for f in (still_p, anim_p, hex_p, hexa_p)):
+        item.update(frame=still_p, anim=anim_p, hex=hex_p, hexAnim=hexa_p); src_log[bid] = sig; report["kept"].append(bid); out.append(item); continue
     done = False
     if head:
         try:
             frames = flatten_anim(get(ANIM.format(bid), True))
             if frames:
-                frames[0].save(still_p, "WEBP", quality=82, method=6)
-                frames[0].save(anim_p, "WEBP", save_all=True, append_images=frames[1:], duration=100, loop=0, quality=68, method=4)
-                item.update(frame=still_p, anim=anim_p); src_log[bid] = sig; report["anim"].append(bid); done = True
+                rect, hexes = [f for f, _ in frames], [h for _, h in frames]
+                rect[0].save(still_p, "WEBP", quality=82, method=6)
+                rect[0].save(anim_p, "WEBP", save_all=True, append_images=rect[1:], duration=100, loop=0, quality=68, method=4)
+                hexes[0].save(hex_p, "WEBP", quality=82, method=6)
+                hexes[0].save(hexa_p, "WEBP", save_all=True, append_images=hexes[1:], duration=100, loop=0, quality=68, method=4)
+                item.update(frame=still_p, anim=anim_p, hex=hex_p, hexAnim=hexa_p); src_log[bid] = sig; report["anim"].append(bid); done = True
         except Exception as e: print(bid, "animation failed:", e)
     if not done:
         for u in [b["img"], f"https://static.marvelsnap.pro/borders/{bid}.webp"]:
             try:
-                fr = flatten_tilted(Image.open(io.BytesIO(get(u, True))))
-                if fr is not None:
-                    fr.save(still_p, "WEBP", quality=82, method=6); item["frame"] = still_p; done = True; report["still"].append(bid)
-                    if os.path.exists(anim_p): os.remove(anim_p)
+                got = flatten_tilted(Image.open(io.BytesIO(get(u, True))))
+                if got is not None:
+                    got[0].save(still_p, "WEBP", quality=82, method=6); got[1].save(hex_p, "WEBP", quality=82, method=6)
+                    item.update(frame=still_p, hex=hex_p); done = True; report["still"].append(bid)
+                    for f in (anim_p, hexa_p):
+                        if os.path.exists(f): os.remove(f)
                     break
             except Exception: pass
     if not done:
         report["drawn"].append(bid)
-        for f in (still_p, anim_p):
+        for f in (still_p, anim_p, hex_p, hexa_p):
             if os.path.exists(f): os.remove(f)
     if not item["anim"]: item["fx"] = effect(bid)
     out.append(item)

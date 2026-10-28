@@ -27,7 +27,8 @@ const note = (code, src, status, reward = "") => {
     const exp = page.search(/<h2[^>]*>[^<]*Expired/i);
     const active = exp > 0 ? page.slice(0, exp) : page, expired = exp > 0 ? page.slice(exp, exp + 20000) : "";
     for (const m of active.matchAll(/<tr id="([A-Za-z0-9]+)"[\s\S]*?<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/g)) note(m[1], "Dexerto", "active", strip(m[2]));
-    const expEnd = expired.search(/<h2/i) > 10 ? expired.slice(0, expired.slice(10).search(/<h2/i) + 10) : expired;
+    const nx = expired.slice(10).search(/<h2/i); // the expired list ends at the next heading
+    const expEnd = nx >= 0 ? expired.slice(0, nx + 10) : expired.slice(0, 6000);
     for (const m of expEnd.matchAll(/<(?:li|strong|td)[^>]*>\s*(?:<[^>]+>\s*)*([A-Za-z0-9]{5,24})\s*(?:<\/[^>]+>\s*)*(?:[-–:][^<]*)?<\/(?:li|strong|td)>/g)) note(m[1], "Dexerto", "expired");
     for (const m of expEnd.matchAll(/<tr id="([A-Za-z0-9]+)"/g)) note(m[1], "Dexerto", "expired");
   }
@@ -52,8 +53,10 @@ const byCode = new Map(prev.codes.map((c) => [c.code.toUpperCase(), c]));
 if (found.size < 3 && byCode.size) { console.log("The code pages didn't come through; keeping the old list."); process.exit(0); }
 for (const [k, f] of found) {
   const old = byCode.get(k) || { code: f.code, firstSeen: today };
-  const status = f.expired.size ? "expired" : f.active.size ? "active" : old.status || "unknown";
+  // A site listing it as working wins over one listing it as expired (the working lists are the ones kept up to date).
+  const status = f.active.size ? "active" : f.expired.size ? "expired" : old.status || "unknown";
   const exp = (f.reward.match(/(?:expires?|until|ends?)\s+(?:on\s+)?([A-Z][a-z]+ \d{1,2},? \d{4})/i) || [])[1];
+  if (status !== "expired") delete old.expiredOn;
   byCode.set(k, { ...old, code: old.code || f.code, reward: f.reward || old.reward || "", status, lastSeen: today, checked: today,
     sources: [...new Set([...f.active, ...f.expired])], ...(status === "expired" && old.status !== "expired" ? { expiredOn: today } : {}),
     ...(exp && !isNaN(Date.parse(exp)) ? { expires: new Date(Date.parse(exp)).toISOString().slice(0, 10) } : {}) });

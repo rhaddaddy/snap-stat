@@ -6,6 +6,7 @@
 #   albums.json           variant albums with their rewards, and card split finishes (snap.fan)
 #   packs.json            the Card Shop's Snap Packs: prices, dates and contents (snap.fan)
 #   promo-codes.json      web shop promo codes and whether they still work (Dexerto, Popverse)
+#   art.json              each season's key art and every card back (Marvel Snap Zone)
 #   borders.json          every Custom Card border, with flat (and moving) frames in borders/ (Marvel Snap Zone, snap.fan)
 name: Update card data
 
@@ -25,6 +26,7 @@ on:
       - "scripts/update-packs.mjs"
       - "scripts/update-borders.py"
       - "scripts/update-promos.mjs"
+      - "scripts/update-art.py"
 
 permissions:
   contents: write
@@ -65,12 +67,15 @@ jobs:
       - name: Download Custom Card borders
         run: pip install --quiet pillow numpy && python3 scripts/update-borders.py
         continue-on-error: true
+      - name: Download season art and card backs
+        run: python3 scripts/update-art.py
+        continue-on-error: true
       - name: Save changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
           git add card-data.json card-data-sample.json
-          for f in schedule.json balance-history.json variant-details.json albums.json packs.json borders.json promo-codes.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          for f in schedule.json balance-history.json variant-details.json albums.json packs.json borders.json promo-codes.json art.json; do if [ -f "$f" ]; then git add "$f"; fi; done
           if [ -d borders ]; then git add -A borders; fi
           if git diff --cached --quiet; then
             echo "Nothing new."
