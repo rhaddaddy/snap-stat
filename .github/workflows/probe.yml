@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - run: pip install pillow numpy
+      - run: pip install pillow numpy opencv-python-headless
       - run: python3 scripts/probe_art.py || true
       - run: |
           git config user.email noreply@anthropic.com && git config user.name "SNAP Stat probe"
