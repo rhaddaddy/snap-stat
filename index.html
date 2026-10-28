@@ -18,14 +18,15 @@
    Look: deep-space nebula ground, comic lettering for page titles, halftone panels, blue energy / orange power pips,
    and a yellow-to-orange "snap" gradient reserved for the main action on each screen. Dark-first; light mirrors it as comic paper. */
 :root {
-  --bg: #0A0918;
-  --glow-1: rgba(120, 72, 255, .28);
-  --glow-2: rgba(0, 160, 255, .16);
-  --surface: #15132B;
-  --surface-2: #201D40;
-  --line: #2F2A5C;
-  --fg: #F2EFFF;
-  --muted: #A39DC9;
+  --bg: #1A0E3D;
+  --bg-2: #4A1F93;
+  --glow-1: rgba(168, 85, 247, .30);
+  --glow-2: rgba(80, 140, 255, .16);
+  --surface: #26145A;
+  --surface-2: #331C73;
+  --line: #4A2F8F;
+  --fg: #F5F0FF;
+  --muted: #BDAFE6;
   --snap-a: #FFD23F;
   --snap-b: #FF7A1A;
   --snap-ink: #1A0E00;
@@ -48,14 +49,14 @@
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --bg: #F6F3FF; --glow-1: rgba(120, 72, 255, .12); --glow-2: rgba(0, 160, 255, .10); --surface: #FFFFFF; --surface-2: #EEE9FB;
+    --bg: #F6F3FF; --bg-2: #E6DCFF; --glow-1: rgba(120, 72, 255, .12); --glow-2: rgba(0, 160, 255, .10); --surface: #FFFFFF; --surface-2: #EEE9FB;
     --line: #D9D1F2; --fg: #17132E; --muted: #5B557C; --snap-ink: #1A0E00; --snap-text: #A85F00; --snap-soft: rgba(224, 140, 0, .12);
     --cost: #2565E0; --power: #DB6412; --cube: #0B7FB0; --win: #0F8A52; --loss: #CC2F4C; --tie: #6F6893; --warn: #9A6200;
     --dot: rgba(23, 19, 46, .07); --shadow: 0 18px 40px rgba(40, 30, 90, .18); color-scheme: light;
   }
 }
 :root[data-theme="light"] {
-  --bg: #F6F3FF; --glow-1: rgba(120, 72, 255, .12); --glow-2: rgba(0, 160, 255, .10); --surface: #FFFFFF; --surface-2: #EEE9FB;
+  --bg: #F6F3FF; --bg-2: #E6DCFF; --glow-1: rgba(120, 72, 255, .12); --glow-2: rgba(0, 160, 255, .10); --surface: #FFFFFF; --surface-2: #EEE9FB;
   --line: #D9D1F2; --fg: #17132E; --muted: #5B557C; --snap-ink: #1A0E00; --snap-text: #A85F00; --snap-soft: rgba(224, 140, 0, .12);
   --cost: #2565E0; --power: #DB6412; --cube: #0B7FB0; --win: #0F8A52; --loss: #CC2F4C; --tie: #6F6893; --warn: #9A6200;
   --dot: rgba(23, 19, 46, .07); --shadow: 0 18px 40px rgba(40, 30, 90, .18); color-scheme: light;
@@ -65,7 +66,7 @@
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body {
-  background: radial-gradient(1200px 600px at 85% -10%, var(--glow-1), transparent 60%), radial-gradient(900px 500px at -10% 30%, var(--glow-2), transparent 60%), var(--bg);
+  background: radial-gradient(1200px 600px at 85% -10%, var(--glow-1), transparent 60%), radial-gradient(900px 500px at -10% 30%, var(--glow-2), transparent 60%), linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 55%, var(--bg-2)) 55%, var(--bg-2) 100%);
   background-attachment: fixed; color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.45;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 0 calc(80px + env(safe-area-inset-bottom, 0px));
@@ -309,7 +310,7 @@ a.li { color: inherit; text-decoration: none; }
 .banner img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .banner .cap { position: relative; font-size: 11px; background: rgba(0,0,0,.45); border-radius: 6px; padding: 2px 6px; margin-left: auto; }
 .banner .big { position: absolute; right: 12px; top: 6px; font-family: var(--comic); font-size: 46px; opacity: .3; }
-.prof-head { display: flex; gap: 12px; align-items: flex-start; margin-top: -40px; padding-inline: 12px; position: relative; }
+.prof-head { display: flex; gap: 12px; align-items: flex-start; margin-top: -40px; padding-inline: 12px; position: relative; z-index: 3; }
 .prof-head > .stack { padding-top: 44px; }
 .prof-head > .rank { margin-top: 44px; }
 
@@ -432,6 +433,110 @@ html.overlay .wrap { padding: 8px !important; }
 .cname .vmeta .t { padding: 0; -webkit-line-clamp: 1; }
 .vmeta .vs { font-size: 10.5px; font-weight: 500; color: var(--muted); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rar { width: 11px; height: 11px; vertical-align: -1.5px; margin-right: 3px; }
+/* Sections along the top of each tab */
+.tabhead { gap: 6px; }
+.tabhead h1 { margin-bottom: 2px; }
+.subnav { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding: 4px 16px 6px; scroll-padding-inline: 16px; }
+.subnav::-webkit-scrollbar { display: none; }
+.subnav button { flex: none; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 80%, transparent); color: var(--muted); border-radius: 12px; padding: 8px 14px; font-weight: 700; font-size: 14px; white-space: nowrap; }
+.subnav button[aria-current="page"] { color: var(--fg); background: var(--surface-2); border-color: color-mix(in srgb, var(--snap-a) 70%, var(--line)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--snap-a) 55%, transparent); }
+.sync:empty { display: none; }
+details.panel > summary { cursor: pointer; list-style: none; }
+details.panel > summary::-webkit-details-marker { display: none; }
+details.panel > summary::after { content: "›"; float: right; color: var(--muted); transition: transform .15s; }
+details.panel[open] > summary::after { transform: rotate(90deg); }
+/* Variant tiles, SnapVault style */
+.vinfo { display: flex; align-items: flex-start; gap: 4px; min-width: 0; padding-top: 4px; }
+.vinfo .vmeta { padding: 0 0 0 2px; }
+.vinfo .vmeta .t { font-size: 12.5px; font-weight: 700; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vside { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex: none; }
+.vside .star { margin: -4px -4px 0 0; }
+.vdate { color: var(--snap-text) !important; font-weight: 700 !important; letter-spacing: .02em; }
+.rb { display: inline-grid; place-items: center; min-width: 22px; height: 17px; padding: 0 5px; border-radius: 5px; font: 800 10.5px/1 var(--ui); letter-spacing: .04em; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,.35); }
+.rb-r { background: #2f80ed; } .rb-sr { background: #9b5cff; } .rb-spot { background: linear-gradient(180deg, #ffd96a, #e9a91d); color: #3a2400; text-shadow: none; } .rb-ult { background: linear-gradient(180deg, #ff5d5d, #d01f2f); }
+.rb-amz { background: #14b8a6; } .rb-sens { background: #e8458f; } .rb-exq { background: linear-gradient(180deg, #f7d774, #c58b12); color: #3a2400; text-shadow: none; }
+.rb-c { background: #7a7f8c; } .rb-uc { background: #3da35d; } .rb-ep { background: #8b5cf6; } .rb-leg { background: #f59e0b; } .rb-ul { background: #ec4899; } .rb-inf { background: linear-gradient(90deg, #ff5f6d, #ffc94a, #2ee6d6, #9b5cff); }
+.vown { position: absolute; top: 3px; left: 3px; z-index: 2; width: 22px; height: 22px; border-radius: 50%; background: #16a34a; box-shadow: 0 0 0 2px rgba(10, 9, 24, .55), 0 2px 6px rgba(0,0,0,.4); display: grid; place-items: center; }
+.vown svg { width: 15px; height: 15px; }
+.ct .vfav { left: 4px; right: auto; color: var(--snap-a); font-size: 13px; }
+.star { display: grid; place-items: center; }
+.star svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 2; }
+.star[aria-pressed="true"] { color: #ff4f9a; }
+.star[aria-pressed="true"] svg { fill: #ff4f9a; stroke: #ff4f9a; }
+/* Coming soon row */
+.vrow { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(118px, 31%); gap: 10px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.vrow::-webkit-scrollbar { display: none; }
+.soonbox { background: linear-gradient(180deg, color-mix(in srgb, var(--snap-a) 10%, var(--surface)), var(--surface)); border: 1px solid color-mix(in srgb, var(--snap-a) 35%, var(--line)); border-radius: var(--r); padding: 12px; }
+/* Hexagon profile pictures (flat top and bottom, like in the game) */
+:root { --hexring: polygon(evenodd, 25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%, 25% 0, 29.25% 8.5%, 8.5% 50%, 29.25% 91.5%, 70.75% 91.5%, 91.5% 50%, 70.75% 8.5%, 29.25% 8.5%); }
+.av.hex { width: 37px; height: 32px; border-radius: 0; border: 0; box-shadow: none; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
+.av.hex.lg { width: 92px; height: 80px; font-size: 40px; }
+.av.hex.xl { width: 196px; height: 170px; font-size: 76px; }
+.prof-head .av.hex.lg { filter: drop-shadow(0 6px 14px rgba(0,0,0,.45)); }
+.bdh { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: var(--bi) center / 100% 100% no-repeat; }
+.bdh.drawn, .bdh.base, .bdh[class*="fx-"]::after { clip-path: var(--hexring); }
+.bdh.base { background: linear-gradient(160deg, #e3d8ff 0%, #8d6cf0 30%, #3a2280 62%, #b49cff 100%); }
+.bdh.drawn { background: linear-gradient(135deg, color-mix(in srgb, var(--bc, #9aa0ab) 50%, #fff), var(--bc, #9aa0ab) 45%, color-mix(in srgb, var(--bc, #9aa0ab) 55%, #000)); }
+.bdh.drawn.fx-shimmer, .bdh.drawn.fx-infinity { background: conic-gradient(from var(--ang), var(--bc, #cfd6e2), #fff 12%, var(--bc, #cfd6e2) 30%, color-mix(in srgb, var(--bc, #cfd6e2) 45%, #000) 50%, var(--bc, #cfd6e2) 70%, #fff 86%, var(--bc, #cfd6e2)); animation: bdSpin 4s linear infinite; }
+.bdh.drawn.rainbow { background: conic-gradient(from var(--ang), #ff5f6d, #ffc94a, #34d27a, #2ee6d6, #3b82f6, #9b5cff, #ff5f6d); animation: bdSpin 5s linear infinite; }
+.bdh[class*="fx-"]::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
+.bdh.fx-fire::after { background: linear-gradient(0deg, transparent 0 30%, rgba(255, 226, 130, .6) 45%, transparent 62% 100%); background-size: 100% 260%; mix-blend-mode: screen; animation: bdRise 1.3s linear infinite; }
+.bdh.fx-neon::after, .bdh.fx-glow::after { background: var(--bc, #8fe3ff); mix-blend-mode: screen; animation: bdPulse 1.8s ease-in-out infinite; }
+.bdh.fx-cosmic::after, .bdh.fx-frost::after { background-image: radial-gradient(circle, #fff 0 1px, transparent 1.6px), radial-gradient(circle, rgba(255,255,255,.8) 0 .8px, transparent 1.4px); background-size: 13px 17px, 19px 11px; animation: bdTwinkle 2.4s ease-in-out infinite alternate, bdDrift 9s linear infinite; }
+.bdh.fx-shimmer::after, .bdh.fx-infinity::after { background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.8) 50%, transparent 65%); background-size: 300% 100%; mix-blend-mode: overlay; animation: bdSweep 2.6s linear infinite; }
+.bdh.still, .bdh.still::after { animation: none !important; } .bdh.still::after { display: none; }
+@media (prefers-reduced-motion: reduce) { .bdh, .bdh::after { animation: none !important; } .bdh::after { display: none; } }
+.bsq.hex { width: 60px; height: 52px; border-radius: 0; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
+/* The picture editor keeps the preview and zoom in view while you scroll the borders */
+.lk-sticky { position: sticky; top: -8px; z-index: 4; background: var(--surface); margin-inline: -16px; padding: 8px 16px 10px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.lk-zoom { gap: 10px; } .lk-zoom input[type=range] { flex: 1; }
+.lk-stage.banner { width: 100%; }
+
+/* Locations: just the picture, no frame */
+.lrow { text-align: left; }
+.lph, .lbig { position: relative; overflow: hidden; flex: none; display: grid; place-items: center; font-family: var(--comic); color: #fff; }
+.lph { width: 56px; height: 56px; border-radius: 12px; font-size: 24px; }
+.lph .limg { position: absolute; max-width: none; width: 142.86%; height: 142.86%; left: -21.43%; top: -20%; }
+.lbig { width: 132px; height: 139px; border-radius: 16px; font-size: 54px; box-shadow: 0 8px 22px rgba(0,0,0,.4); }
+.lbig .limg { position: absolute; max-width: none; width: 138.9%; height: 131.6%; left: -19.4%; top: -15.8%; }
+.lochero { display: flex; gap: 14px; align-items: flex-start; }
+.lochero .lab { margin: 0 0 6px; font-weight: 600; }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.kpi { background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kpi b { font-size: 20px; line-height: 1.1; }
+.kpi span { font-size: 11.5px; color: var(--muted); line-height: 1.25; }
+@media (max-width: 360px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Seasons: the game's loading art */
+.sart, .shero { position: relative; overflow: hidden; flex: none; display: grid; place-items: center; font-family: var(--comic); color: #fff; }
+.sart { width: 72px; height: 41px; border-radius: 9px; font-size: 20px; }
+.shero { width: 100%; aspect-ratio: 16 / 9; border-radius: 16px; font-size: 64px; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.sart .simg, .shero .simg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.season { position: relative; overflow: hidden; }
+.season.has-art > :not(.sbg) { position: relative; z-index: 1; }
+.season .sbg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+.season.has-art::after { content: ""; position: absolute; inset: 0; z-index: 0; background: linear-gradient(90deg, rgba(14,8,40,.92) 0%, rgba(14,8,40,.72) 55%, rgba(14,8,40,.35) 100%); }
+/* Decks: the cover card's face with the deck's card back */
+.dkic { position: relative; width: 54px; height: 48px; flex: none; display: block; }
+.dkic .dkb { position: absolute; left: 0; top: 0; width: 33px; height: 46px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.18); }
+.dkic .dkb:not(.has-img) { opacity: .55; border-style: dashed; }
+.dkic .dkb.has-img { border-color: transparent; background: rgba(0,0,0,.25); }
+.dkic .dkb img { width: 100%; height: 100%; object-fit: cover; }
+.dkic .av.hex { position: absolute; right: 0; bottom: 0; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+.dkic.big { width: 132px; height: 112px; }
+.dkic.big .dkb { width: 72px; height: 100px; border-radius: 10px; }
+.dklook { display: flex; gap: 14px; align-items: center; }
+.dklook .btn { justify-content: flex-start; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dkprev { display: flex; justify-content: center; padding: 6px 0; }
+/* Card backs */
+.cbgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+.cbt { display: flex; flex-direction: column; gap: 4px; min-width: 0; background: none; border: 0; padding: 0; color: var(--fg); text-align: left; }
+button.cbt { cursor: pointer; }
+.cbt.on .cbp { outline: 3px solid var(--cube); outline-offset: 2px; }
+.cbp { position: relative; display: block; width: 100%; aspect-ratio: 5 / 7; border-radius: 10px; overflow: hidden; border: 0; padding: 0; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.35); }
+.cbp img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cbinfo { display: flex; align-items: flex-start; gap: 2px; }
+.cbn { display: block; font-size: 12.5px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.cbd { display: block; font-size: 11px; color: var(--muted); }
 </style>
 
 <style>html, body { margin: 0; } :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); } img { max-width: 100%; }</style>
@@ -453,11 +558,11 @@ html.overlay .wrap { padding: 8px !important; }
 
 <nav class="tabs" id="tabs" aria-label="Sections">
   <button data-a="go" data-to="home"><svg class="ic" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Home</button>
-  <button data-a="go" data-to="play"><svg class="ic" viewBox="0 0 24 24"><path d="M13 2 5 13h6l-1 9 8-11h-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Play</button>
   <button data-a="go" data-to="cards"><svg class="ic" viewBox="0 0 24 24"><rect x="7" y="3" width="12" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 6v13a2 2 0 0 0 2 2h9" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Cards</button>
   <button data-a="go" data-to="decks"><svg class="ic" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5zM3 13l9 5 9-5M3 17.5l9 5 9-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Decks</button>
   <button data-a="go" data-to="social"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Social<span class="badge" id="socialBadge" hidden></span></button>
-  <button data-a="go" data-to="more"><svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="19" cy="12" r="1.8" fill="currentColor"/></svg>More</button>
+  <button data-a="go" data-to="profile"><svg class="ic" viewBox="0 0 24 24"><path d="M12 2.8 20 7.4v9.2L12 21.2 4 16.6V7.4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7.6 16.4c1-2 2.6-3 4.4-3s3.4 1 4.4 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Profile</button>
+  <button data-a="go" data-to="settings"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Settings</button>
 </nav>
 
 <div class="sheet-wrap" id="sheet" hidden>
@@ -1071,10 +1176,11 @@ function hue(s) { let h = 7; for (const c of String(s)) h = (h * 31 + c.charCode
 function artStyle(seed) { const h = hue(seed); return `--a1:hsl(${h} 70% 46%);--a2:hsl(${(h + 48) % 360} 65% 16%)`; }
 function avatarHtml(a, name, id, cls = "") {
   const n = String(name || "?").trim();
-  if (a && a.kind === "img" && (a.url || a.fs)) { const src = a.url || fsImage(a.fs); if (src) return `<span class="av ${cls}"><img src="${esc(src)}" alt="">${borderHtml(a.border, { still: !/\b(lg|xl)\b/.test(cls) })}</span>`; }
+  // Profile pictures are hexagons, like in the game.
+  if (a && a.kind === "img" && (a.url || a.fs)) { const src = a.url || fsImage(a.fs); if (src) return `<span class="av hex has-img ${cls}"><img class="lki" src="${esc(src)}" alt="" style="width:100%;height:100%;left:0;top:0;object-fit:cover">${borderHtml(a.border, { hex: true, still: !/\b(lg|xl)\b/.test(cls) })}</span>`; }
   // A character's face or art, chosen in the picture picker (older picks of a whole card show the face too)
   const l = lookOf(a, "avatar"); if (l) return lookAvatar(l, n, id, cls);
-  return `<span class="av art ${cls}" style="${artStyle(id || n)}">${esc((n[0] || "?").toUpperCase())}</span>`;
+  return `<span class="av hex art ${cls}" style="${artStyle(id || n)}">${esc((n[0] || "?").toUpperCase())}${borderHtml("", { hex: true, still: true })}</span>`;
 }
 function bannerHtml(b, name) {
   if (b && b.kind === "img" && (b.url || b.fs)) { const src = b.url || fsImage(b.fs); if (src) return `<div class="banner"><img src="${esc(src)}" alt="">${borderHtml(b.border)}</div>`; }
@@ -1128,7 +1234,7 @@ let S = defaultState();
 let matchWeeks = {};
 let shared = { profiles: {}, posts: {}, reactions: {}, promos: {}, seasons: {}, events: {}, decks: {}, followreq: {}, approvals: {} };
 let sharedVer = 0;
-const ui = { tab: "home", more: null, period: "all", playSeg: "live", cardsSeg: "cards", cardFilter: "all", cardCost: "any", cardQ: "", cardSort: "cost", powMin: "", powMax: "",
+const ui = { tab: "home", more: null, homeSub: "overview", setSub: "app", period: "all", playSeg: "live", cardsSeg: "cards", cardFilter: "all", cardCost: "any", cardQ: "", cardSort: "cost", powMin: "", powMax: "",
   varQ: "", varFilter: "all", varSort: "card", varRarity: "", varArtist: "", social: "feed", feedFilter: "all", openComments: {}, resetArm: false, seasonTab: "current", eventTab: "current", lbSort: "cubes", lbScope: "all", statView: "cards" };
 const store = { mode: "local", db: null, uid: null, sample: null, downloads: null, assets: null, stateRef: null, ready: false };
 
@@ -1825,7 +1931,9 @@ function mergeCatalog(map) {
       const cv = { cat: id, card: k, art, name: String(det.n || catVarName(v)).slice(0, 80), artist: String(det.a || v.artist || "").slice(0, 120),
         // Spotlight variants count as their own rarity.
         rarity: String(src === "Spotlight" ? "Spotlight" : det.r || det.t || mszRarity(v.rarity)).slice(0, 40), tier: String(det.t || ""), source: src.slice(0, 60),
-        release: /^\d{4}-\d{2}-\d{2}$/.test(rel) ? rel : "", order, unreleased: !!v.unreleased };
+        release: /^\d{4}-\d{2}-\d{2}$/.test(rel) ? rel : "", order, unreleased: !!v.unreleased,
+        // snap.fan's picture of it, which other sites may read: used to match variants in screenshots
+        pic: /^[A-Za-z0-9_]+-[0-9a-f]{16,}\.webp$/.test(String(det.i || "")) ? "https://game-assets.snap.fan/card_variant_images/" + det.i : "" };
       if (!_catVars.has(id)) { _catVars.set(id, cv); vs.push(cv); }
     });
     _catByCard.set(k, vs);
@@ -1973,9 +2081,9 @@ function autoShopSection() {
     const o = g[0], soon = o.start && o.start > today;
     return `<div class="li" style="align-items:flex-start;flex-wrap:wrap"><div class="grow"><div class="t">${esc(o.title || o.shop)}${soon ? ` <span class="pill gold">Soon</span>` : ""}</div><div class="s">${esc(o.shop)} · ${esc(offerPrice(o))}${o.expires ? ` · until ${esc(dateStr(o.expires))}` : ""}</div></div>
       <div class="chiplist" style="width:100%">${g.map((x) => { const want = (x.cat && wantCats.has(x.cat)) || (!x.variant && x.cardKey && S.wishCards[x.cardKey]); const own = x.cat ? !!S.variants.find((v) => v.cat === x.cat && v.owned) : x.cardKey && !x.variant ? !!S.owned[x.cardKey] : false;
-        return `<span class="cchip ${own ? "" : "miss"}" title="${esc(x.cardName)}">${want ? "★ " : ""}${esc(x.cardName)}${x.variant ? ` <span class="muted">· ${esc(x.item)}</span>` : ""}${own ? ` <span class="muted">✓</span>` : ""}</span>`; }).join("")}</div></div>`;
+        return `<span class="cchip ${own ? "" : "miss"}" title="${esc(x.cardName)}">${want ? "♥ " : ""}${esc(x.cardName)}${x.variant ? ` <span class="muted">· ${esc(x.item)}</span>` : ""}${own ? ` <span class="muted">✓</span>` : ""}</span>`; }).join("")}</div></div>`;
   });
-  return `<section class="sec"><h2>On sale now</h2><p class="muted small">Bundles and event shops from snap.fan, updated daily. ★ marks things on your wishlist, ✓ things you own.</p><div class="list">${rows.join("")}</div></section>`;
+  return `<section class="sec"><h2>On sale now</h2><p class="muted small">Bundles and event shops from snap.fan, updated daily. ♥ marks things on your wishlist, ✓ things you own.</p><div class="list">${rows.join("")}</div></section>`;
 }
 
 /* ============ Collection progress by series ============ */
@@ -2319,7 +2427,7 @@ function aiPanel() {
 
 /* ============ Installable app, offline use and notifications ============ */
 let installEvt = null;
-window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; if (ui.more === "account") refreshView(); });
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; if (ui.tab === "settings") refreshView(); });
 const isInstalled = () => window.matchMedia && window.matchMedia("(display-mode: standalone)").matches;
 async function registerSW() {
   if (!window.SNAPSTAT_STANDALONE || !("serviceWorker" in navigator) || !/^https:|^http:\/\/(127\.0\.0\.1|localhost)/.test(location.href)) return null;
@@ -2392,12 +2500,12 @@ async function loadOwner() {
   if (store.mode !== "cloud" || !store.db) return;
   try { const s = await store.db.doc("config/owner").get(); store.ownerUid = s.exists ? String((s.data() || {}).uid || "") : ""; }
   catch { store.ownerUid = undefined; } // older security rules: everyone can still edit
-  render();
+  render(); loadAdmins();
 }
 const rp = { author: "", id: "", reason: "spam", note: "" };
 function reportSheet() {
   const R = { spam: "Spam or ads", abuse: "Harassment or hate", nsfw: "Inappropriate content", cheat: "Cheating or scams", other: "Something else" };
-  return `${sheetHead("Report this post", "Only the app owner sees reports")}
+  return `${sheetHead("Report this post", "Only the app owner and social admins see reports")}
     <div class="stack">${Object.entries(R).map(([k, l]) => `<label class="check"><input type="radio" name="rp" data-rp="${k}" ${rp.reason === k ? "checked" : ""}> ${l}</label>`).join("")}</div>
     <label class="f">Details (optional)<textarea id="rp-note" data-rpnote="1" maxlength="400">${esc(rp.note)}</textarea></label>
     <div class="row"><button class="btn snap" data-a="reportSend">Send report</button><button class="btn ghost" data-a="muteAuthor" data-id="${esc(rp.author)}">${isMuted(rp.author) ? "Unmute this player" : "Mute this player"}</button></div>
@@ -2411,17 +2519,17 @@ async function loadReports() {
   render();
 }
 function vReports() {
-  if (reports === null && store.ownerUid === store.uid) { loadReports(); }
+  if (reports === null && isModerator()) { loadReports(); }
   const list = arr(reports);
   return `<section class="sec">${backBar("Reports")}
-    ${store.ownerUid !== store.uid ? `<p class="muted">Only the app owner can see reports.</p>` : list.length ? `<div class="list">${list.map((r) => { const post = arr(obj(shared.posts[r.author]).items).find((p) => p.id === r.post); return `<div class="li" style="flex-wrap:wrap"><div class="grow"><div class="t">${esc(obj(prof(r.author)).handle || "Player")} · ${esc(r.reason || "")}</div><div class="s">${post ? esc(String(post.text || "(no text)").slice(0, 140)) : "Post already removed"}${r.note ? " · “" + esc(r.note) + "”" : ""}</div></div>
+    ${!isModerator() ? `<p class="muted">Only the app owner and social admins can see reports.</p>` : list.length ? `<div class="list">${list.map((r) => { const post = arr(obj(shared.posts[r.author]).items).find((p) => p.id === r.post); return `<div class="li" style="flex-wrap:wrap"><div class="grow"><div class="t">${esc(obj(prof(r.author)).handle || "Player")} · ${esc(r.reason || "")}</div><div class="s">${post ? esc(String(post.text || "(no text)").slice(0, 140)) : "Post already removed"}${r.note ? " · “" + esc(r.note) + "”" : ""}</div></div>
       <div class="row">${post ? `<button class="btn sm danger" data-a="modRemove" data-id="${esc(r.id)}">Remove post</button>` : ""}<button class="btn sm ghost" data-a="modDismiss" data-id="${esc(r.id)}">Dismiss</button></div></div>`; }).join("")}</div>` : `<div class="empty"><span>No reports. Nice.</span></div>`}</section>`;
 }
 function ownerPanel() {
   if (store.mode !== "cloud" || store.provider !== "firebase") return "";
   if (store.ownerUid === undefined) return `<section class="sec"><h2>App owner</h2><div class="panel stack small"><p>Paste the new security rules into Firebase (Firestore Database › Rules) to turn on owner-only editing of seasons and events, post reports and picture uploads.</p></div></section>`;
   if (!store.ownerUid) return `<section class="sec"><h2>App owner</h2><div class="panel stack small"><p>Nobody owns this app yet. The owner is the only one who can edit seasons and events, and the one who sees post reports. Claim it now, from the account you'll always use. It can't be changed later from the app.</p><div><button class="btn snap" data-a="claimOwner">Make me the app owner</button></div></div></section>`;
-  if (store.ownerUid === store.uid) return `<section class="sec"><h2>App owner</h2><div class="panel stack small"><p>You're the app owner. You can edit seasons and events and review reported posts.</p><div><button class="btn" data-a="go" data-to="reports">Reported posts</button></div></div></section>`;
+  if (store.ownerUid === store.uid) return `<section class="sec"><h2>App owner</h2><div class="panel stack small"><p>You're the app owner. You can edit seasons and events, review reported posts and choose social admins (below).</p><div><button class="btn" data-a="go" data-to="social/reports">Reported posts</button></div></div></section>`;
   return "";
 }
 function dangerPanel() {
@@ -2502,7 +2610,8 @@ function seasonHero() {
   }
   const p = obj(S.passes[cs.id]); const of = num(cs.passLevels) || 50; const r = obj(S.ranks["s:" + cs.id]);
   const items = collectibleItems(cs); const got = items.filter((it) => findCollectible(it, cs.name).owned).length;
-  return `<button class="season halftone halftone-dots" data-a="seasonOpen" data-id="${esc(cs.id)}" style="text-align:left;cursor:pointer">
+  const bg = showArt() ? seasonArt(cs) : "";
+  return `<button class="season halftone halftone-dots ${bg ? "has-art" : ""}" data-a="seasonOpen" data-id="${esc(cs.id)}" style="text-align:left;cursor:pointer">${bg ? imgTag(bg, "sbg") : ""}
     <div class="row between"><span class="eyebrow">Current season · ends in ${esc(countdown(cs.endTs))}</span>${rankBadge(S.me.rank || r.end)}</div>
     <span class="nm">${esc(cs.name)}</span>
     <div class="row between small"><span>Season pass level <b class="num">${num(p.level)}</b> / ${of} · ${esc(PASS_TIERS[p.tier] || "Free")}</span><span>${got}/${items.length} collected</span></div>
@@ -2514,12 +2623,12 @@ function eventsStrip() {
   const row = (e) => { const st = timeState(e); return `<button class="li ev" data-a="eventOpen" data-id="${esc(e.id)}"><span class="pill ${st === "live" ? "live" : "dim"}">${st === "live" ? "LIVE" : esc(dayStr(e.startTs))}</span><div class="grow"><div class="t">${esc(e.name)}</div><div class="s">${esc(EVENT_TYPES[e.type] || "Event")} · ${st === "live" ? "ends in " + esc(countdown(e.endTs)) : "starts in " + esc(countdown(e.startTs))}</div></div><span class="muted">›</span></button>`; };
   return `<section class="sec"><div class="sec-h"><h2>Events & modes</h2><button class="btn sm ghost" data-a="go" data-to="events">All events</button></div><div class="list">${liveEv.map(row).join("")}${next.map(row).join("")}</div></section>`;
 }
-function vHome() {
+function homeParts() {
   const ms = allMatches(); const p = periodById(ui.period); const pm0 = inPeriod(ms, p); const pm = byMode(pm0); const st = statsFor(pm);
   const alerts = wishAlerts();
   const wallet = `<div class="wallet">${[["credits", "Credits"], ["gold", "Gold"], ["tokens", "Collector's Tokens"]].map(([k, l]) => `<button data-a="go" data-to="shops"><div class="k">${l}</div><div class="v">${fmt(S.wallet[k])}</div></button>`).join("")}
     <button data-a="go" data-to="account"><div class="k">Collection Lvl</div><div class="v">${S.me.colLevel ? fmt(S.me.colLevel) : "—"}</div></button></div>`;
-  const statsBlock = !ms.length ? `<div class="empty"><strong>No matches yet</strong><span>Track a game live from Play, or log one after it ends. Want to see the stats first?</span><div class="row"><button class="btn snap" data-a="go" data-to="play">Track a match</button><button class="btn" data-a="loadExamples">Load example matches</button></div></div>`
+  const statsBlock = !ms.length ? `<div class="empty"><strong>No matches yet</strong><span>Track a game in Home › Live match, or log one after it ends. Want to see the stats first?</span><div class="row"><button class="btn snap" data-a="go" data-to="play">Track a match</button><button class="btn" data-a="loadExamples">Load example matches</button></div></div>`
     : `${exampleNote(ms)}
     <div class="panel hero-stat halftone">${ring(st.wr)}<div class="stack" style="gap:4px">
       <div class="eyebrow">${esc(p.label)} · ${fmt(st.games)} games</div>
@@ -2534,20 +2643,26 @@ function vHome() {
   const faced = {}; pm.forEach((m) => arr(m.oppCards).forEach((n) => (faced[n] = (faced[n] || 0) + 1)));
   const facedTop = Object.entries(faced).sort((a, b) => b[1] - a[1]).slice(0, 10);
   const seasonRows = periods().filter((x) => x.id.startsWith("s:") || x.id.startsWith("m:")).map((x) => ({ x, s: statsFor(inPeriod(ms, x)), r: obj(S.ranks[x.id]), pass: x.season ? obj(S.passes[x.season.id]) : {} })).filter((r) => r.s.games || r.r.end || r.r.peak);
-  return `${seasonHero()}
+  const top = `${seasonHero()}
   ${!S.me.onboarded ? `<div class="panel stack halftone"><h3>Create your profile</h3><p class="muted small">Add your in-game name, country and alliance so friends can follow your stats.</p><div><button class="btn snap" data-a="onboard">Get started</button></div></div>` : ""}
   <section class="sec">${wallet}</section>
   ${natUpdateBanner()}${catchUpBanner()}${sessionPanel()}${challengesHomeHtml()}${todayHtml()}
   ${svSyncPanel()}
   ${eventsStrip()}
   ${balanceHomePanel()}
-  ${alerts.length ? `<section class="sec"><div class="sec-h"><h2>Wishlist alerts</h2><button class="btn sm ghost" data-a="go" data-to="shops">Shops</button></div><div class="list">${alerts.slice(0, 4).map(alertRow).join("")}</div></section>` : ""}
-  <section class="sec"><div class="sec-h"><h2>Match stats</h2>${ms.length ? `<button class="btn sm" data-a="quickOpen">${ICON.plus} Quick log</button>` : ""}</div>${periodChips()}${modeChips(pm0)}${statsBlock}</section>
-  ${pm.some((m) => m.tracked) ? cardLocSection(pm) : ""}
+  ${alerts.length ? `<section class="sec"><div class="sec-h"><h2>Wishlist alerts</h2><button class="btn sm ghost" data-a="go" data-to="shops">Shops</button></div><div class="list">${alerts.slice(0, 4).map(alertRow).join("")}</div></section>` : ""}`;
+  const match = `<section class="sec"><div class="sec-h"><h2>Match stats</h2>${ms.length ? `<button class="btn sm" data-a="quickOpen">${ICON.plus} Quick log</button>` : ""}</div>${periodChips()}${modeChips(pm0)}${statsBlock}</section>`;
+  const details = `  ${pm.some((m) => m.tracked) ? cardLocSection(pm) : ""}
   ${decks.length ? `<section class="sec"><h2>Decks played</h2><div class="list">${decks.map((d) => `<div class="li"><div class="grow"><div class="t">${esc(d.name)}</div><div class="s">${d.games} games · ${d.w}-${d.l}-${d.t}</div></div><span class="num" style="font-weight:800">${d.wr}%</span>${cubes(signed(d.cubes), d.cubes >= 0 ? "pos" : "neg")}</div>`).join("")}</div></section>` : ""}
   ${facedTop.length ? `<section class="sec"><h2>Cards you face most</h2><div class="chiplist">${facedTop.map(([n, c]) => nameChip(n, ` <span class="muted">×${c}</span>`)).join("")}</div></section>` : ""}
   ${seasonRows.length ? `<section class="sec"><div class="sec-h"><h2>Season history</h2><button class="btn sm" data-a="recapOpen">Recap picture</button></div><div class="tbl-wrap"><table><thead><tr><th>${seasons().length ? "Season" : "Month"}</th><th class="n">Rank</th><th class="n">Peak</th><th class="n">Games</th><th class="n">Win %</th><th class="n">Cubes</th><th class="n">Pass</th></tr></thead><tbody>${seasonRows.map((r) => `<tr><td>${esc(plainLabel(r.x))}</td><td class="n">${esc(r.r.end || "—")}</td><td class="n">${esc(r.r.peak || "—")}</td><td class="n">${r.s.games}</td><td class="n">${r.s.games ? r.s.wr + "%" : "—"}</td><td class="n ${r.s.cubes >= 0 ? "pos" : "neg"}">${signed(r.s.cubes)}</td><td class="n">${r.pass.level ? num(r.pass.level) : "—"}</td></tr>`).join("")}</tbody></table></div></section>` : ""}`;
+  return { top, match, details, has: ms.length > 0 };
 }
+// Home's first section: what's going on now, and a summary of your games.
+function vHomeOverview() { const h = homeParts(); return `${h.top}${h.match}${h.has ? `<section class="sec"><div class="grid2"><button class="btn" data-a="go" data-to="home/stats">All your stats</button><button class="btn" data-a="go" data-to="home/matches">Match history</button></div></section>` : ""}`; }
+// Everything about how you've been playing.
+function vHomeStats() { const h = homeParts(); return `${h.match}${h.details}${vInsights()}`; }
+function vHome() { return vHomeOverview(); }
 function cardLocSection(pm) {
   const seg = `<div class="seg"><button data-a="statView" data-v="cards" aria-pressed="${ui.statView === "cards"}">Cards</button><button data-a="statView" data-v="locs" aria-pressed="${ui.statView === "locs"}">Locations</button></div>`;
   let body;
@@ -2760,7 +2875,8 @@ function variantSearchIndex() {
   _vsiSig = _avSig; return _vsi;
 }
 /* A grid tile with the card's name and a wishlist star underneath */
-function starBtn(a, attrs, on, name) { return `<button class="star" data-a="${a}" ${attrs} aria-pressed="${on}" aria-label="${on ? "On" : "Add to"} wishlist: ${esc(name)}">${on ? "★" : "☆"}</button>`; }
+const HEART = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3s-7.6-4.6-7.6-10.2A4.3 4.3 0 0 1 12 7.3a4.3 4.3 0 0 1 7.6 2.8c0 5.6-7.6 10.2-7.6 10.2z"/></svg>`;
+function starBtn(a, attrs, on, name) { return `<button class="star" data-a="${a}" ${attrs} aria-pressed="${on}" aria-label="${on ? "On" : "Add to"} wishlist: ${esc(name)}">${HEART}</button>`; }
 function gridTile(face, name, star) { return `<div class="cwrap">${face}<div class="cname"><span class="t">${esc(name)}</span>${star || ""}</div></div>`; }
 const showSoon = () => !!S.showSoon;
 function vCardGrid() {
@@ -2819,36 +2935,58 @@ function cardSheet(k) {
     ${cardHistoryHtml(k)}`;
   };
 }
-/* A little icon for each variant rarity (shape and colour both differ, and the name is in the label). */
-const RAR_ICONS = {
-  rare: ["#4aa3ff", "M6 1 11 6 6 11 1 6z"],
-  "super rare": ["#b46cff", "M6 1 11 6 6 11 1 6zM6 3.6 3.6 6 6 8.4 8.4 6z"],
-  spotlight: ["#ffc94a", "M6 .8 7.4 4.6 11.2 6 7.4 7.4 6 11.2 4.6 7.4.8 6 4.6 4.6z"],
-  ultimate: ["url(#rarU)", "M6 .6 10.7 3.3v5.4L6 11.4 1.3 8.7V3.3z"],
-  amazing: ["#2ee6d6", "M6 1 11 6 6 11 1 6z"],
-  sensational: ["#ff4fa3", "M6 .8 7.4 4.6 11.2 6 7.4 7.4 6 11.2 4.6 7.4.8 6 4.6 4.6z"],
-  exquisite: ["#f2c14e", "M1.5 9.5h9l.6-6-2.9 2.2L6 2 3.8 5.7.9 3.5z"],
-};
+/* Rarity as a small badge with a short name, like SnapVault: R blue, SR purple, SPOT gold, ULT red. */
+const RAR_BADGE = { common: ["C", "c"], uncommon: ["UC", "uc"], rare: ["R", "r"], "super rare": ["SR", "sr"], epic: ["EP", "ep"], legendary: ["LEG", "leg"], ultra: ["ULTRA", "ul"], infinity: ["INF", "inf"],
+  spotlight: ["SPOT", "spot"], ultimate: ["ULT", "ult"], amazing: ["AMZ", "amz"], sensational: ["SENS", "sens"], exquisite: ["EXQ", "exq"] };
 function rarityIcon(r) {
-  const k = String(r || "").toLowerCase(), ic = RAR_ICONS[k]; if (!ic) return "";
-  return `<svg class="rar" viewBox="0 0 12 12" role="img" aria-label="${esc(r)}"><title>${esc(r)}</title>${k === "ultimate" ? `<defs><linearGradient id="rarU" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5f6d"/><stop offset=".35" stop-color="#ffc94a"/><stop offset=".65" stop-color="#2ee6d6"/><stop offset="1" stop-color="#9b5cff"/></linearGradient></defs>` : ""}<path d="${ic[1]}" fill="${ic[0]}" stroke="rgba(0,0,0,.35)" stroke-width=".6"/></svg>`;
+  const b = RAR_BADGE[String(r || "").toLowerCase()]; if (!b) return "";
+  return `<span class="rb rb-${b[1]}" title="${esc(r)}" aria-label="${esc(r)}">${b[0]}</span>`;
 }
-/* A variant in the grid: the picture, then the card name, the variant's name and where it's from, and the artist in smaller type. */
+const OWNED_TICK = `<span class="vown" aria-label="Owned" title="Owned"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4 8-9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
+/* A variant in the grid, kept bright whether you own it or not: a green tick when you do, a heart for your wishlist,
+   then the card name, the variant's style and where it's from, the artist, and the rarity badge on the right. */
 function varTile(v, o = {}) {
   const c = card(v.card), today = localDate(Date.now()), up = varUpcoming(v, today);
-  const face = cardFace(c, { a: o.a || "varOpen", extra: o.extra || `data-id="${esc(v.id)}"`, variant: v, noSub: true, cls: v.owned ? "own" : up ? "" : "miss",
-    badges: o.badges ?? `${v.favorite ? `<span class="tag l" aria-hidden="true">♥</span>` : ""}${up ? `<span class="tag pill gold" style="font-size:10px">Soon</span>` : ""}` });
+  const face = cardFace(c, { a: o.a || "varOpen", extra: o.extra || `data-id="${esc(v.id)}"`, variant: v, noSub: true, cls: "vt",
+    badges: o.badges ?? `${v.owned ? OWNED_TICK : ""}${v.favorite ? `<span class="tag vfav" aria-label="Favorite">★</span>` : ""}${up ? `<span class="tag pill gold" style="font-size:10px">Soon</span>` : ""}` });
   const sameName = !v.name || (v.artist && keyOf(v.artist) === keyOf(v.name));
   // Inside one card's list the card name is already known, so the variant's own name leads.
   const title = o.inCard ? (sameName ? v.source || v.rarity || "Variant" : v.name) : c.name;
   const type = [o.inCard || sameName ? "" : v.name, o.inCard && sameName ? "" : v.source].filter(Boolean).join(" · ");
-  const star = o.noStar ? "" : starBtn("wishVar", `data-id="${esc(v.id)}"`, !!v.wish, c.name + " · " + (v.artist || v.name));
-  return `<div class="cwrap">${face}<div class="cname"><div class="vmeta"><span class="t">${esc(title)}</span><span class="vs">${rarityIcon(v.rarity)}${esc(type || v.rarity || (v.owned ? "Owned" : "Variant"))}</span>${v.artist ? `<span class="vs">${esc(v.artist)}</span>` : ""}</div>${star}</div></div>`;
+  const heart = o.noStar ? "" : starBtn("wishVar", `data-id="${esc(v.id)}"`, !!v.wish, c.name + " · " + (v.artist || v.name));
+  const when = o.when && v.release ? `<span class="vs vdate">${esc(dateStr(v.release))}</span>` : "";
+  return `<div class="cwrap">${face}<div class="vinfo"><div class="vmeta"><span class="t">${esc(title)}</span>${type ? `<span class="vs">${esc(type)}</span>` : ""}${v.artist ? `<span class="vs">${esc(v.artist)}</span>` : ""}${when}</div><div class="vside">${heart}${rarityIcon(v.rarity)}</div></div></div>`;
 }
 function variantRow(v) {
   return `<div class="li">${imgTag(variantArt(v), "vthumb")}<button class="grow" data-a="varOpen" data-id="${esc(v.id)}" style="background:none;border:0;text-align:left;padding:0;min-width:0"><div class="t">${v.favorite ? "★ " : ""}${esc(card(v.card).name)} · ${esc(v.name)}</div><div class="s">${rarityIcon(v.rarity)}${[v.artist && keyOf(v.artist) !== keyOf(v.name) && "by " + v.artist, v.rarity, v.source, v.release && (v.release > localDate(Date.now()) ? "coming " : "out ") + dateStr(v.release)].filter(Boolean).map(esc).join(" · ") || (v.owned ? "Owned" : "Missing")}</div></button>
     <label class="check small"><input type="checkbox" data-varchk="owned" data-id="${esc(v.id)}" ${v.owned ? "checked" : ""}> Own</label>
     <label class="check small"><input type="checkbox" data-varchk="wish" data-id="${esc(v.id)}" ${v.wish ? "checked" : ""}> Want</label></div>`;
+}
+/* Variants with a release date still to come, soonest first. */
+function upcomingVariants() {
+  const today = localDate(Date.now());
+  return allVariants().filter((v) => !v.owned && v.release && v.release > today && !card(v.card).hidden).sort((a, b) => a.release.localeCompare(b.release) || card(a.card).name.localeCompare(card(b.card).name));
+}
+/* Variants in the game's files that haven't come out and have no date yet. */
+function unreleasedVariants() {
+  const today = localDate(Date.now());
+  return allVariants().filter((v) => varUpcoming(v, today) && !(v.release && v.release > today) && !card(v.card).hidden).sort((a, b) => card(a.card).name.localeCompare(card(b.card).name));
+}
+function soonStrip() {
+  const up = upcomingVariants(); if (!up.length) return "";
+  return `<section class="sec"><div class="soonbox stack" style="gap:10px"><div class="sec-h"><h3 style="margin:0;font-family:var(--comic);letter-spacing:.03em">Coming soon</h3><button class="btn sm ghost" data-a="go" data-to="cards/upcoming">See all ${up.length}</button></div>
+    <div class="vrow">${up.slice(0, 12).map((v) => varTile(v, { when: true })).join("")}</div></div></section>`;
+}
+/* Collection › Coming soon: every upcoming variant by release date, with where it comes from. */
+function vUpcomingVariants() {
+  const up = upcomingVariants(), later = unreleasedVariants(), lim = ui.unrelLim || 60;
+  const laterHtml = later.length ? `<section class="sec"><details class="panel" ${ui.unrelOpen ? "open" : ""} data-unrel="1"><summary><b>Not out yet, no date</b> <span class="muted small">${later.length} found in the game's files</span></summary>
+    ${ui.unrelOpen ? `<div class="cgrid" style="margin-top:10px">${later.slice(0, lim).map((v) => varTile(v)).join("")}</div>${later.length > lim ? `<button class="btn block" data-a="unrelMore">Show more (${later.length - lim} left)</button>` : ""}` : ""}</details></section>` : "";
+  if (!up.length) return `<section class="sec"><div class="empty"><strong>Nothing dated right now</strong><span>New variants show up here once they have a release date, with where they come from.</span></div></section>${laterHtml}`;
+  const groups = []; for (const v of up) { const k = v.release || ""; const g = groups.find((x) => x.k === k); if (g) g.vs.push(v); else groups.push({ k, vs: [v] }); }
+  const day = (d) => { if (!d) return "Date not announced"; const t = new Date(d + "T12:00"); return t.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }); };
+  return `<section class="sec"><p class="muted small num">${up.length} variant${up.length === 1 ? "" : "s"} with a release date. Dates and where they come from are from Marvel Snap Zone and snap.fan, so they can change.</p></section>
+    ${groups.map((g) => `<section class="sec"><div class="sec-h"><h2>${esc(day(g.k))}</h2><span class="muted small">${g.vs.length}</span></div><div class="cgrid">${g.vs.map((v) => varTile(v)).join("")}</div></section>`).join("")}${laterHtml}`;
 }
 function vVariants() {
   const _cc = new Map(), cc = (k) => { let c = _cc.get(k); if (!c) { c = card(k); _cc.set(k, c); } return c; };
@@ -2872,7 +3010,7 @@ function vVariants() {
   list = list.sort(sorters[ui.varSort] || sorters.card);
   const f = (v, l) => `<button class="chip" data-a="varFilter" data-v="${v}" aria-pressed="${ui.varFilter === v}">${l}</button>`;
   const own = all.filter((v) => v.owned).length, lim = ui.varLimit || 200, soon = all.filter((v) => !v.owned && varUpcoming(v, today)).length;
-  return `<section class="sec"><div class="sec-h"><h2>Variants</h2><span class="muted small num">${own} owned · ${all.length - own - soon} missing${soon && showSoon() ? ` · ${soon} coming` : ""}</span></div>
+  return `${ui.varFilter === "upcoming" ? "" : soonStrip()}<section class="sec"><div class="sec-h"><h2>Variants</h2><span class="muted small num">${own} owned · ${all.length - own - soon} missing${upcomingVariants().length ? ` · ${upcomingVariants().length} coming` : ""}</span></div>
     <input type="search" id="var-q" data-ui="varQ" value="${esc(ui.varQ)}" placeholder="Search card, variant, artist, rarity, source, ability" aria-label="Search variants">
     <div class="chips">${f("all", "All")}${f("owned", "Owned")}${f("missing", "Missing")}${f("wish", "Wishlist")}${f("fav", "Favorites")}${f("upcoming", "Coming soon")}</div>
     <div class="chips">${["any", "0", "1", "2", "3", "4", "5", "6"].map((v) => `<button class="chip" data-a="varCost" data-v="${v}" aria-pressed="${(ui.varCost || "any") === v}">${v === "any" ? "Any cost" : v === "6" ? "6+" : v}</button>`).join("")}</div>
@@ -2930,10 +3068,11 @@ function vCosmetics() {
   const plural = { cardback: "Card backs", avatar: "Avatars", title: "Titles", emote: "Emotes" };
   return `<section class="sec"><div class="chips">${Object.entries(plural).map(([k, l]) => `<button class="chip" data-a="cosKind" data-v="${k}" aria-pressed="${kind === k}">${l} <span class="muted num">${S.cosmetics.filter((c) => c.kind === k && c.owned).length}</span></button>`).join("")}</div>
     ${kind === "avatar" ? `<p class="muted small">Avatars are the profile pictures you set in the game.</p>` : ""}
-    ${list.length ? `<div class="list">${list.map((c) => `<div class="li"><div class="grow"><div class="t">${esc(c.name)}</div><div class="s">${esc(c.source || (c.owned ? "Owned" : "Missing"))}</div></div>
+    ${kind === "cardback" && cardBacks().length ? `${cardBackGallery()}${list.some((c) => !c.ref) ? `<h3>Others you added</h3>` : ""}` : ""}
+    ${(kind === "cardback" && cardBacks().length ? list.filter((c) => !c.ref).length : list.length) ? `<div class="list">${list.filter((c) => !(kind === "cardback" && c.ref && cardBacks().length)).map((c) => `<div class="li"><div class="grow"><div class="t">${esc(c.name)}</div><div class="s">${esc(c.source || (c.owned ? "Owned" : "Missing"))}</div></div>
       <label class="check small"><input type="checkbox" data-coschk="owned" data-id="${esc(c.id)}" ${c.owned ? "checked" : ""}> Own</label><label class="check small"><input type="checkbox" data-coschk="wish" data-id="${esc(c.id)}" ${c.wish ? "checked" : ""}> Want</label>
       <button class="x" data-a="cosDel" data-id="${esc(c.id)}" aria-label="Remove">${ICON.x}</button></div>`).join("")}</div>`
-      : `<div class="empty"><strong>No ${plural[kind].toLowerCase()} tracked</strong><span>Add the ones you own and want, or tick them off in a season or event.</span></div>`}
+      : kind === "cardback" && cardBacks().length ? "" : `<div class="empty"><strong>No ${plural[kind].toLowerCase()} tracked</strong><span>Add the ones you own and want, or tick them off in a season or event.</span></div>`}
     <div class="panel stack"><h3>Add ${COS[kind].toLowerCase()}</h3><div class="grid2"><label class="f">Name<input type="text" id="nc-name"></label><label class="f">Season or source<input type="text" id="nc-src" placeholder="Optional"></label></div>
       <label class="check"><input type="checkbox" id="nc-owned"> I own it</label><button class="btn snap" data-a="cosAdd" data-v="${kind}">Add</button></div></section>`;
 }
@@ -2943,12 +3082,14 @@ function vWishlist() {
     <p class="muted small">Star cards, variants and cosmetics you want. When an offer you add in Shops matches, you'll see what it costs and how much more you need.</p>
     ${wishTotalHtml()}
     ${items.length ? `<div class="list">${items.map((w) => { const hit = alerts.filter((a) => a.w.ref === w.ref); return hit.length ? hit.map(alertRow).join("") : `<div class="alert"><span class="dot" style="background:var(--line)"></span><div class="grow"><div style="font-weight:600">${esc(w.name)}</div><div class="muted small">${esc(w.kind)} · not in your shops right now</div></div></div>`; }).join("")}</div>`
-      : `<div class="empty"><strong>Your wishlist is empty</strong><span>Tap the ☆ under any card or variant in Collection.</span></div>`}</section>`;
+      : `<div class="empty"><strong>Your wishlist is empty</strong><span>Tap the ♡ under any card or variant in Collection.</span></div>`}</section>`;
 }
+
+document.addEventListener("toggle", (e) => { if (e.target && e.target.dataset && e.target.dataset.unrel) { if (ui.unrelOpen !== e.target.open) { ui.unrelOpen = e.target.open; render(); } } }, true);
 /* ============ Decks ============ */
 let deId = null; const deckEdit = () => S.decks.find((d) => d.id === deId);
 const DECK_STATUS = { active: "Ready", draft: "Draft", future: "Future" };
-function deckCover(d) { const k = d.cover || d.cards[0]; if (!k) return `<span class="av art" style="${artStyle(d.id)}">?</span>`; const c = card(k); const v = deckVariant(d, k); return `<span class="av art" style="${artStyle(v ? v.id + v.name : c.key)}">${esc((c.name[0] || "?").toUpperCase())}</span>`; }
+function deckCover(d) { return deckIcon(d); }
 function vDecks() {
   const f = ui.deckFilter || "all";
   const list = S.decks.filter((d) => f === "all" || d.status === f);
@@ -2984,7 +3125,8 @@ function deckCardsHtml(d) {
   const hasCustom = cs.some((k) => String(k).startsWith("custom:"));
   return `<label class="f">Deck name<input type="text" id="de-name" data-deck="name" value="${esc(d.name)}"></label>
     <div class="seg">${Object.entries(DECK_STATUS).map(([v, l]) => `<button data-a="deckStatus" data-v="${v}" aria-pressed="${d.status === v}">${l}</button>`).join("")}</div>
-    <div class="row between"><span class="muted small">Avg cost ${avg}${missing ? ` · ${missing} not owned` : ""}</span><button class="btn sm" data-a="deckCover">Cover: ${esc(card(d.cover || d.cards[0] || "").name || "none")}</button></div>
+    ${deckLookHtml(d)}
+    <div class="row between"><span class="muted small">Avg cost ${avg}${missing ? ` · ${missing} not owned` : ""}</span></div>
     <div class="list">${cs.map((k) => { const c = card(k); const vs = S.variants.filter((v) => v.card === k && v.owned); const cur = obj(d.variants)[k] || ""; return `<div class="li">${cardChip(k)}${(() => { const x = recentChange(k, 30); return x ? `<span class="pill ${BAL_PILL[x.kind]}" title="${esc(dateStr(x.date))}: ${statLine(x.from)} → ${statLine(x.to)}">${BAL_LABEL[x.kind]}</span>` : ""; })()}<div class="grow"></div>${c.custom ? `<span class="pill dim">Custom</span>` : vs.length ? `<select data-deckvar="${esc(k)}" aria-label="Variant for ${esc(c.name)}" style="width:auto;max-width:46%;padding:5px 8px;font-size:13px"><option value="">${favVariant(k) ? "Favorite: " + esc(favVariant(k).name) : "Default"}</option>${vs.map((v) => `<option value="${esc(v.id)}" ${cur === v.id ? "selected" : ""}>${esc(v.name + byArtist(v))}</option>`).join("")}</select>` : ""}<button class="x" data-a="deckRemove" data-k="${esc(k)}" aria-label="Remove ${esc(c.name)}">${ICON.x}</button></div>`; }).join("") || `<div class="li muted small">No cards yet.</div>`}</div>
     <button class="btn" data-a="deckAddCards">${ICON.plus} Add cards</button>
     ${cs.length ? curveHtml(cs) : ""}${cs.length ? `<div class="row">${tagSummary(cs)}</div>` : ""}
@@ -3000,7 +3142,7 @@ function deckCardsHtml(d) {
 function deckStatsHtml(d) {
   const ins = deckInsights(d); const st = statsFor(ins.ms);
   const sv = d.svRecord && (num(d.svRecord.w) || num(d.svRecord.l)) ? `<div class="panel row between"><span class="small">SnapVault record${num(d.svRecord.versions) > 1 ? ` across ${num(d.svRecord.versions)} versions` : ""}</span><b class="num">${num(d.svRecord.w)}-${num(d.svRecord.l)} · ${pct(num(d.svRecord.w), num(d.svRecord.w) + num(d.svRecord.l))}%</b></div>` : "";
-  if (!ins.ms.length) return `${sv}<div class="empty"><strong>No games with this deck tracked here yet</strong><span>Start a live match with it from Play. Tracked games fill in card and location stats here.</span></div>`;
+  if (!ins.ms.length) return `${sv}<div class="empty"><strong>No games with this deck tracked here yet</strong><span>Start a live match with it from Home › Live match. Tracked games fill in card and location stats here.</span></div>`;
   const pick = (r, l, v) => r ? `<div class="tile"><div class="k">${l}</div><div class="v" style="font-size:17px">${esc(card(r.k).name)}</div><div class="small muted">${v(r)}</div></div>` : "";
   return `${sv}<div class="tiles"><div class="tile"><div class="k">Record</div><div class="v">${st.w}-${st.l}-${st.t}</div></div><div class="tile"><div class="k">Win rate</div><div class="v">${st.wr}%</div></div><div class="tile"><div class="k">Net cubes</div><div class="v ${st.cubes >= 0 ? "pos" : "neg"}">${signed(st.cubes)}</div></div></div>
     ${ins.tracked ? `<div class="tiles">${pick(ins.mvp, "MVP", (r) => `${r.wr}% when played`)}${pick(ins.most, "Most played", (r) => `${r.rate}% of games`)}${pick(ins.highest, "Highest power", (r) => `${r.max} power`)}${pick(ins.least, "Least used", (r) => `${r.rate}% of games`)}</div>
@@ -3357,11 +3499,11 @@ function vLocations() {
   const sorters = { name: (a, b) => a.name.localeCompare(b.name), played: (a, b) => ((st(b) || {}).games || 0) - ((st(a) || {}).games || 0) || a.name.localeCompare(b.name), win: (a, b) => (st(b) ? st(b).wr : -1) - (st(a) ? st(a).wr : -1) || ((st(b) || {}).games || 0) - ((st(a) || {}).games || 0) || a.name.localeCompare(b.name) };
   list = [...list].sort(sorters[ui.locSort] || sorters.name);
   const row = (l) => { const r = st(l);
-    return `<div class="li lrow"><span class="lph art" style="${artStyle(l.name)}">${esc((l.name[0] || "?").toUpperCase())}${imgTag(l.art, "lthumb")}</span>
+    return `<button class="li lrow" data-a="locOpen" data-name="${esc(l.name)}">${locPic(l, "lph")}
       <div class="grow"><div class="t">${esc(l.name)} ${l.soon ? `<span class="pill gold">Soon</span>` : ""}</div>${l.ability ? `<div class="s">${esc(l.ability)}</div>` : ""}
-      ${r ? `<div class="s num">You: ${r.games} game${r.games === 1 ? "" : "s"} · ${r.wr}% match wins · won it ${r.lwr}% · avg power ${r.avg}</div>` : ""}${locCommunityLine(l.name)}</div></div>`; };
+      ${r ? `<div class="s num">You: ${r.games} game${r.games === 1 ? "" : "s"} · ${r.wr}% match wins · won it ${r.lwr}% · avg power ${r.avg}</div>` : ""}${locCommunityLine(l.name)}</div><span class="muted">›</span></button>`; };
   return `<section class="sec">${backBar("Locations")}
-    <p class="muted small">${CAT ? "Every location in the game with its effect, updated daily from Marvel Snap Zone. " : ""}Your numbers come from matches where you named the locations, in the live tracker or when logging a match.</p>
+    <p class="muted small">${CAT ? "Every location in the game with its effect, updated daily from Marvel Snap Zone. " : ""}Tap a location for your win rate, power and the cards you play there. Your numbers come from tracked matches where the locations were named.</p>
     <input type="search" id="loc-q" data-ui="locQ" value="${esc(ui.locQ || "")}" placeholder="Search name or effect" aria-label="Search locations">
     <div class="grid2"><label class="f">Sort<select id="loc-sort" data-uisel="locSort">${[["name", "Name"], ["played", "Most played"], ["win", "Best win rate"]].map(([v, l]) => `<option value="${v}" ${(ui.locSort || "name") === v ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>
     ${soonN ? `<label class="check"><input type="checkbox" data-soonchk ${showSoon() ? "checked" : ""}> Show ones that aren't out yet</label>` : ""}
@@ -3385,7 +3527,7 @@ function vSeasons() {
 }
 function seasonRow(s) {
   const st = timeState(s); const p = obj(S.passes[s.id]); const r = obj(S.ranks["s:" + s.id]); const items = collectibleItems(s); const got = items.filter((it) => findCollectible(it, s.name).owned).length;
-  return `<button class="li" data-a="seasonOpen" data-id="${esc(s.id)}"><span class="av art" style="${artStyle(s.name)}">${esc(s.name[0] || "?")}</span><div class="grow"><div class="t">${esc(s.name)} ${st === "live" ? `<span class="pill live">Live</span>` : ""}</div>
+  return `<button class="li" data-a="seasonOpen" data-id="${esc(s.id)}">${seasonPic(s, "sart")}<div class="grow"><div class="t">${esc(s.name)} ${st === "live" ? `<span class="pill live">Live</span>` : ""}</div>
     <div class="s">${esc(dateStr(s.start))}${s.end ? " – " + esc(dateStr(s.end)) : ""}${st === "live" ? " · ends in " + esc(countdown(s.endTs)) : st === "upcoming" ? " · starts in " + esc(countdown(s.startTs)) : ""}${items.length ? ` · ${got}/${items.length} collected` : ""}${p.level ? ` · pass ${num(p.level)}` : ""}${r.peak ? ` · peak ${esc(r.peak)}` : ""}</div></div><span class="muted">›</span></button>`;
 }
 let se = null;
@@ -3397,6 +3539,7 @@ function seasonSheet() {
   const items = collectibleItems(s); const got = items.filter((it) => findCollectible(it, s.name).owned).length;
   const evs = events().filter((e) => e.startTs <= s.endTs && e.endTs >= s.startTs);
   return `${sheetHead(esc(s.name), `${esc(dateStr(s.start))}${s.end ? " – " + esc(dateStr(s.end)) : ""} · ${st === "live" ? "ends in " + esc(countdown(s.endTs)) : st === "upcoming" ? "starts in " + esc(countdown(s.startTs)) : "ended"}`)}
+    ${seasonPic(s, "shero")}
     ${s.passCard ? `<div class="row">${nameChip(s.passCard)}<span class="pill gold">Season pass card</span></div>` : ""}
     ${st !== "upcoming" ? `<div class="panel stack"><h3>My season</h3>
       <div class="grid2"><label class="f">${st === "live" ? "Current rank" : "Final rank"}<input type="text" id="sp-end" data-prog="season" data-id="${esc(s.id)}" data-f="end" value="${esc(r.end || (st === "live" ? S.me.rank : ""))}" placeholder="e.g. 72 or Infinite"></label><label class="f">Peak rank<input type="text" id="sp-peak" data-prog="season" data-id="${esc(s.id)}" data-f="peak" value="${esc(r.peak || "")}"></label></div>
@@ -3493,22 +3636,27 @@ function vShops() {
     <button class="btn snap" data-a="offerAdd">Add offer</button></div></section>`;
 }
 function promoList() {
-  const src = store.mode === "cloud" ? Object.entries(shared.promos).map(([id, p]) => ({ ...p, id })) : S.localPromos;
-  return src.filter((p) => p && p.code).sort((a, b) => (a.status === "active" ? 0 : 1) - (b.status === "active" ? 0 : 1) || num(b.added) - num(a.added));
+  const src = (store.mode === "cloud" ? Object.entries(shared.promos).map(([id, p]) => ({ ...p, id })) : S.localPromos).filter((p) => p && p.code);
+  const auto = autoPromos(), have = new Set(auto.map((p) => p.code.toUpperCase()));
+  // A code someone added that the daily check also knows: keep the check's details, and their redeemed tick still counts.
+  for (const p of src) if (have.has(String(p.code).toUpperCase()) && S.redeemed[p.id]) S.redeemed["auto:" + String(p.code).toUpperCase()] = true;
+  const rank = (p) => (p.status === "active" ? 0 : p.status === "unknown" ? 1 : 2);
+  return [...auto, ...src.filter((p) => !have.has(String(p.code).toUpperCase()))].sort((a, b) => rank(a) - rank(b) || (S.redeemed[a.id] ? 1 : 0) - (S.redeemed[b.id] ? 1 : 0) || num(b.added) - num(a.added));
 }
-const PST = { active: "Active", expired: "Expired", unknown: "Not checked" };
+const PST = { active: "Active", expired: "Expired", unknown: "Not sure" };
 function vPromos() {
   const list = promoList();
   return `<section class="sec">${backBar("Promo codes")}
-    <p class="muted small">Redeem codes in the game's official web shop. ${store.mode === "cloud" ? "Codes added here are shared with everyone using this app; your redeemed ticks are private." : "Codes are saved on this device."}</p>
-    ${list.length ? `<div class="list">${list.map((p) => `<div class="li" style="flex-wrap:wrap"><div class="grow"><div class="t" style="font-family:ui-monospace,monospace;letter-spacing:.04em">${esc(p.code)}</div><div class="s">${esc(p.reward || "Reward not noted")}${p.expires ? ` · ends ${esc(dateStr(p.expires))}` : ""}</div></div>
-      <span class="pill ${p.status === "active" ? "W" : p.status === "expired" ? "L" : "dim"}">${PST[p.status] || "Not checked"}</span><button class="btn sm" data-a="promoCopy" data-v="${esc(p.code)}">${ICON.copy} Copy</button>
+    <div class="panel row between nowrap"><div class="small"><b>${list.filter((p) => p.status === "active" && !S.redeemed[p.id]).length} active code${list.filter((p) => p.status === "active" && !S.redeemed[p.id]).length === 1 ? "" : "s"} to redeem</b><div class="muted">Copy a code, then redeem it in the official web shop, signed in with your Snap ID. Rewards arrive in your in-game mail.</div></div><a class="btn snap" href="${PROMO_SHOP}" target="_blank" rel="noopener">Web shop</a></div>
+    <p class="muted small">${PROMOS.data ? `The list is checked every day${PROMOS.data.updated ? ` (last ${esc(dateStr(String(PROMOS.data.updated).slice(0, 10)))})` : ""} against Dexerto's and Popverse's code pages, so new codes show up and old ones get marked expired on their own.` : "Codes you add are listed here."} ${store.mode === "cloud" ? "Codes you add are shared with everyone using this app; your redeemed ticks are private." : ""}</p>
+    ${list.length ? `<div class="list">${list.map((p) => `<div class="li promo ${S.redeemed[p.id] ? "done" : ""}" style="flex-wrap:wrap"><div class="grow" style="min-width:0"><div class="t" style="font-family:ui-monospace,monospace;letter-spacing:.04em">${esc(p.code)}</div><div class="s" style="white-space:normal">${esc(p.reward || "Reward not noted")}${p.expires ? ` · ends ${esc(dateStr(p.expires))}` : ""}${p.status === "expired" && p.expiredOn ? ` · expired by ${esc(dateStr(p.expiredOn))}` : ""}</div></div>
+      <span class="pill ${p.status === "active" ? "W" : p.status === "expired" ? "L" : "dim"}">${PST[p.status] || "Not checked"}</span>${p.status !== "expired" ? `<button class="btn sm" data-a="promoCopy" data-v="${esc(p.code)}">${ICON.copy} Copy</button>` : ""}
       <div class="row" style="width:100%;justify-content:space-between"><label class="check small"><input type="checkbox" data-promored="${esc(p.id)}" ${S.redeemed[p.id] ? "checked" : ""}> I redeemed it</label>
-      <select data-promostatus="${esc(p.id)}" aria-label="Status" style="width:auto">${Object.entries(PST).map(([k, v]) => `<option value="${k}" ${p.status === k ? "selected" : ""}>${v}</option>`).join("")}</select>
-      ${store.mode !== "cloud" || p.by === store.uid ? `<button class="btn sm ghost danger" data-a="promoDel" data-id="${esc(p.id)}">Remove</button>` : ""}</div></div>`).join("")}</div>`
+      ${p.auto ? `<span class="muted small">${p.checked ? `Checked ${esc(dateStr(p.checked))}` : "Checked daily"}${p.sources.length ? " · " + esc(p.sources.join(", ")) : ""}</span>` : `<select data-promostatus="${esc(p.id)}" aria-label="Status" style="width:auto">${Object.entries(PST).map(([k, v]) => `<option value="${k}" ${p.status === k ? "selected" : ""}>${v}</option>`).join("")}</select>`}
+      ${!p.auto && (store.mode !== "cloud" || p.by === store.uid) ? `<button class="btn sm ghost danger" data-a="promoDel" data-id="${esc(p.id)}">Remove</button>` : ""}</div></div>`).join("")}</div>`
       : `<div class="empty"><strong>No codes yet</strong><span>When you spot a code from an official stream, post or newsletter, add it here with what it gives.</span></div>`}
-    <div class="panel stack"><h3>Add a code</h3><div class="grid2"><label class="f">Code<input type="text" id="np-code" autocapitalize="characters"></label><label class="f">Status<select id="np-status">${Object.entries(PST).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select></label></div>
-    <div class="grid2"><label class="f">What it gives<input type="text" id="np-reward" placeholder="e.g. 300 credits"></label><label class="f">Ends<input type="date" id="np-exp"></label></div><button class="btn snap" data-a="promoAdd">Add code</button></div></section>`;
+    <details class="panel stack"><summary><b>Add a code that isn't listed</b></summary><div class="stack" style="margin-top:10px"><div class="grid2"><label class="f">Code<input type="text" id="np-code" autocapitalize="characters"></label><label class="f">Status<select id="np-status">${Object.entries(PST).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select></label></div>
+    <div class="grid2"><label class="f">What it gives<input type="text" id="np-reward" placeholder="e.g. 300 credits"></label><label class="f">Ends<input type="date" id="np-exp"></label></div><button class="btn snap" data-a="promoAdd">Add code</button></div></details></section>`;
 }
 
 /* Custom cards */
@@ -3716,23 +3864,28 @@ function missingBanner() {
     ${unk ? `<span class="muted small">${unk} unknown card${unk === 1 ? "" : "s"} came from an import. Filter by “Needs details” and tap one to give it its real name.</span>` : ""}</div>`;
 }
 /* ============ Render & routing ============ */
-const VIEWS = { home: vHome, play: vPlay, cards: vCards, decks: vDecks, social: vSocial, more: vMore };
+const VIEWS = { home: vHomeTab, cards: vCardsTab, decks: vDecks, social: vSocialTab, profile: vProfileTab, settings: vSettingsTab };
 function render() {
   if (window.__overlay) return;
   applyLook();
-  keepFocus(() => { $("#view").innerHTML = VIEWS[ui.tab](); });
+  keepFocus(() => { $("#view").innerHTML = (VIEWS[ui.tab] || VIEWS.home)(); });
+  const sn = document.querySelector("#view .subnav"), cur = sn && sn.querySelector('[aria-current="page"]');
+  if (cur) sn.scrollLeft = Math.max(0, cur.offsetLeft - sn.clientWidth / 2 + cur.offsetWidth / 2);
   document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-current", b.dataset.to === ui.tab ? "page" : "false"));
   $("#mechip").innerHTML = `${avatarHtml(S.me.avatar, S.me.handle || "?", store.uid || "me")}<span class="h">${esc(S.me.handle || "Set up profile")}</span>`;
-  $("#sync").textContent = (store.mode === "cloud" ? "Saved to your account" : store.ready ? "Saved on this device" : "Loading…") + (SLOT ? " · " + currentAccountName() : "");
+  $("#sync").textContent = SLOT ? currentAccountName() : ""; $("#sync").hidden = !SLOT;
   updateBadge();
 }
 const TABS = Object.keys(VIEWS);
-const MORE = ["shops", "promos", "seasons", "events", "locations", "balance", "reports", "custom", "account", "about"];
 function route() {
   const h = location.hash.slice(1);
   if ((h.startsWith("deck=") || h === "quicklog" || h.startsWith("replay=") || h.startsWith("overlay") || h === "shared") && specialRoute(h)) return;
-  if (TABS.includes(h)) { ui.tab = h; ui.more = null; } else if (MORE.includes(h)) { ui.tab = "more"; ui.more = h; } else { ui.tab = "home"; ui.more = null; }
-  closeSheet(); render(); window.scrollTo(0, 0);
+  const to = navTarget(h) || ["home", "overview"];
+  const sameTab = ui.tab === to[0];
+  applyNav(to[0], to[1]);
+  closeSheet(); render();
+  // Changing sections keeps the section row in view; changing tabs starts at the top.
+  if (!sameTab) window.scrollTo(0, 0); else { const hd = document.querySelector(".tabhead"); if (hd && window.scrollY > hd.offsetTop + hd.offsetHeight) window.scrollTo(0, Math.max(0, hd.offsetTop - 8)); }
 }
 function go(h) { if (location.hash.slice(1) === h) route(); else location.hash = h; }
 window.addEventListener("hashchange", route);
@@ -3846,7 +3999,7 @@ function showLocInfo(input) {
   if (info && info.ability) { const lab = document.createElement("div"); lab.className = "lab"; lab.textContent = info.ability; lh.appendChild(lab); }
   if (/^live-loc-/.test(input.id)) { const tip = locTip(input.value, live.deckId); if (tip) lh.insertAdjacentHTML("beforeend", tip); }
 }
-function starFlip(el, on) { el.setAttribute("aria-pressed", on); el.textContent = on ? "★" : "☆"; el.setAttribute("aria-label", el.getAttribute("aria-label").replace(/^(On|Add to) wishlist/, on ? "On wishlist" : "Add to wishlist")); }
+function starFlip(el, on) { el.setAttribute("aria-pressed", on); el.setAttribute("aria-label", el.getAttribute("aria-label").replace(/^(On|Add to) wishlist/, on ? "On wishlist" : "Add to wishlist")); }
 const A = {
   go: (el) => go(el.dataset.to), close: () => closeSheet(),
   period: (el) => { ui.period = el.dataset.v; render(); }, playSeg: (el) => { ui.playSeg = el.dataset.v; render(); }, statView: (el) => { ui.statView = el.dataset.v; render(); },
@@ -3856,7 +4009,7 @@ const A = {
   setVis: (el) => { S.me.visibility = el.dataset.v; save(); render(); if (sheetFn) refreshSheet(); },
 
   liveStart: (el) => { const d = S.decks.find((x) => x.id === el.dataset.id); live = newLive(d); saveLive(); render(); },
-  liveCancel: () => { if (!live.confirmCancel) { live.confirmCancel = true; render(); setTimeout(() => { if (live.on) { live.confirmCancel = false; if (ui.tab === "play") render(); } }, 4000); return; } live = { on: false }; saveLive(); render(); toast("Match discarded"); },
+  liveCancel: () => { if (!live.confirmCancel) { live.confirmCancel = true; render(); setTimeout(() => { if (live.on) { live.confirmCancel = false; if (ui.tab === "home") render(); } }, 4000); return; } live = { on: false }; saveLive(); render(); toast("Match discarded"); },
   turn: (el) => { liveSnapshot(); live.turn = clamp(live.turn + num(el.dataset.v), 1, live.lastTurn); saveLive(); render(); },
   oppHand: (el) => { live.oppHand = clamp(live.oppHand + num(el.dataset.v), 0, 12); saveLive(); render(); },
   emote: (el) => { live.sig.emotes = clamp(num(live.sig.emotes) + num(el.dataset.v), 0, 99); saveLive(); render(); },
@@ -3969,7 +4122,7 @@ const A = {
   notifyOn: () => enableNotifications(),
   notifyOff: () => disableNotifications(),
   claimOwner: async () => { try { await store.db.doc("config/owner").set({ uid: store.uid, at: Date.now() }); store.ownerUid = store.uid; render(); toast("You're the app owner now"); } catch (e) { toast("Couldn't claim it. Paste the new security rules first, or someone already owns the app."); loadOwner(); } },
-  deleteAccount: () => { if (!ui.delArm) { ui.delArm = true; render(); setTimeout(() => { ui.delArm = false; if (ui.more === "account") render(); }, 6000); return; } ui.delArm = false; deleteAccount(); },
+  deleteAccount: () => { if (!ui.delArm) { ui.delArm = true; render(); setTimeout(() => { ui.delArm = false; if (ui.tab === "settings") render(); }, 6000); return; } ui.delArm = false; deleteAccount(); },
   reportOpen: (el) => { rp.author = el.dataset.k; rp.id = el.dataset.id; rp.reason = "spam"; rp.note = ""; openSheet(reportSheet); },
   reportSend: async () => { try { await store.db.collection("reports").doc().set({ author: rp.author, post: rp.id, reason: rp.reason, note: String(rp.note || "").slice(0, 400), by: store.uid, at: Date.now() }); closeSheet(); toast("Report sent. Thanks."); } catch { toast("Couldn't send the report right now."); } },
   muteAuthor: (el) => { const id = el.dataset.id; if (!id || id === store.uid) return; S.muted = isMuted(id) ? arr(S.muted).filter((x) => x !== id) : [...arr(S.muted), id]; save(); closeSheet(); render(); toast(isMuted(id) ? "Muted. Their posts are hidden from your feed." : "Unmuted"); },
@@ -4106,7 +4259,7 @@ const A = {
       S = mergeDefaults(j.state); const old = Object.keys(matchWeeks); matchWeeks = obj(j.matches); _mVer++; [...new Set([...old, ...Object.keys(matchWeeks)])].forEach(dirtyWeek); save(); closeSheet(); render(); toast("Backup restored");
     } catch { rs.err = "That doesn't look like a SNAP Stat backup. Copy the whole backup text and try again."; rs.text = $("#rs-text").value; refreshSheet(); }
   },
-  resetAll: () => { if (!ui.resetArm) { ui.resetArm = true; render(); setTimeout(() => { ui.resetArm = false; if (ui.more === "account") render(); }, 5000); return; } ui.resetArm = false; const old = Object.keys(matchWeeks); S = defaultState(); matchWeeks = {}; _mVer++; old.forEach(dirtyWeek); live = { on: false }; saveLive(); save(); render(); toast("All data erased"); },
+  resetAll: () => { if (!ui.resetArm) { ui.resetArm = true; render(); setTimeout(() => { ui.resetArm = false; if (ui.tab === "settings") render(); }, 5000); return; } ui.resetArm = false; const old = Object.keys(matchWeeks); S = defaultState(); matchWeeks = {}; _mVer++; old.forEach(dirtyWeek); live = { on: false }; saveLive(); save(); render(); toast("All data erased"); },
 };
 document.addEventListener("click", (e) => {
   if (e.target.id === "sheet") { closeSheet(); return; }
@@ -4930,18 +5083,18 @@ Reply as JSON: {"result": "W" | "L" | "T" | "" (from the player's side at the bo
 }
 
 /* ============ Routes, actions and inputs for these features ============ */
-MORE.push("tournaments");
+
 function specialRoute(h) {
   if (h.startsWith("replay=") || h.startsWith("overlay")) return specialRoute2(h);
   if (h === "shared") return sharedRoute();
   if (h.startsWith("deck=")) {
     const p = new URLSearchParams(h); linkDeck = { code: p.get("deck") || "", name: p.get("n") || "" };
-    ui.tab = "decks"; ui.more = null; render();
+    applyNav("decks"); render();
     try { history.replaceState(null, "", "#decks"); } catch { /* fine */ }
     setTimeout(() => openSheet(linkDeckSheet), 0); return true;
   }
   if (h === "quicklog") {
-    ui.tab = "play"; ui.more = null; render();
+    applyNav("home", "live"); render();
     try { history.replaceState(null, "", "#play"); } catch { /* fine */ }
     setTimeout(() => { qk.last = null; qk.f = {}; openSheet(quickSheet); }, 0); return true;
   }
@@ -5438,7 +5591,7 @@ function challengeSheet() {
     <span class="eyebrow">Match</span><div class="chips">${c(1, "One game")}${c(3, "Best of 3")}${c(5, "Best of 5")}</div>
     <label class="f">Stakes or message (optional)<input type="text" id="chl-note" maxlength="80" placeholder="Loser posts a GG" value="${esc(chl.note)}"></label>
     <button class="btn snap" data-a="chlSend">Send challenge</button>
-    <p class="muted small">They'll see it on their Home screen. Log your games against “${esc(p.handle || "them")}” in Play.</p>`;
+    <p class="muted small">They'll see it on their Home screen. Log your games against “${esc(p.handle || "them")}” in Home › Live match.</p>`;
 }
 function challengesHomeHtml() {
   if (store.mode !== "cloud") return "";
@@ -5598,7 +5751,7 @@ function packHelperHtml() {
   return `<section class="sec"><h2>Snap Packs</h2><p class="muted small">Each pack gives you a card you don't own from its pool, plus two bonus rolls. You have ${fmt(tokens)} tokens.</p>
     ${tip ? `<div class="panel small">${tip}</div>` : ""}<div class="list">${rows.map(row).join("")}</div>
     ${P.special.length ? `<h3>Variant packs</h3><div class="list">${P.special.map((p) => { const own = p.vars.filter((x) => x.v && x.v.owned).length, wished = p.vars.filter((x) => x.v && want.has(x.v.cat)).length, soon = p.start && p.start > localDate(Date.now());
-      return `<button class="li" data-a="packOpen" data-id="${esc(p.id)}"><div class="grow" style="min-width:0"><div class="t">${esc(p.name)}${soon ? ` <span class="pill gold">Soon</span>` : ""}${wished ? ` <span class="pill gold">★ ${wished}</span>` : ""}</div><div class="s">${fmt(p.price)} tokens${p.value ? ` · value ${p.value}%` : ""}${p.start ? ` · ${esc(dayStr(dayStart(p.start)))}${p.end ? "–" + esc(dayStr(dayStart(p.end))) : ""}` : ""} · you own ${own} of ${p.vars.length}</div></div><span class="muted">›</span></button>`; }).join("")}</div>` : ""}
+      return `<button class="li" data-a="packOpen" data-id="${esc(p.id)}"><div class="grow" style="min-width:0"><div class="t">${esc(p.name)}${soon ? ` <span class="pill gold">Soon</span>` : ""}${wished ? ` <span class="pill gold">♥ ${wished}</span>` : ""}</div><div class="s">${fmt(p.price)} tokens${p.value ? ` · value ${p.value}%` : ""}${p.start ? ` · ${esc(dayStr(dayStart(p.start)))}${p.end ? "–" + esc(dayStr(dayStart(p.end))) : ""}` : ""} · you own ${own} of ${p.vars.length}</div></div><span class="muted">›</span></button>`; }).join("")}</div>` : ""}
     <p class="muted small">Buying a specific card costs ${fmt(direct5)} tokens for Series 5 and ${fmt(num(PACKS.direct[4]) || 3000)} for Series 4. Pools come from snap.fan and the card data, so check the Card Shop before you spend.</p></section>`;
 }
 let packId = "";
@@ -5717,7 +5870,7 @@ function catchUpSheet() {
     ${com.length ? step(++n, "Cards other players use most that you don't have", com.map((r) => esc(card(r.k).name)).join(", ") + ".", `<div class="chiplist">${com.map((r) => cardChip(r.k, { a: "cardOpen" })).join("")}</div>`) : ""}
     ${ready.length ? step(++n, "Decks you can play today", ready.map((d) => esc(d.name)).join(", ") + ".", `<div><button class="btn sm" data-a="go" data-to="decks">See them in Decks</button></div>`) : ""}
     ${num(S.wallet.credits) >= 50 ? step(++n, "Use your credits", `${fmt(S.wallet.credits)} credits is about ${fmt(Math.floor(num(S.wallet.credits) / 50))} Collection Levels of upgrades.`) : ""}
-    ${cs ? step(++n, "This season", `${esc(cs.name)} ends in ${esc(countdown(cs.endTs))}. Set your rank in Play › Insights to track your climb.`, `<div><button class="btn sm" data-a="go" data-to="play">Play</button></div>`) : ""}
+    ${cs ? step(++n, "This season", `${esc(cs.name)} ends in ${esc(countdown(cs.endTs))}. Set your rank in Home › Stats to track your climb.`, `<div><button class="btn sm" data-a="go" data-to="home/stats">Stats</button></div>`) : ""}
     </div>`;
 }
 function catchUpBanner() { const away = daysAway(); return away >= 21 && away < 999 ? `<section class="sec"><div class="panel row between nowrap halftone"><div><b>Welcome back!</b><div class="small muted">It's been ${plural(away, "day")}. Here's how to catch up fast.</div></div><button class="btn sm snap" data-a="catchUp">Catch-up plan</button></div></section>` : ""; }
@@ -5950,10 +6103,10 @@ function overlayPanel() {
 }
 
 /* ---------- Routes, actions, inputs ---------- */
-MORE.push("catchup");
+
 function specialRoute2(h) {
   if (h.startsWith("replay=")) {
-    const r = replayFromLink(h.slice(7)); ui.tab = "play"; ui.more = null; render();
+    const r = replayFromLink(h.slice(7)); applyNav("home", "live"); render();
     try { history.replaceState(null, "", "#play"); } catch { /* fine */ }
     setTimeout(() => { if (r) { rp2 = { r: r.r, i: 0, title: r.title, own: false }; openSheet(replaySheet); } else toast("That replay link is broken."); }, 0); return true;
   }
@@ -6015,7 +6168,7 @@ function bundleSheet() {
     <div class="row"><span class="pill ${cls}">${esc(v)}</span>${num(s.value) ? `<span class="small">Bundle value ${num(s.value)}%</span>` : ""}${num(s.currencyValue) ? `<span class="small muted">currencies alone ${num(s.currencyValue)}%</span>` : ""}</div>
     ${arr(s.breakdown).length ? `<div class="tbl-wrap"><table><thead><tr><th>What's inside</th><th class="n">Gold value</th></tr></thead><tbody>${arr(s.breakdown).map(([n, g]) => `<tr><td>${esc(n)}</td><td class="n">${fmt(g)}</td></tr>`).join("")}<tr><td><b>Total</b></td><td class="n"><b>${fmt(s.goldValue)}</b></td></tr></tbody></table></div>` : ""}
     ${perDollar ? `<p class="small">That's about <b>${fmt(perDollar)} gold of value per $1</b>, versus about 70 when you buy gold directly.</p>` : ""}
-    ${arr(s.items).length ? `<span class="eyebrow">Cards and variants</span><div class="chiplist">${arr(s.items).map((it) => { const c = it.cardId ? cardByCode(cardCode(it.cardId)) : null; const w = it.cat && want.has(it.cat); const own = it.cat ? !!S.variants.find((x) => x.cat === it.cat && x.owned) : c && !it.variantId ? !!S.owned[c.key] : false; return `<span class="cchip ${own ? "" : "miss"}">${w ? "★ " : ""}${esc(c ? c.name : it.cardName || "")}${it.variantId ? ` <span class="muted">· ${esc(it.label)}</span>` : ""}${own ? ` <span class="muted">✓</span>` : ""}</span>`; }).join("")}</div>` : ""}
+    ${arr(s.items).length ? `<span class="eyebrow">Cards and variants</span><div class="chiplist">${arr(s.items).map((it) => { const c = it.cardId ? cardByCode(cardCode(it.cardId)) : null; const w = it.cat && want.has(it.cat); const own = it.cat ? !!S.variants.find((x) => x.cat === it.cat && x.owned) : c && !it.variantId ? !!S.owned[c.key] : false; return `<span class="cchip ${own ? "" : "miss"}">${w ? "♥ " : ""}${esc(c ? c.name : it.cardName || "")}${it.variantId ? ` <span class="muted">· ${esc(it.label)}</span>` : ""}${own ? ` <span class="muted">✓</span>` : ""}</span>`; }).join("")}</div>` : ""}
     <p class="muted small">Ratings come from snap.fan and count cosmetics at their usual gold price. A bundle is only worth it if you want what's inside.</p>`;
 }
 Object.assign(A, { bundleOpen: (el) => { bundleI = num(el.dataset.i); openSheet(bundleSheet); } });
@@ -6040,7 +6193,7 @@ ${hint ? `Just before this, the player's screen mentioned "${String(hint).slice(
  "card": {"card": "card name", "variant": "variant name if shown, else empty", "rarity": "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Ultra" | "Infinity" | "", "boosters": this card's boosters or null, "splits": number of Infinity Splits if shown or null, "finish": "split finish if shown", "flare": "split flare if shown", "border": "border name if shown", "masteryLevel": Character Mastery level or null},
  "collection": {"cards": [{"card": "card name", "boosters": the booster number on the card, "rarity": "upgrade level if you can tell, else empty"}]},
  "split": {"card": "card name", "finish": "finish it got", "flare": "flare it got", "rerolled": true if the player rerolled, "usedCoin": true if a Split Reroll Coin was spent},
- "variants": {"card": "card name", "items": [{"name": "variant name or style if shown", "artist": "artist if shown", "owned": true if the player has it, false if it's greyed out, locked or shows a price}]},
+ "variants": {"card": "card name", "screen": "editor" if this is the Custom Card editor's art picker (it only lists variants the player owns), otherwise "collection", "count": how many variant pictures you can see, "items": [{"name": "variant name or style if shown", "artist": "artist if shown", "owned": true if the player has it, false if it's greyed out, locked or shows a price}]},
  "shop": {"shop": "the shop's name, like Token Shop, Spotlight, an event shop's name, or a bundle's name", "items": [{"card": "card name", "kind": "variant" | "card" | "border" | "other", "variant": "variant name or style if shown", "artist": "artist if shown", "price": "price as shown"}]}}
 Leave out sections that don't apply. Never guess numbers you can't read.`;
 async function fileToShot(file) { const img = await imageForAI(file); return { img, hash: shotHash(img.data), time: num(file.lastModified) || Date.now(), url: URL.createObjectURL(file) }; }
@@ -6149,7 +6302,7 @@ async function takeSharedShots() {
   } catch { return []; }
 }
 function sharedRoute() {
-  ui.tab = "play"; ui.playSeg = "log"; ui.more = null; render();
+  applyNav("home", "matches"); render();
   try { history.replaceState(null, "", "#play"); } catch { /* fine */ }
   setTimeout(async () => {
     const files = await takeSharedShots();
@@ -6299,14 +6452,14 @@ function natEvent(type, data) {
     return;
   }
   if (type === "route") { if (sheetFn) closeSheet(); go(String(data || "").replace(/^#/, "") || "home"); return; }
-  if (type === "update") { nat.update = obj(data); refreshView(); return; }
+  if (type === "update") { nat.update = obj(data); if (nat.checking) { nat.checking = 0; toast(natUpdateReady() ? `Version 1.${nat.update.latest} is ready. Tap Update now.` : "You have the newest app."); } refreshView(); return; }
   if (type === "update-progress") { nat.pct = num(data); refreshView(); return; }
   if (type === "update-installing") { nat.pct = -1; nat.tried = Date.now(); toast("Tap Update in Android's window to finish."); refreshView(); return; }
   if (type === "update-error") { nat.pct = -1; nat.tried = Date.now(); toast(String(data || "The update didn't work.")); refreshView(); return; }
   natInfo();
   if ((type === "perm" || type === "resume") && notifyPrefs().on) { saveNotifyState(); if (type === "perm" && natCan("checkAlertsNow") && natCan("canNotify") && NATIVE.canNotify()) NATIVE.checkAlertsNow(); }
   if (type === "queue" || type === "resume") natPull();
-  if (ui.more === "account") refreshView();
+  if (ui.tab === "settings") refreshView();
 }
 
 /* Reads waiting pictures (and SnapVault files shared to the app). Pictures stay in the queue until an AI key is set. */
@@ -6314,7 +6467,7 @@ function natPull() {
   if (!NATIVE || nat.busy) return;
   if (!dataReady()) { whenDataReady(natPull); return; }
   if (!num(NATIVE.queueCount())) return;
-  if (!canReadShots()) { if (ui.more === "account") refreshView(); return; }
+  if (!canReadShots()) { if (ui.tab === "settings") refreshView(); return; }
   nat.busy = true;
   setTimeout(async () => {
     try {
@@ -6389,7 +6542,7 @@ function androidPanel() {
         <pre class="small" style="white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto;margin:8px 0">${esc(nat.log || "Tap Refresh to see it.")}</pre>
         <div class="row"><button class="btn sm" data-a="natLogRefresh">Refresh</button><button class="btn sm" data-a="natLogCopy">${ICON.copy} Copy for Claude</button></div></details>
     </div>
-    <p class="muted small">App version ${esc(i.version || "?")}. ${natCan("checkUpdate") ? `<button class="btn sm ghost" data-a="natCheckUpdate">Check for an update</button>` : ""}</p></section>`;
+    <div class="row between small"><span class="muted">App version ${esc(i.version || "?")}${natUpdateReady() ? ` · version 1.${esc(nat.update.latest)} is ready` : ""}</span>${natUpdateReady() ? `<button class="btn sm snap" data-a="natUpdate" ${nat.pct >= 0 ? "disabled" : ""}>${nat.pct >= 0 ? `Updating… ${nat.pct}%` : "Update now"}</button>` : natCan("checkUpdate") ? `<button class="btn sm ghost" data-a="natCheckUpdate">${nat.checking ? "Checking…" : "Check for an update"}</button>` : ""}</div></section>`;
 }
 
 Object.assign(A, {
@@ -6402,7 +6555,7 @@ Object.assign(A, {
   },
   natSnap: () => NATIVE.openSnap(),
   natUpdate: () => { nat.pct = 0; refreshView(); NATIVE.installUpdate(); setTimeout(() => { if (nat.pct >= 0) { nat.pct = -1; nat.tried = Date.now(); refreshView(); } }, 25000); },
-  natCheckUpdate: () => { toast("Checking…"); NATIVE.checkUpdate(); setTimeout(() => { if (!natUpdateReady()) toast("You have the newest app."); }, 4000); },
+  natCheckUpdate: () => { nat.checking = Date.now(); refreshView(); NATIVE.checkUpdate(); setTimeout(() => { if (!nat.checking) return; nat.checking = 0; refreshView(); if (!natUpdateReady()) toast("You have the newest app."); }, 6000); },
   natGetApk: () => NATIVE.openUrl(APK_URL),
   natPull: () => natPull(),
   natLogRefresh: () => { nat.log = NATIVE.log(); nat.logOpen = true; render(); },
@@ -6662,7 +6815,7 @@ document.addEventListener("change", (e) => {
   else if (d.progml) { const p = prog(d.progml); const v = t.value === "" ? null : clamp(Math.round(num(t.value)), 1, 30); if (v !== p.ml) { p.ml = v; if (v) progLogAdd({ k: d.progml, a: "mastery", n: v }); save(); } }
   else if (d.progcustom) { const p = prog(d.progcustom); const [v, border, combo] = String(t.value).split("~"); p.custom = v ? { v, border: border || "", combo: combo || "" } : null; save(); }
 });
-MORE.push("progress");
+
 /* ============ Profile picture & banner: the game's face portraits, card art without the frame, and Custom Card borders ============
    Pictures come from Marvel Snap Zone's image server (static.marvelsnap.pro), the same source as the rest of the card art:
      avatars/<CardDefId>[_<NN>]_avatar.webp   the game's own face portrait for the card or one of its variants
@@ -6673,8 +6826,10 @@ const LK_HOST = "https://static.marvelsnap.pro/";
 const AV_AR = 300 / 261; // the face portraits are a little wider than tall
 // Where the art sits inside a Marvel Snap Zone card picture (left, top, right, bottom), without the frame, cost, power and name.
 const CARD_ART_BOX = [0.2, 0.12, 0.8, 0.8];
-// The game's face pictures are a hexagon with the card's name under it: use the face inside.
-const FACE_BOX = [0.27, 0.1, 0.73, 0.63];
+// The game's face pictures are a hexagon with the card's name across the bottom: use the face above the name.
+const FACE_BOX = [0.185, 0.07, 0.815, 0.7];
+// Profile pictures are hexagons with flat tops, like in the game (width:height = 2:√3).
+const HEX_AR = 2 / Math.sqrt(3);
 
 /* ---------- Border list ---------- */
 let BDL = null, bdVer = 0;
@@ -6726,13 +6881,17 @@ function borderFx(b) {
   if (/snowflake|^ice/.test(id)) return "frost"; if (/overloaded|glyphs|champion/.test(id)) return "glow";
   return "";
 }
-/* The frame, laid over a picture. "Moving" borders use their animated frame when there is one, and a light effect on top otherwise. */
+/* The frame, laid over a picture. "Moving" borders use their animated frame when there is one, and a light effect on top otherwise.
+   opt.hex draws it round a hexagon (profile pictures); otherwise it's a rectangle (banners). */
 function borderHtml(id, opt = {}) {
-  const b = borderById(id); if (!b) return "";
+  const b = borderById(id);
+  if (!b) return opt.hex ? `<i class="bdh base" aria-hidden="true"></i>` : "";
   const col = borderColor(b), fx = borderFx(b);
-  const pic = showArt() ? borderFile(opt.still || !motionOk() ? b.frame : b.anim || b.frame) : "";
+  const still = opt.still || !motionOk();
+  const pic = showArt() ? borderFile(opt.hex ? (still ? b.hex : b.hexAnim || b.hex) : still ? b.frame : b.anim || b.frame) : "";
+  const moving = (opt.hex ? b.hexAnim : b.anim) && pic && !still;
   const style = [pic ? `--bi:url('${pic}')` : "", col && col !== "rainbow" ? `--bc:${col}` : ""].filter(Boolean).join(";");
-  return `<i class="bd ${pic ? "" : "drawn"} ${col === "rainbow" ? "rainbow" : ""} ${fx && !(b.anim && pic && !opt.still) ? "fx-" + fx : ""} ${opt.still ? "still" : ""}" style="${esc(style)}" aria-hidden="true"></i>`;
+  return `<i class="${opt.hex ? "bdh" : "bd"} ${pic ? "" : "drawn"} ${col === "rainbow" ? "rainbow" : ""} ${fx && !moving ? "fx-" + fx : ""} ${opt.still ? "still" : ""}" style="${esc(style)}" aria-hidden="true"></i>`;
 }
 const borderName = (id) => { const b = borderById(id); return b ? b.name || b.id : ""; };
 
@@ -6753,8 +6912,8 @@ function lookSources(l) {
     const c = card(l.card), cv = l.cat ? _catVars.get(l.cat) : null;
     const def = c.catId, suf = cv ? "_" + pad2(cv.order) : "";
     if (def && !(l.cat && !cv) && !l.var) {
-      if (l.src === "face") out.push({ u: `${LK_HOST}avatars/${def}${suf}_avatar.webp`, ar: AV_AR, box: FACE_BOX, face: true });
-      out.push({ u: `${LK_HOST}art/${def}${suf}.webp`, ar: 1, ...(l.src === "face" ? { x: 0.5, y: 0.3, z: 2.3 } : {}) });
+      if (l.src === "face") out.push({ u: `${LK_HOST}avatars/${def}${suf}_avatar.webp`, ar: AV_AR, box: FACE_BOX, face: true, x: 0.5, y: 0.5 });
+      out.push({ u: `${LK_HOST}art/${def}${suf}.webp`, ar: 1, ...(l.src === "face" || l.which === "avatar" ? { x: 0.5, y: 0.3, z: 2.3 } : {}) });
     }
     const cardPic = cv ? cv.art : l.var ? variantArt(variantById(l.var)) : c.art;
     if (cardPic) out.push({ u: cardPic, ar: 1, box: CARD_ART_BOX, ...(l.src === "face" ? { x: 0.5, y: 0.28, z: 1.9 } : {}) });
@@ -6801,8 +6960,8 @@ function lkFail(img) {
 function lookLabel(l) { return (l.card ? card(l.card).name : l.label) || ""; }
 function lookAvatar(l, name, id, cls) {
   const label = lookLabel(l) || String(name || "?");
-  const img = lkImgs(l, 1, false, "lki");
-  return `<span class="av art look ${img ? "has-img" : ""} ${cls}" style="${artStyle((l.cat || l.card || id || name) + "")}">${esc((label[0] || "?").toUpperCase())}${img}${borderHtml(l.border, { still: !/\b(lg|xl)\b/.test(cls) })}</span>`;
+  const img = lkImgs({ ...l, which: "avatar" }, HEX_AR, false, "lki");
+  return `<span class="av hex art look ${img ? "has-img" : ""} ${cls}" style="${artStyle((l.cat || l.card || id || name) + "")}">${esc((label[0] || "?").toUpperCase())}${img}${borderHtml(l.border, { hex: true, still: !/\b(lg|xl)\b/.test(cls) })}</span>`;
 }
 const BANNER_AR = 2.5;
 function lookBanner(l, name) {
@@ -6816,10 +6975,10 @@ function lookBanner(l, name) {
 /* What other players see: the picture addresses are saved with your profile so it shows even for someone whose card list is out of date. */
 function lookSnap(a, which) {
   const l = lookOf(a, which); if (!l) return a && a.kind === "img" ? { kind: "img", ...(a.fs ? { fs: a.fs } : { url: a.url }), border: a.border || "" } : null;
-  const srcs = lookSources(l); if (!srcs.length) return null;
+  const srcs = lookSources({ ...l, which }); if (!srcs.length) return null;
   const cv = l.cat ? _catVars.get(l.cat) : null;
   const main = srcs[0];
-  return { kind: "look", src: l.src || "", fit: l.fit || "whole", x: l.x, y: l.y, z: l.z, posFor: l.posFor || "", border: l.border || "", u: main.u, ar: main.ar, box: main.box || null, alt: srcs.slice(1, 3).map((s) => ({ u: s.u, ar: s.ar, box: s.box || null, x: s.x, y: s.y, z: s.z })),
+  return { kind: "look", src: l.src || "", fit: l.fit || "whole", x: l.x ?? main.x, y: l.y ?? main.y, z: l.z ?? main.z, posFor: l.posFor || "", border: l.border || "", u: main.u, ar: main.ar, box: main.box || null, alt: srcs.slice(1, 3).map((s) => ({ u: s.u, ar: s.ar, box: s.box || null, x: s.x, y: s.y, z: s.z })),
     label: l.card ? card(l.card).name : l.label || "", capText: l.card ? card(l.card).name + (cv ? " · " + cv.name + byArtist(cv) : "") : "" };
 }
 function cleanLook(a) {
@@ -6876,11 +7035,11 @@ function lookVariantStep(what) {
     <button class="btn sm" data-a="lkBack" data-v="card">‹ All cards</button>
     <div class="chips">${f("all", "All", all.length)}${f("owned", "Owned", all.filter((v) => v.owned).length)}${f("missing", "Not owned", all.filter((v) => !v.owned).length)}</div>
     ${list.length ? `<div class="cgrid">${list.map((v) => v.base ? `<div class="cwrap">${cardFace(c, { a: "lkVar", extra: `data-id=""`, cls: v.owned ? "own" : "miss" })}<div class="cname"><div class="vmeta"><span class="t">Base card</span><span class="vs">${v.owned ? "Owned" : "Not owned"}${v.source ? " · " + esc(v.source) : ""}</span></div></div></div>`
-      : varTile(v, { a: "lkVar", extra: `data-id="${esc(v.cat || v.id)}"`, noStar: true, inCard: true })).join("")}</div>` : `<p class="muted small">${lk.vf === "owned" ? "You haven't marked any variants of this card as owned." : "You own every variant of this card."}</p>`}`;
+      : varTile(v, { a: "lkVar", extra: `data-id="${esc(v.cat || v.id)}"`, inCard: true })).join("")}</div>` : `<p class="muted small">${lk.vf === "owned" ? "You haven't marked any variants of this card as owned." : "You own every variant of this card."}</p>`}`;
 }
 function lookPreview() {
   const l = { kind: "look", card: lk.card, cat: lk.cat, var: lk.var, src: lk.src, fit: lk.fit, x: lk.x, y: lk.y, z: lk.z, posFor: lk.posFor, border: lk.border, u: lk.u, label: lk.label };
-  if (lk.img) { const pic = lk.img.url || fsImage(lk.img.fs); return lk.which === "banner" ? `<div class="banner look has-img"><img class="lki" src="${esc(pic)}" alt="" style="width:100%;height:100%;left:0;top:0;object-fit:cover">${borderHtml(lk.border)}</div>` : `<span class="av art look has-img xl"><img class="lki" src="${esc(pic)}" alt="" style="width:100%;height:100%;left:0;top:0;object-fit:cover">${borderHtml(lk.border)}</span>`; }
+  if (lk.img) { const pic = lk.img.url || fsImage(lk.img.fs); return lk.which === "banner" ? `<div class="banner look has-img"><img class="lki" src="${esc(pic)}" alt="" style="width:100%;height:100%;left:0;top:0;object-fit:cover">${borderHtml(lk.border)}</div>` : `<span class="av hex art look has-img xl"><img class="lki" src="${esc(pic)}" alt="" style="width:100%;height:100%;left:0;top:0;object-fit:cover">${borderHtml(lk.border, { hex: true })}</span>`; }
   return lk.which === "banner" ? lookBanner(l, S.me.handle) : lookAvatar(l, S.me.handle, store.uid || "me", "xl");
 }
 function lookEditStep(what) {
@@ -6890,12 +7049,13 @@ function lookEditStep(what) {
   const z = Number(lk.z) || (lk.which === "avatar" && lk.src !== "face" ? 2.3 : 1);
   return `${sheetHead(`Your ${what}`, lk.img ? "Your own picture" : esc(card(lk.card).name + (cv ? " · " + cv.name : lk.var ? "" : " · Base card")))}
     ${lk.img ? "" : `<button class="btn sm" data-a="lkBack" data-v="${lk.card ? "variant" : "card"}">‹ ${lk.card ? "Other variants" : "Pick a card"}</button>`}
-    <div class="lk-stage ${lk.which}" id="lk-stage" ${movable ? `data-lkdrag="1"` : ""}>${lookPreview()}</div>
-    ${movable ? `<p class="muted small" style="text-align:center">Drag the picture to move it.</p>` : ""}
-    ${lk.img ? "" : lk.which === "avatar" ? `<div class="chips" style="justify-content:center">${seg("src", "face", "Face")}${seg("src", "art", "Card art")}</div>`
-      : `<div class="chips" style="justify-content:center">${seg("fit", "whole", "Whole art")}${seg("fit", "fill", "Fill the banner")}</div>`}
-    ${movable ? `<label class="f">Zoom<input type="range" min="1" max="5" step="0.05" value="${z}" data-lk="z" aria-label="Zoom"></label>
-      <div class="row" style="justify-content:center"><button class="btn sm" data-a="lkReset">Reset position</button></div>` : ""}
+    <div class="lk-sticky">
+      <div class="lk-stage ${lk.which}" id="lk-stage" ${movable ? `data-lkdrag="1"` : ""}>${lookPreview()}</div>
+      ${lk.img ? "" : lk.which === "avatar" ? `<div class="chips" style="justify-content:center">${seg("src", "face", "Face")}${seg("src", "art", "Card art")}</div>`
+        : `<div class="chips" style="justify-content:center">${seg("fit", "whole", "Whole art")}${seg("fit", "fill", "Fill the banner")}</div>`}
+      ${movable ? `<div class="row nowrap lk-zoom"><span class="muted small">Zoom</span><input type="range" min="1" max="5" step="0.05" value="${z}" data-lk="z" aria-label="Zoom"><button class="btn sm ghost" data-a="lkReset">Reset</button></div>
+        <p class="muted small" style="text-align:center;margin:0">Drag the picture to move it. It stays here while you scroll the borders.</p>` : ""}
+    </div>
     ${lookBorderPicker()}
     <button class="btn snap block" data-a="lkSave">Use this ${what}</button>`;
 }
@@ -6907,8 +7067,8 @@ function lookBorderPicker() {
   return `<div class="stack" style="gap:8px"><div class="row between"><h3 style="margin:0">Border</h3><span class="muted small">${lk.border ? esc(borderName(lk.border)) : "None"}</span></div>
     <input type="search" id="lk-bq" data-lk="bq" value="${esc(lk.bq)}" placeholder="Search ${BDL.list.length} borders" aria-label="Search borders">
     <div class="chips"><button class="chip" data-a="lkBf" data-v="all" aria-pressed="${lk.bf === "all"}">All</button><button class="chip" data-a="lkBf" data-v="moving" aria-pressed="${lk.bf === "moving"}">Moving <span class="muted num">${moving}</span></button></div>
-    <div class="bgrid"><button class="bsw ${lk.border ? "" : "on"}" data-a="lkBorder" data-v="" aria-pressed="${!lk.border}"><span class="bsq none">${ICON.x}</span><span class="bn">No border</span></button>
-    ${list.map((b) => `<button class="bsw ${lk.border === b.id ? "on" : ""}" data-a="lkBorder" data-v="${esc(b.id)}" aria-pressed="${lk.border === b.id}" aria-label="${esc(b.name || b.id)}"><span class="bsq">${borderHtml(b.id, { still: true })}</span><span class="bn">${esc(b.name || b.id)}${b.anim || borderFx(b) ? ` <span class="mv" title="Moving">✦</span>` : ""}</span></button>`).join("")}</div></div>`;
+    <div class="bgrid"><button class="bsw ${lk.border ? "" : "on"}" data-a="lkBorder" data-v="" aria-pressed="${!lk.border}"><span class="bsq none ${lk.which === "avatar" ? "hex" : ""}">${ICON.x}</span><span class="bn">${lk.which === "avatar" ? "Standard" : "No border"}</span></button>
+    ${list.map((b) => `<button class="bsw ${lk.border === b.id ? "on" : ""}" data-a="lkBorder" data-v="${esc(b.id)}" aria-pressed="${lk.border === b.id}" aria-label="${esc(b.name || b.id)}"><span class="bsq ${lk.which === "avatar" ? "hex" : ""}">${borderHtml(b.id, { still: true, hex: lk.which === "avatar" })}</span><span class="bn">${esc(b.name || b.id)}${b.anim || borderFx(b) ? ` <span class="mv" title="Moving">✦</span>` : ""}</span></button>`).join("")}</div></div>`;
 }
 function lookUpdatePreview() {
   const st = $("#lk-stage"); if (st) st.innerHTML = lookPreview();
@@ -6931,7 +7091,7 @@ let lkDrag = null;
 document.addEventListener("pointerdown", (e) => {
   const st = e.target.closest && e.target.closest("[data-lkdrag]"); if (!st || !lk) return;
   const img = st.querySelector(".lki"); if (!img) return;
-  const srcs = lookSources({ card: lk.card, cat: lk.cat, var: lk.var, src: lk.src, u: lk.u });
+  const srcs = lookSources({ card: lk.card, cat: lk.cat, var: lk.var, src: lk.src, u: lk.u, which: lk.which });
   const cur = srcs.find((s) => img.src === s.u || img.getAttribute("src") === s.u) || srcs[0]; if (!cur) return;
   const r = st.firstElementChild.getBoundingClientRect();
   lkDrag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, x: Number.isFinite(lk.x) && lk.posFor === cur.u ? lk.x : cur.x ?? 0.5, y: Number.isFinite(lk.y) && lk.posFor === cur.u ? lk.y : cur.y ?? (cur.face ? 0.5 : 0.4), w: r.width, h: r.height, s: cur, img };
@@ -6952,7 +7112,7 @@ document.addEventListener("input", (e) => {
   const t = e.target, d = t.dataset; if (!d.lk || !lk) return;
   if (d.lk === "z") {
     lk.z = Number(t.value);
-    const img = $("#lk-stage .lki"); const srcs = lookSources({ card: lk.card, cat: lk.cat, var: lk.var, src: lk.src, u: lk.u });
+    const img = $("#lk-stage .lki"); const srcs = lookSources({ card: lk.card, cat: lk.cat, var: lk.var, src: lk.src, u: lk.u, which: lk.which });
     const s = (img && srcs.find((x) => img.getAttribute("src") === x.u)) || srcs[0];
     if (img && s) { if (lk.posFor !== s.u) { lk.x = s.x ?? 0.5; lk.y = s.y ?? (s.face ? 0.5 : 0.4); lk.posFor = s.u; } const box = $("#lk-stage").firstElementChild.getBoundingClientRect(); img.setAttribute("style", lkStyle(s, box.width / box.height, lk, false)); }
     return;
@@ -6983,7 +7143,7 @@ Object.assign(A, {
    The game doesn't share which variants you own with other apps, so SNAP Stat fills them in from what it can see:
    the base card of every card you own, screenshots of a card's variants screen or of a variant (read by AI), and
    screenshots of your shops. Ticks you change by hand always win, and the app won't change them again. */
-const OWN_BY = { shot: "from a screenshot", shop: "from a shop screenshot", card: "from a card screenshot" };
+const OWN_BY = { shot: "from a screenshot", shop: "from a shop screenshot", card: "from a card screenshot", file: "from your PC collection file" };
 function setVarOwned(v, owned, by) {
   v = v && v.virtual ? materializeVar(v.id) : v; if (!v) return false;
   if (v.manual || !!v.owned === !!owned) return false;
@@ -6999,18 +7159,47 @@ function matchVariant(k, name, artist) {
   if (!hit.length && n) hit = by((v) => keyOf(v.name) === n || (n.length > 3 && (keyOf(v.name).includes(n) || keyOf(v.artist) === n)));
   return hit.length === 1 ? hit[0] : null;
 }
-/* A card's variants screen: which ones the player has. A second look matches each picture to the card's variant list. */
+/* A card's variants screen: which ones the player has. A second look compares the screenshot with a numbered sheet of
+   every variant's picture (from snap.fan), which works even where the game shows no names, like the Custom Card editor. */
+const loadPic = (u, ms = 9000) => new Promise((res) => {
+  const im = new Image(); let done = false; const end = (v) => { if (!done) { done = true; res(v); } };
+  im.crossOrigin = "anonymous"; im.referrerPolicy = "no-referrer"; im.onload = () => end(im); im.onerror = () => end(null); setTimeout(() => end(null), ms); im.src = u;
+});
+async function variantContactSheet(cands) {
+  const list = cands.slice(0, 48).map((v, i) => { const cv = v.cat && _catVars.get(v.cat); return { n: i + 1, u: cv ? cv.pic : "" }; });
+  if (list.filter((x) => x.u).length < 2 || typeof document === "undefined") return null;
+  const pics = await Promise.all(list.map((x) => (x.u ? loadPic(x.u) : null)));
+  if (pics.filter(Boolean).length < 2) return null;
+  const cols = 6, cw = 150, ih = 150, lh = 26, rows = Math.ceil(list.length / cols);
+  const cv = document.createElement("canvas"); cv.width = cols * cw; cv.height = rows * (ih + lh);
+  const g = cv.getContext("2d"); g.fillStyle = "#14102a"; g.fillRect(0, 0, cv.width, cv.height);
+  list.forEach((x, i) => {
+    const X = (i % cols) * cw, Y = Math.floor(i / cols) * (ih + lh), im = pics[i];
+    if (im) { const s = Math.min((cw - 8) / im.width, (ih - 4) / im.height), w = im.width * s, h = im.height * s; g.drawImage(im, X + (cw - w) / 2, Y + 2 + (ih - 4 - h) / 2, w, h); }
+    else { g.fillStyle = "#2a2450"; g.fillRect(X + 10, Y + 10, cw - 20, ih - 20); }
+    g.fillStyle = "#ffd84d"; g.font = "bold 20px sans-serif"; g.textAlign = "center"; g.fillText("#" + x.n, X + cw / 2, Y + ih + 20);
+  });
+  try { const url = cv.toDataURL("image/jpeg", 0.82); return { media_type: "image/jpeg", data: url.slice(url.indexOf(",") + 1) }; } catch { return null; }
+}
 async function applyShotVariants(x, vv, img) {
   const c = fuzzyCard(vv.card); if (!c) { x.status = "Couldn't tell which card's variants these are"; return; }
   const k = c.key, cands = allVariants().filter((v) => v.card === k).sort((a, b) => catOrder(a) - catOrder(b));
   if (!cands.length) { x.status = `${c.name}: no variants in the card list yet`; return; }
-  let items = arr(vv.items).slice(0, 60).map((it) => ({ ...obj(it), v: matchVariant(k, obj(it).name, obj(it).artist) }));
-  if (items.some((it) => !it.v) && img && store.sample) {
+  // The Custom Card editor only lists the variants you own.
+  const editor = /editor|custom/i.test(String(vv.screen || ""));
+  let items = arr(vv.items).slice(0, 60).map((it) => ({ ...obj(it), v: matchVariant(k, obj(it).name, obj(it).artist), owned: editor ? true : obj(it).owned }));
+  if (img && store.sample && (editor || items.some((it) => !it.v) || !items.length)) {
+    const sheet = await variantContactSheet(cands).catch(() => null);
     const list = cands.map((v, i) => `${i + 1}. ${[v.name, v.artist && "by " + v.artist, v.source, v.rarity, v.release && "released " + v.release].filter(Boolean).join(" · ")}`).join("\n");
+    const how = editor ? "This is the Custom Card editor's art picker, which only lists variants the player owns, so every variant on it is owned." : "Owned ones look normal; ones the player doesn't have are greyed out, locked, or show a price or a way to get them.";
+    const ask = sheet
+      ? `The first picture is a MARVEL SNAP screenshot showing variants of ${c.name}. The second picture is a numbered sheet with every ${c.name} variant's art (the number is under each one). Match each variant picture in the screenshot to the sheet by its art: the pose, colours and style. Their list, in the same order:\n${list}\n${how} Only include pictures you can match with confidence.\nReply as JSON: {"items": [{"n": number on the sheet, "owned": true | false}]}`
+      : `This MARVEL SNAP screenshot shows variants of ${c.name}. Here is the full list of ${c.name}'s variants:\n${list}\nFor each variant picture on the screen, give its number from the list and whether the player owns it. ${how} Only include pictures you can match with confidence.\nReply as JSON: {"items": [{"n": number from the list, "owned": true | false}]}`;
     try {
-      const r = obj(await store.sample.json(`This MARVEL SNAP screenshot shows variants of ${c.name}. Here is the full list of ${c.name}'s variants:\n${list}\nFor each variant picture on the screen, give its number from the list and whether the player owns it (owned ones look normal; ones they don't have are greyed out, locked, or show a price or a way to get them). Only include pictures you can match with confidence.\nReply as JSON: {"items": [{"n": number from the list, "owned": true | false}]}`, { images: [img], modelTier: "default" }));
-      const got = arr(r.items).map((it) => ({ v: cands[num(obj(it).n) - 1], owned: obj(it).owned !== false })).filter((it) => it.v);
-      if (got.length) items = [...items.filter((it) => it.v), ...got.filter((g) => !items.some((it) => it.v && it.v.id === g.v.id))];
+      const r = obj(await store.sample.json(ask, { images: sheet ? [img, sheet] : [img], modelTier: "default" }));
+      const got = arr(r.items).map((it) => ({ v: cands[num(obj(it).n) - 1], owned: editor ? true : obj(it).owned !== false })).filter((it) => it.v);
+      // Matching by picture beats matching by a name the first look guessed.
+      if (got.length) items = sheet ? [...got, ...items.filter((it) => it.v && !got.some((g) => g.v.id === it.v.id) && (it.name || it.artist))] : [...items.filter((it) => it.v), ...got.filter((g) => !items.some((it) => it.v && it.v.id === g.v.id))];
     } catch { /* keep what the first look found */ }
   }
   let own = 0, miss = 0, same = 0;
@@ -7069,6 +7258,421 @@ function shopSeenHtml() {
     return `<div class="li"><div class="grow"><div class="t">${esc(s.shop)} <span class="muted small">${esc(ago(num(s.ts)))}</span></div><div class="s" style="white-space:normal">${hits.length ? `<b>On your wishlist:</b> ${hits.map((h) => esc(h.name)).join(", ")}` : arr(s.items).slice(0, 6).map((it) => esc([it.card, it.variant].filter(Boolean).join(" · "))).join(", ") || "Nothing listed"}</div></div></div>`;
   }).join("")}</div><p class="muted small">Your Token Shop is different for every player, so SNAP Stat can only see it when you screenshot it. With automatic screenshots on, that's all it takes.</p></section>`;
 }
+/* ============ Navigation: six tabs at the bottom, each with its own sections along the top ============
+   Home: what's on now, the live tracker, your matches and stats, seasons, events, shops, balance changes and promo codes.
+   Collection, Decks and Social as before (locations, upgrades and custom cards moved into Collection; tournaments and reports into Social).
+   Profile: your picture, banner, details, posts and achievements. Settings: everything about how the app works. */
+const isModerator = () => store.mode === "cloud" && !!store.uid && (store.ownerUid === store.uid || arr(store.admins).includes(store.uid));
+const NAV = {
+  home: { title: "Home", key: "homeSub", subs: () => [["overview", "Overview"], ["live", live.on ? "Live match ●" : "Live match"], ["matches", "Matches"], ["stats", "Stats"], ["seasons", "Seasons"], ["events", "Events"], ["shops", "Shops"], ["balance", "Balance changes"], ["promos", "Promo codes"]] },
+  cards: { title: "Collection", key: "cardsSeg", subs: () => [["cards", "Cards"], ["variants", "Variants"], ["upcoming", "Coming soon"], ["albums", "Albums"], ["cosmetics", "Cosmetics"], ["wish", "Wishlist"], ["locations", "Locations"], ["progress", "Upgrades"], ["custom", "Custom cards"]] },
+  decks: { title: "Decks" },
+  social: { title: "Social", key: "social", subs: () => [["feed", "Feed"], ["people", incomingRequests().length ? `People (${incomingRequests().length})` : "People"], ["alliance", "Alliance"], ["board", "Leaders"], ["tournaments", "Tournaments"], ...(isModerator() ? [["reports", "Reports"]] : [])] },
+  profile: { title: "Profile" },
+  settings: { title: "Settings", key: "setSub", subs: () => [["app", "App"], ["ai", "AI"], ...(NATIVE || (window.SNAPSTAT_STANDALONE && /Android/i.test(navigator.userAgent)) ? [["android", "Android"]] : []), ["data", "Import & backup"], ["stream", "Stream overlay"], ["account", "Account"], ...(store.mode === "cloud" && store.provider === "firebase" && (store.ownerUid === store.uid || !store.ownerUid) ? [["owner", "App owner"]] : []), ["about", "About"]] },
+};
+// Older links (#shops, #play, #account…) still land in the right place.
+const LEGACY = { play: ["home", "live"], live: ["home", "live"], log: ["home", "matches"], matches: ["home", "matches"], insights: ["home", "stats"], stats: ["home", "stats"],
+  seasons: ["home", "seasons"], events: ["home", "events"], shops: ["home", "shops"], balance: ["home", "balance"], promos: ["home", "promos"], catchup: ["home", "catchup"],
+  variants: ["cards", "variants"], upcoming: ["cards", "upcoming"], albums: ["cards", "albums"], cosmetics: ["cards", "cosmetics"], wishlist: ["cards", "wish"], locations: ["cards", "locations"], progress: ["cards", "progress"], custom: ["cards", "custom"],
+  feed: ["social", "feed"], people: ["social", "people"], alliance: ["social", "alliance"], board: ["social", "board"], tournaments: ["social", "tournaments"], reports: ["social", "reports"],
+  more: ["profile"], account: ["profile"], me: ["profile"], about: ["settings", "about"], ai: ["settings", "ai"], android: ["settings", "android"], backup: ["settings", "data"] };
+function navTarget(h) {
+  const [t, s] = String(h || "").split("/");
+  if (NAV[t]) return [t, s || ""];
+  if (LEGACY[t]) return LEGACY[t];
+  return null;
+}
+function applyNav(t, s) {
+  ui.tab = t; ui.more = null;
+  const n = NAV[t];
+  if (n && n.key) { const ok = n.subs().map(([k]) => k); if (s === "catchup" && t === "home") ui[n.key] = "catchup"; else if (s && ok.includes(s)) ui[n.key] = s; else if (!ok.includes(ui[n.key])) ui[n.key] = ok[0]; }
+}
+// The row of sections along the top of a tab. Taps change the address, so Back works.
+function subNav(tab) {
+  const n = NAV[tab]; if (!n || !n.subs) return "";
+  const cur = ui[n.key];
+  return `<nav class="subnav" aria-label="${esc(n.title)} sections">${n.subs().map(([k, l]) => `<button data-a="go" data-to="${tab}/${k}" aria-current="${cur === k ? "page" : "false"}">${esc(l)}</button>`).join("")}</nav>`;
+}
+function tabHead(tab, extra = "") { return `<section class="sec tabhead"><h1>${esc(NAV[tab].title)}</h1>${extra}${subNav(tab)}</section>`; }
+
+/* ---------- Home ---------- */
+function vHomeTab() {
+  const s = ui.homeSub || "overview";
+  const body = { overview: vHomeOverview, live: vLive, matches: vLog, stats: vHomeStats, seasons: vSeasons, events: vEvents, shops: vShops, balance: vBalance, promos: vPromos,
+    catchup: () => `<section class="sec">${catchUpSheet().replace(/<div class="sheet-h">[\s\S]*?<\/button><\/div>/, "")}</section>` }[s] || vHomeOverview;
+  return `${tabHead("home")}${body()}`;
+}
+
+/* ---------- Collection: the old tab plus locations, upgrades and custom cards ---------- */
+function vCardsTab() {
+  const s = ui.cardsSeg || "cards";
+  const body = { cards: vCardGrid, variants: vVariants, upcoming: vUpcomingVariants, albums: vAlbums, cosmetics: vCosmetics, wish: vWishlist, locations: vLocations, progress: vProgress, custom: vCustom }[s] || vCardGrid;
+  return `${tabHead("cards")}${body()}`;
+}
+
+/* ---------- Social ---------- */
+function vSocialTab() {
+  if (ui.social === "tournaments") return `${tabHead("social")}${vTournaments()}`;
+  if (ui.social === "reports") return `${tabHead("social")}${isModerator() ? vReports() : `<section class="sec"><p class="muted">Only the app owner and social admins can see reports.</p></section>`}`;
+  return vSocial().replace(/<section class="sec"><h1>Social<\/h1><div class="seg">[\s\S]*?<\/div>/, tabHead("social").replace(/<\/section>$/, ""));
+}
+
+/* ---------- Profile ---------- */
+function vProfileTab() {
+  const vis = S.me.visibility || "public";
+  const mine = store.mode === "cloud" ? allPosts().filter((p) => p.author === store.uid) : [];
+  const fol = store.mode === "cloud" ? followersOf(store.uid).length : 0, ing = arr(S.following).length;
+  const p = myProfileView(), st = obj(obj(p.stats).season);
+  return `<section class="sec tabhead"><h1>Profile</h1></section>${natUpdateBanner()}
+  <section class="sec">
+    ${bannerHtml(S.me.banner, S.me.handle)}
+    <div class="prof-head">${avatarHtml(S.me.avatar, S.me.handle || "?", store.uid || "me", "lg")}<div class="stack" style="gap:2px;min-width:0;flex:1"><b style="font-size:18px">${esc(S.me.handle || "Your in-game name")}</b><span class="muted small">${[S.me.country ? flag(S.me.country) + " " + esc(countryName(S.me.country)) : "", S.me.alliance ? esc(S.me.alliance) : ""].filter(Boolean).join(" · ") || "Add your details below"}</span>
+      ${store.mode === "cloud" ? `<span class="small">${fol} follower${fol === 1 ? "" : "s"} · ${ing} following${S.me.colLevel ? ` · CL ${fmt(S.me.colLevel)}` : ""}</span>` : ""}</div>${rankBadge(S.me.rank)}</div>
+    <div class="grid2" style="margin-top:12px"><button class="btn snap" data-a="lkOpen" data-v="avatar">Change picture</button><button class="btn snap" data-a="lkOpen" data-v="banner">Change banner</button></div>
+    ${S.me.avatar || S.me.banner ? `<div class="grid2">${S.me.avatar ? `<button class="btn sm" data-a="lkOpen" data-v="avatar" data-step="edit">${S.me.avatar.border ? "Picture border: " + esc(borderName(S.me.avatar.border) || "none") : "Add a picture border"}</button>` : "<span></span>"}${S.me.banner ? `<button class="btn sm" data-a="lkOpen" data-v="banner" data-step="edit">${S.me.banner.border ? "Banner border: " + esc(borderName(S.me.banner.border) || "none") : "Add a banner border"}</button>` : ""}</div>` : ""}
+    ${store.assets ? `<div class="row"><label class="btn sm">Upload a picture<input type="file" accept="image/*" data-upload="avatar" hidden></label><label class="btn sm">Upload a banner<input type="file" accept="image/*" data-upload="banner" hidden></label></div>` : ""}
+    ${num(st.games) ? `<div class="tiles" style="margin-top:4px"><div class="tile"><div class="k">This season</div><div class="v">${num(st.wr)}%</div></div><div class="tile"><div class="k">Games</div><div class="v">${fmt(st.games)}</div></div><div class="tile"><div class="k">Cubes</div><div class="v">${signed(num(st.cubes))}</div></div></div>` : ""}
+  </section>
+  <section class="sec"><details class="panel" ${ui.profEdit || !S.me.handle ? "open" : ""} data-profedit="1"><summary><b>Your details</b> <span class="muted small">name, ID, country, alliance, rank</span></summary><div class="stack" style="margin-top:10px">
+      <div class="grid2"><label class="f">Your name<input type="text" id="me-name" data-bind="me.name" value="${esc(S.me.name)}" maxlength="40"></label><label class="f">In-game name<input type="text" id="me-handle" data-bind="me.handle" value="${esc(S.me.handle)}" maxlength="40"></label></div>
+      <div class="grid2"><label class="f">Marvel Snap user ID<input type="text" id="me-snapid" data-bind="me.snapId" value="${esc(S.me.snapId)}" maxlength="40"></label><label class="f">Country<select id="me-country" data-bind="me.country">${countryOptions(S.me.country)}</select></label></div>
+      <div class="grid2"><label class="f">Alliance<input type="text" id="me-alliance" data-bind="me.alliance" value="${esc(S.me.alliance)}" maxlength="40"></label><label class="f">Collection level<input type="number" id="me-cl" data-bind="me.colLevel" data-num="1" value="${esc(S.me.colLevel)}" inputmode="numeric"></label></div>
+      <div class="grid2"><label class="f">Current rank<input type="text" id="me-rank" data-bind="me.rank" value="${esc(S.me.rank)}" placeholder="e.g. 72 or Infinite"></label><label class="f">Peak rank this season<input type="text" id="me-peak" data-bind="me.peak" value="${esc(S.me.peak)}"></label></div>
+      <label class="f">Featured deck<select id="me-feat" data-bind="me.featuredDeck"><option value="">None</option>${S.decks.map((d) => `<option value="${esc(d.id)}" ${S.me.featuredDeck === d.id ? "selected" : ""}>${esc(d.name)}</option>`).join("")}</select></label>
+      <div class="seg"><button data-a="setVis" data-v="public" aria-pressed="${vis === "public"}">Public</button><button data-a="setVis" data-v="private" aria-pressed="${vis === "private"}">${ICON.lock} Private</button></div>
+      <p class="muted small">${vis === "private" ? "Followers need your approval. Approved followers and your alliance see your stats, decks and posts." : "Anyone using the app can see your profile and follow you."}</p>
+      <label class="toggle-row check"><span>Share my profile, stats and posts</span><input type="checkbox" data-mechk="share" ${S.me.share ? "checked" : ""}></label>
+      ${store.mode === "cloud" ? `<button class="btn" data-a="profileOpen" data-id="${esc(store.uid)}">See my profile as others do</button>` : ""}</div></details></section>
+  ${store.mode === "cloud" ? `<section class="sec"><div class="sec-h"><h2>Your posts</h2><button class="btn sm snap" data-a="compose">${ICON.plus} Post</button></div>${mine.length ? mine.slice(0, 30).map(postHtml).join("") : `<div class="empty"><span>You haven't posted yet. Share a win, a deck or your season stats.</span></div>`}</section>` : ""}
+  ${badgesHtml()}${accountsHtml()}`;
+}
+
+/* ---------- Settings ---------- */
+function vSettingsTab() {
+  const s = ui.setSub || "app";
+  const sync = store.mode === "cloud" ? "Saved to your account" : store.ready ? "Saved on this device" : "Loading…";
+  const body = {
+    app: () => `${appPanel()}${lookHtml()}<section class="sec"><h2>Cards and variants</h2><div class="panel small"><label class="check"><input type="checkbox" data-soonchk ${showSoon() ? "checked" : ""}> Show cards and variants that aren't out yet</label></div></section>`,
+    ai: () => aiPanel(),
+    android: () => androidPanel() || `<section class="sec"><p class="muted">The Android app is for Android phones.</p></section>`,
+    data: () => `<section class="sec"><h2>Bring your data in</h2><div class="panel stack small">
+        <p>MARVEL SNAP doesn't let other apps read your account, so SNAP Stat brings things in from these instead.</p>
+        <div class="grid2"><button class="btn" data-a="svOpen">Import from SnapVault</button><button class="btn" data-a="importOpen">Paste a deck code</button></div>
+        <label class="btn">Import a game collection file<input type="file" accept=".json,application/json,text/plain" data-collfile="1" hidden></label>
+        <span class="muted">If you also play MARVEL SNAP on a PC, the game keeps your whole collection in a file called <b>CollectionState.json</b> (in <code>AppData\\LocalLow\\Second Dinner\\SNAP\\Standalone\\States</code>). Choose it here to tick every card and variant you own.</span></div></section>
+      ${sfPanel()}
+      <section class="sec"><h2>Backup</h2><div class="row"><button class="btn" data-a="csvMatches">Matches spreadsheet</button><button class="btn" data-a="csvCollection">Collection spreadsheet</button></div><div class="row"><button class="btn" data-a="backupCopy">${ICON.copy} Copy backup</button>${store.downloads ? `<button class="btn" data-a="backupSave">Save backup file</button>` : ""}<button class="btn" data-a="restoreOpen">Restore</button></div>
+        ${allMatches().some((m) => m.example) || S.decks.some((d) => d.example) ? `<button class="btn ghost" data-a="clearExamples">Clear example data</button>` : ""}
+        <button class="btn ghost danger" data-a="resetAll">${ui.resetArm ? "Tap again to erase everything" : "Erase all my data"}</button></section>`,
+    stream: () => overlayPanel(),
+    account: () => `<section class="sec"><h2>Account</h2><div class="panel stack small"><p class="muted">${esc(sync)}${SLOT ? " · " + esc(currentAccountName()) : ""}</p>
+        ${store.provider === "firebase" ? `<p><b>${accountLine()}</b></p><p>${store.mode === "cloud" ? "Your data follows you to any device where you sign in." : "Sign in to keep your data across devices and use the social features. Anything saved here moves into your account when you sign in."}</p>${store.mode === "cloud" ? `<div><button class="btn sm" data-a="signOut">Sign out</button></div>` : store.fb ? `<div><button class="btn sm snap" data-a="signIn">Sign in</button></div>` : ""}` : `<p>${store.mode === "cloud" ? "You're signed in with your Claude account, and your data follows you across devices." : "Your data is saved on this device."}</p>`}</div></section>${dangerPanel()}`,
+    owner: () => `${ownerPanel()}${adminsPanel()}`,
+    about: () => vAbout(),
+  }[s] || (() => appPanel());
+  return `${tabHead("settings")}${s !== "android" ? natUpdateBanner() : ""}${body()}<section class="sec"><p class="muted small">${window.SNAPSTAT_STANDALONE ? privacyLink() + " · " : ""}Unofficial fan-made app. Not affiliated with or endorsed by Marvel or Second Dinner.</p></section>`;
+}
+// The old "‹ More" bar above each section is gone; the section row at the top of each tab does that job now.
+function backBar(t) { return ""; }
+
+/* ---------- Social admins: people the app owner trusts to review reported posts ---------- */
+async function loadAdmins() {
+  if (store.mode !== "cloud" || !store.db) return;
+  try { const s = await store.db.doc("config/admins").get(); store.admins = s.exists ? arr((s.data() || {}).uids).map(String) : []; } catch { store.admins = []; }
+  render();
+}
+function adminsPanel() {
+  if (store.mode !== "cloud" || store.ownerUid !== store.uid) return "";
+  const admins = arr(store.admins);
+  const people = Object.entries(shared.profiles).filter(([id, p]) => id !== store.uid && p && p.handle && !admins.includes(id)).sort((a, b) => String(a[1].handle).localeCompare(String(b[1].handle)));
+  return `<section class="sec"><h2>Social admins</h2><div class="panel stack small">
+    <p>Social admins can review reported posts and remove them. Nobody else sees reports.</p>
+    ${admins.length ? `<div class="list">${admins.map((id) => `<div class="li">${avatarHtml(prof(id)?.avatar, handleOf(id), id)}<div class="grow"><div class="t">${esc(handleOf(id))}</div></div><button class="btn sm ghost" data-a="adminDel" data-id="${esc(id)}">Remove</button></div>`).join("")}</div>` : `<span class="muted">No social admins yet. Only you can review reports.</span>`}
+    ${people.length ? `<div class="row nowrap"><select id="admin-pick" aria-label="Player to make a social admin"><option value="">Pick a player…</option>${people.slice(0, 300).map(([id, p]) => `<option value="${esc(id)}">${esc(p.handle)}</option>`).join("")}</select><button class="btn sm snap" data-a="adminAdd">Add</button></div>` : ""}
+    <span class="muted">Adding admins needs the latest security rules in Firebase (Firestore Database › Rules).</span></div></section>`;
+}
+async function saveAdmins(list) {
+  try { await store.db.doc("config/admins").set({ uids: list.slice(0, 20), at: Date.now() }); store.admins = list.slice(0, 20); render(); return true; }
+  catch { toast("Couldn't save. Paste the latest security rules into Firebase first."); return false; }
+}
+Object.assign(A, {
+  adminAdd: async () => { const id = ($("#admin-pick") || {}).value; if (!id) { toast("Pick a player"); return; } if (await saveAdmins([...new Set([...arr(store.admins), id])])) toast(`${handleOf(id)} is a social admin now`); },
+  unrelMore: () => { ui.unrelLim = (ui.unrelLim || 60) + 60; render(); },
+  adminDel: async (el) => { if (await saveAdmins(arr(store.admins).filter((x) => x !== el.dataset.id))) toast("Removed"); },
+});
+document.addEventListener("toggle", (e) => { if (e.target && e.target.dataset && e.target.dataset.profedit) ui.profEdit = e.target.open; }, true);
+/* ============ More daily data files: promo codes, season art, card backs ============
+   Each one is refreshed by the GitHub workflow and loaded like the card data: from this device's copy first,
+   then the newest one from the web. */
+function makeDataFile(file, cacheKey, ok) {
+  const st = { data: null, ver: 0 };
+  st.load = async () => {
+    if (!window.SNAPSTAT_STANDALONE) return;
+    try { const c = localStorage.getItem(cacheKey); if (c) { const j = JSON.parse(c); if (ok(j)) { st.data = j; st.ver++; refreshView(); } } } catch { /* no saved copy */ }
+    for (const u of catUrls(file)) {
+      try {
+        const r = await fetch(u, { cache: "no-cache" }); if (!r.ok) continue;
+        const text = await r.text(); const j = JSON.parse(text);
+        if (!ok(j)) continue;
+        if (st.data && j.updated && j.updated === st.data.updated) return;
+        st.data = j; st.ver++; st.from = new URL(".", new URL(u, location.href)).href;
+        try { localStorage.setItem(cacheKey, text); } catch { /* fetched again next time */ }
+        refreshView(); return;
+      } catch { /* try the next copy */ }
+    }
+  };
+  return st;
+}
+
+/* ---------- Promo codes: every known code, checked daily ---------- */
+const PROMOS = makeDataFile("promo-codes.json", "snapstat-promos-v1", (j) => j && Array.isArray(j.codes));
+const PROMO_SHOP = "https://marvelsnap.com";
+// The daily list plus codes players added; a code in both shows once, with the daily check's status.
+function autoPromos() {
+  return arr(PROMOS.data && PROMOS.data.codes).filter((c) => c && /^[A-Za-z0-9]{4,30}$/.test(String(c.code || ""))).map((c) => ({
+    id: "auto:" + String(c.code).toUpperCase(), code: String(c.code), reward: String(c.reward || "").slice(0, 200), status: ["active", "expired"].includes(c.status) ? c.status : "unknown",
+    expires: /^\d{4}-\d{2}-\d{2}$/.test(c.expires || "") ? c.expires : "", added: Date.parse(c.firstSeen || "") || 0, checked: String(c.checked || ""), expiredOn: String(c.expiredOn || ""), auto: true, sources: arr(c.sources).map(String).slice(0, 4) }));
+}
+/* ============ Locations, season art, deck icons and card backs, the PC collection file ============ */
+
+/* ---------- Season key art and card backs (art.json, refreshed daily from Marvel Snap Zone) ---------- */
+const ART = makeDataFile("art.json", "snapstat-art-v1", (j) => j && j.seasons && typeof j.seasons === "object");
+// The picture the game shows while it loads a season: matched by the season's name, then by the month it starts.
+function seasonArt(s) {
+  const all = obj(ART.data && ART.data.seasons); if (!s) return "";
+  const n = keyOf(s.name || "");
+  if (n.length >= 4) for (const a of Object.values(all)) { const t = keyOf(obj(a).title); if (t && (t === n || (t.length >= 5 && (t.includes(n) || n.includes(t))))) return safeUrl(a.img); }
+  const m = String(s.start || "").slice(0, 7);
+  return /^\d{4}-\d{2}$/.test(m) && all[m] ? safeUrl(all[m].img) : "";
+}
+function seasonPic(s, cls) {
+  const u = showArt() ? seasonArt(s) : "";
+  return `<span class="${cls} art ${u ? "has-img" : ""}" style="${artStyle(s.name || "season")}"><b>${esc((String(s.name || "?")[0] || "?").toUpperCase())}</b>${u ? imgTag(u, "simg") : ""}</span>`;
+}
+function cardBacks() { return arr(ART.data && ART.data.cardbacks).filter((b) => b && /^[A-Za-z0-9_]+$/.test(String(b.id || "")) && safeUrl(b.img)); }
+const cardBackById = (id) => (id ? cardBacks().find((b) => b.id === id) || null : null);
+// Your card backs are kept with your other cosmetics, matched by name.
+const backCos = (b) => S.cosmetics.find((c) => c.kind === "cardback" && (c.ref === b.id || keyOf(c.name) === keyOf(b.name)));
+function setBack(b, field, val) {
+  let c = backCos(b);
+  if (!c) { c = { id: uid(), kind: "cardback", name: b.name, source: b.added ? "Added " + b.added : "", owned: false, wish: false, ref: b.id }; S.cosmetics.push(c); }
+  c.ref = b.id; c[field] = val; save();
+}
+
+/* ---------- Locations: no frame, and your numbers on each one ---------- */
+function locDetail(name) {
+  const k = keyOf(name);
+  const tracked = realMatches().filter((m) => m.tracked && arr(m.locs).some((L) => String(obj(L).name || "").trim()));
+  const here = [];
+  for (const m of tracked) arr(m.locs).forEach((L, i) => { if (keyOf(obj(L).name) === k) here.push({ m, i, L: obj(L) }); });
+  const by = {}, plays = [];
+  for (const { m, i } of here) {
+    const seen = new Set();
+    for (const p of arr(m.plays)) {
+      if (num(p.loc) !== i || !p.k || String(p.k).startsWith("custom:")) continue;
+      plays.push({ k: p.k, power: num(p.power), ts: m.ts, id: m.id });
+      if (seen.has(p.k)) continue; seen.add(p.k);
+      const r = (by[p.k] = by[p.k] || { k: p.k, n: 0, w: 0, l: 0, max: 0 });
+      r.n++; if (m.result === "W") r.w++; else if (m.result === "L") r.l++;
+    }
+    for (const p of arr(m.plays)) if (num(p.loc) === i && by[p.k]) by[p.k].max = Math.max(by[p.k].max, num(p.power));
+  }
+  const mine = here.map((x) => num(x.L.my)), opp = here.map((x) => num(x.L.opp));
+  const avg = (a) => (a.length ? Math.round((a.reduce((s, v) => s + v, 0) / a.length) * 10) / 10 : 0);
+  const mw = here.filter((x) => x.m.result === "W").length, ml = here.filter((x) => x.m.result === "L").length;
+  const lw = here.filter((x) => num(x.L.my) > num(x.L.opp)).length, ll = here.filter((x) => num(x.L.my) < num(x.L.opp)).length;
+  const cards = Object.values(by).sort((a, b) => b.n - a.n || b.w - a.w);
+  return { games: here.length, tracked: tracked.length, pull: pct(here.length, tracked.length), mw, ml, wr: pct(mw, mw + ml), lw, ll, lwr: pct(lw, lw + ll),
+    avg: avg(mine), max: mine.length ? Math.max(...mine) : 0, oppAvg: avg(opp), cubes: here.reduce((s, x) => s + (x.m.noCubes ? 0 : num(x.m.cubes)), 0),
+    most: cards[0] || null, cards: cards.slice(0, 8), best: [...cards].filter((c) => c.n >= 2).sort((a, b) => pct(b.w, b.w + b.l) - pct(a.w, a.w + a.l) || b.n - a.n).slice(0, 3),
+    top: plays.sort((a, b) => b.power - a.power || b.ts - a.ts).slice(0, 6), recent: here.sort((a, b) => b.m.ts - a.m.ts).slice(0, 6) };
+}
+function locPic(l, cls) {
+  return `<span class="${cls} art" style="${artStyle(l.name)}"><b>${esc((l.name[0] || "?").toUpperCase())}</b>${imgTag(l.art, "limg")}</span>`;
+}
+let lo = null;
+function locSheet() {
+  const l = locByName(lo) || { name: lo, ability: "", art: "" };
+  const r = locDetail(l.name);
+  const stat = (v, t) => `<div class="kpi"><b class="num">${v}</b><span>${t}</span></div>`;
+  return `${sheetHead(esc(l.name), l.soon ? "Not out yet" : r.games ? `${r.games} of your tracked game${r.games === 1 ? "" : "s"}` : "")}
+    <div class="lochero">${locPic(l, "lbig")}<div class="grow">${l.ability ? `<p class="lab">${esc(l.ability)}</p>` : ""}${locCommunityLine(l.name).replace(/<div class="s">/, '<p class="muted small">').replace(/<\/div>$/, "</p>")}</div></div>
+    ${r.games ? `<div class="kpis">${stat(r.pull + "%", `pull rate · ${r.games} of ${r.tracked}`)}${stat(r.wr + "%", "match wins")}${stat(r.lwr + "%", "won the location")}${stat(r.avg, "average power")}${stat(r.max, "highest power")}${stat(signed(r.cubes), "cubes")}</div>
+      ${r.most ? `<div class="panel stack small"><h3>Most played here</h3><div class="row">${cardChip(r.most.k, { noOwn: true })}<span class="muted">${r.most.n} time${r.most.n === 1 ? "" : "s"} · won ${pct(r.most.w, r.most.w + r.most.l)}% of those games</span></div></div>` : ""}
+      ${r.top.length ? `<div class="panel stack small"><h3>Highest power played here</h3><div class="chiplist">${r.top.map((p) => cardChip(p.k, { noOwn: true, pow: p.power, suffix: ` <span class="muted">${esc(dayStr(p.ts))}</span>` })).join("")}</div></div>` : ""}
+      ${r.cards.length > 1 ? `<div class="panel stack small"><h3>Cards you play here</h3><div class="list">${r.cards.map((c) => `<div class="li">${cardChip(c.k, { noOwn: true })}<div class="grow"></div><span class="muted num">${c.n}× · ${pct(c.w, c.w + c.l)}% wins · best ${c.max}</span></div>`).join("")}</div></div>` : ""}
+      ${r.best.length ? `<p class="small">Best here for you: ${r.best.map((c) => `<b>${esc(card(c.k).name)}</b> (${pct(c.w, c.w + c.l)}%)`).join(", ")}</p>` : ""}
+      <h3>Recent games here</h3><div class="list">${r.recent.map(({ m, L }) => `<button class="li" data-a="matchEdit" data-id="${esc(m.id)}"><span class="pill ${m.result}">${m.result}</span><div class="grow"><div class="t">${esc(m.deckName || "No deck")}${m.oppName ? ` <span class="muted">vs ${esc(m.oppName)}</span>` : ""}</div><div class="s">${esc(dateTimeStr(m.ts))} · here ${num(L.my)} to ${num(L.opp)}</div></div>${m.noCubes ? "" : cubes(signed(num(m.cubes)), num(m.cubes) >= 0 ? "pos" : "neg")}</button>`).join("")}</div>`
+    : `<div class="empty"><strong>No games here yet</strong><span>Your numbers show up once you track a match with this location, in the live tracker, from a screenshot, or by naming the locations when you log a match.</span></div>`}`;
+}
+
+/* ---------- Deck icon: the cover card's face in a hexagon, with the deck's card back ---------- */
+function deckLook(d) {
+  const k = d.cover || d.cards[0]; if (!k || String(k).startsWith("custom:")) return null;
+  const v = deckVariant(d, k);
+  return { kind: "look", card: k, cat: (v && v.cat) || "", var: v && !v.cat ? v.id : "", src: "face", fit: "whole", border: d.coverBorder || "" };
+}
+function deckIcon(d, big) {
+  const l = deckLook(d), b = cardBackById(d.back);
+  const face = l ? lookAvatar(l, card(l.card).name, d.id, big ? "lg" : "") : `<span class="av hex art ${big ? "lg" : ""}" style="${artStyle(d.id)}">${esc((String(d.name || "?")[0] || "?").toUpperCase())}${borderHtml("", { hex: true, still: true })}</span>`;
+  const back = b && showArt() ? `<span class="dkb has-img">${imgTag(b.img, "")}</span>` : `<span class="dkb" style="${artStyle(d.id + "back")}"></span>`;
+  return `<span class="dkic ${big ? "big" : ""}" aria-hidden="true">${back}${face}</span>`;
+}
+function deckLookHtml(d) {
+  const b = cardBackById(d.back);
+  return `<div class="dklook">${deckIcon(d, true)}<div class="stack grow" style="gap:6px">
+    <button class="btn sm" data-a="deckCover">Icon: ${esc(card(d.cover || d.cards[0] || "").name || "none")}</button>
+    <button class="btn sm" data-a="dkBackOpen">Card back: ${esc(b ? b.name : cardBacks().length ? "none" : "loading…")}</button>
+    <button class="btn sm" data-a="dkBorderOpen">Border: ${esc(d.coverBorder ? borderName(d.coverBorder) || "custom" : "Standard")}</button></div></div>`;
+}
+let dkb = { q: "", own: false, lim: 60 };
+function backGrid(list, act, cur) {
+  return `<div class="cbgrid">${list.map((b) => { const c = backCos(b); return `<button class="cbt ${cur === b.id ? "on" : ""}" data-a="${act}" data-id="${esc(b.id)}" aria-pressed="${cur === b.id}"><span class="cbp art" style="${artStyle(b.id)}">${imgTag(b.img, "")}${c && c.owned ? OWNED_TICK : ""}</span><span class="cbn">${esc(b.name)}</span>${b.added ? `<span class="cbd">Update ${esc(b.added)}</span>` : ""}</button>`; }).join("")}</div>`;
+}
+function backFilter(st) {
+  const q = keyOf(st.q);
+  return cardBacks().filter((b) => (!q || keyOf(b.name).includes(q) || keyOf(b.id).includes(q)) && (!st.own || (backCos(b) || {}).owned));
+}
+function dkBackSheet() {
+  const d = deckEdit(); if (!d) return sheetHead("Deck not found");
+  const all = cardBacks(), list = backFilter(dkb), owned = all.filter((b) => (backCos(b) || {}).owned).length;
+  return `${sheetHead("Card back", `For ${esc(d.name)}`)}
+    <button class="btn sm" data-a="dkBack" data-v="">‹ Back to the deck</button>
+    ${all.length ? `<input type="search" id="dkb-q" data-dkb="q" value="${esc(dkb.q)}" placeholder="Search ${all.length} card backs" aria-label="Search card backs" data-autofocus>
+      <div class="chips"><button class="chip" data-a="dkbOwn" data-v="0" aria-pressed="${!dkb.own}">All</button><button class="chip" data-a="dkbOwn" data-v="1" aria-pressed="${dkb.own}">Ones I own <span class="muted num">${owned}</span></button></div>
+      <button class="btn sm ghost" data-a="dkBackPick" data-id="">No card back</button>
+      ${list.length ? backGrid(list.slice(0, dkb.lim), "dkBackPick", d.back) : `<p class="muted small">${dkb.own ? "Tick the card backs you own in Collection › Cosmetics." : "No card backs match."}</p>`}
+      ${list.length > dkb.lim ? `<button class="btn block" data-a="dkbMore">Show more (${list.length - dkb.lim} left)</button>` : ""}`
+    : `<p class="muted small">The card back list loads with the card data${window.SNAPSTAT_STANDALONE ? ". Try again in a moment." : " in the installed app."}</p>`}`;
+}
+let dkbd = { q: "" };
+function dkBorderSheet() {
+  const d = deckEdit(); if (!d) return sheetHead("Deck not found");
+  if (!BDL) return `${sheetHead("Border")}<p class="muted small">Borders load with the card data.</p>`;
+  const q = keyOf(dkbd.q), list = BDL.list.filter((b) => !q || keyOf(b.name).includes(q) || keyOf(b.id).includes(q));
+  return `${sheetHead("Icon border", `For ${esc(d.name)}`)}
+    <button class="btn sm" data-a="dkBack" data-v="">‹ Back to the deck</button>
+    <div class="dkprev">${deckIcon(d, true)}</div>
+    <input type="search" id="dkbd-q" data-dkbd="q" value="${esc(dkbd.q)}" placeholder="Search ${BDL.list.length} borders" aria-label="Search borders">
+    <div class="bgrid"><button class="bsw ${d.coverBorder ? "" : "on"}" data-a="dkBorderPick" data-v="" aria-pressed="${!d.coverBorder}"><span class="bsq none hex">${ICON.x}</span><span class="bn">Standard</span></button>
+    ${list.map((b) => `<button class="bsw ${d.coverBorder === b.id ? "on" : ""}" data-a="dkBorderPick" data-v="${esc(b.id)}" aria-pressed="${d.coverBorder === b.id}" aria-label="${esc(b.name || b.id)}"><span class="bsq hex">${borderHtml(b.id, { still: true, hex: true })}</span><span class="bn">${esc(b.name || b.id)}</span></button>`).join("")}</div>`;
+}
+
+/* ---------- Cosmetics: every card back with its picture ---------- */
+let cbv = { q: "", f: "all", lim: 60 };
+function cardBackGallery() {
+  const all = cardBacks(); if (!all.length) return "";
+  const own = (b) => !!(backCos(b) || {}).owned, want = (b) => !!(backCos(b) || {}).wish;
+  const q = keyOf(cbv.q);
+  const list = all.filter((b) => (!q || keyOf(b.name).includes(q)) && (cbv.f === "all" || (cbv.f === "owned" ? own(b) : cbv.f === "wish" ? want(b) : !own(b))));
+  const n = all.filter(own).length;
+  const f = (v, l, c) => `<button class="chip" data-a="cbF" data-v="${v}" aria-pressed="${cbv.f === v}">${l} <span class="muted num">${c}</span></button>`;
+  return `<div class="stack" style="gap:8px"><div class="row between"><span class="small"><b class="num">${n}</b> of ${all.length} card backs owned</span><span class="muted small">Tap one to tick it</span></div>
+    ${pctBar(n, all.length)}
+    <input type="search" id="cb-q" data-cbv="q" value="${esc(cbv.q)}" placeholder="Search card backs" aria-label="Search card backs">
+    <div class="chips">${f("all", "All", all.length)}${f("owned", "Owned", n)}${f("missing", "Not owned", all.length - n)}${f("wish", "Wishlist", all.filter(want).length)}</div>
+    ${list.length ? `<div class="cbgrid">${list.slice(0, cbv.lim).map((b) => `<div class="cbt ${own(b) ? "own" : ""}"><button class="cbp art" data-a="cbOwn" data-id="${esc(b.id)}" aria-pressed="${own(b)}" aria-label="${esc(b.name)}: ${own(b) ? "owned" : "not owned"}" style="${artStyle(b.id)}">${imgTag(b.img, "")}${own(b) ? OWNED_TICK : ""}</button>
+      <div class="cbinfo"><div class="grow" style="min-width:0"><span class="cbn">${esc(b.name)}</span>${b.added ? `<span class="cbd">Update ${esc(b.added)}</span>` : ""}</div><button class="star" data-a="cbWish" data-id="${esc(b.id)}" aria-pressed="${want(b)}" aria-label="Wishlist">${HEART}</button></div></div>`).join("")}</div>` : `<p class="muted small">No card backs here.</p>`}
+    ${list.length > cbv.lim ? `<button class="btn block" data-a="cbMore">Show more (${list.length - cbv.lim} left)</button>` : ""}</div>`;
+}
+function pctBar(a, b) { return `<div class="bar"><i style="width:${b ? Math.round((a / b) * 100) : 0}%"></i></div>`; }
+
+/* ---------- The PC game's collection file ---------- */
+/* MARVEL SNAP on PC keeps your collection in CollectionState.json. Every card in it has a CardDefId (the card) and, for a
+   variant, an ArtVariantDefId like "Abomination_03". Decks are lists of CardDefIds with a name. Nothing leaves the phone. */
+function readCollectionFile(text) {
+  let j; try { j = JSON.parse(String(text || "").replace(/^﻿/, "")); } catch { return null; }
+  const cards = new Set(), vars = new Set(), decks = [];
+  const walk = (o, depth) => {
+    if (!o || typeof o !== "object" || depth > 40) return;
+    if (Array.isArray(o)) { o.forEach((x) => walk(x, depth + 1)); return; }
+    const id = typeof o.CardDefId === "string" ? o.CardDefId : "";
+    if (id && /^[A-Za-z0-9]+$/.test(id)) {
+      cards.add(id);
+      const v = typeof o.ArtVariantDefId === "string" ? o.ArtVariantDefId : "";
+      if (/^[A-Za-z0-9]+_\d{1,3}$/.test(v)) vars.add(v);
+    }
+    if (typeof o.Name === "string" && Array.isArray(o.Cards) && o.Cards.length >= 6 && o.Cards.length <= 12 && o.Cards.every((c) => c && typeof c.CardDefId === "string"))
+      decks.push({ name: o.Name.slice(0, 60), cards: o.Cards.map((c) => c.CardDefId), vars: o.Cards.map((c) => (typeof c.ArtVariantDefId === "string" ? c.ArtVariantDefId : "")) });
+    for (const [k, v] of Object.entries(o)) if (v && typeof v === "object" && k !== "$ref") walk(v, depth + 1);
+  };
+  walk(j, 0);
+  return cards.size ? { cards: [...cards], vars: [...vars], decks } : null;
+}
+// The game's card ID (CardDefId) → the card.
+function cardByDefId(id) { id = String(id || ""); if (!id) return null; return allCards().find((c) => c.catId === id) || cardByCode(cardCode(id)) || cardByCode(id) || null; }
+// "Abomination_03" → the catalog variant with that number.
+function variantByDefId(def) {
+  const m = String(def).match(/^([A-Za-z0-9]+)_(\d{1,3})$/); if (!m) return null;
+  const c = cardByDefId(m[1]); if (!c) return null;
+  const n = Number(m[2]);
+  return allVariants().find((v) => v.card === c.key && v.cat && catOrder(v) === n) || null;
+}
+let collImp = null;
+function applyCollectionFile(text) {
+  const r = readCollectionFile(text);
+  if (!r) { toast("That doesn't look like a MARVEL SNAP collection file."); return; }
+  let cardsNew = 0, varsNew = 0, unknown = 0;
+  for (const id of r.cards) { const c = cardByDefId(id); if (!c) { unknown++; continue; } if (!S.owned[c.key]) { S.owned[c.key] = true; cardsNew++; } }
+  for (const id of r.vars) { const v = variantByDefId(id); if (v && setVarOwned(v, true, "file")) varsNew++; }
+  const have = new Set(S.decks.map((d) => keyOf(d.name)));
+  collImp = { cards: r.cards.length, cardsNew, vars: r.vars.length, varsNew, unknown, decks: r.decks.filter((d) => !have.has(keyOf(d.name))) };
+  S.collFileAt = Date.now();
+  save(); render(); openSheet(collImpSheet);
+}
+function collImpSheet() {
+  const r = collImp; if (!r) return "";
+  return `${sheetHead("Collection file read", "From MARVEL SNAP on PC")}
+    <div class="kpis">${`<div class="kpi"><b class="num">${fmt(r.cards)}</b><span>cards in the file${r.cardsNew ? ` · ${fmt(r.cardsNew)} newly ticked` : ""}</span></div><div class="kpi"><b class="num">${fmt(r.vars)}</b><span>variants${r.varsNew ? ` · ${fmt(r.varsNew)} newly ticked` : ""}</span></div>`}</div>
+    ${r.unknown ? `<p class="muted small">${r.unknown} card${r.unknown === 1 ? "" : "s"} in the file aren't in SNAP Stat's card list yet. They'll be picked up after the next daily card update if you read the file again.</p>` : ""}
+    <p class="muted small">Variants you ticked or unticked yourself weren't changed.</p>
+    ${r.decks.length ? `<h3>Decks in the file</h3><div class="list">${r.decks.map((d, i) => `<div class="li"><div class="grow"><div class="t">${esc(d.name)}</div><div class="s">${d.cards.map((id) => esc((cardByDefId(id) || { name: id }).name)).join(", ")}</div></div><button class="btn sm" data-a="collDeck" data-i="${i}">${d.added ? "Added" : "Add"}</button></div>`).join("")}</div>
+      ${r.decks.length > 1 ? `<button class="btn block" data-a="collDeck" data-i="all">Add all ${r.decks.length} decks</button>` : ""}` : ""}
+    <button class="btn snap block" data-a="close">Done</button>`;
+}
+function addCollDeck(d) {
+  if (d.added) return false;
+  const keys = d.cards.map((id) => (cardByDefId(id) || {}).key).filter(Boolean); if (keys.length < 6) return false;
+  const nd = newDeck(d.name, keys, keys.length === 12 ? "active" : "draft");
+  d.vars.forEach((def, i) => { const v = def && variantByDefId(def); const k = (cardByDefId(d.cards[i]) || {}).key; if (v && k) nd.variants[k] = v.cat ? "cat:" + v.cat : v.id; });
+  d.added = true; return true;
+}
+document.addEventListener("change", async (e) => {
+  const t = e.target; if (!t || !t.dataset || !t.dataset.collfile) return;
+  const f = t.files && t.files[0]; t.value = ""; if (!f) return;
+  if (f.size > 40e6) { toast("That file is too big to be a collection file."); return; }
+  try { applyCollectionFile(await f.text()); } catch { toast("Couldn't read that file."); }
+});
+
+/* ---------- Typing in these sheets ---------- */
+document.addEventListener("input", (e) => {
+  const t = e.target, d = t.dataset || {};
+  if (d.dkb) { dkb[d.dkb] = t.value; dkb.lim = 60; refreshSheet(); }
+  else if (d.dkbd) { dkbd[d.dkbd] = t.value; refreshSheet(); }
+  else if (d.cbv) { cbv[d.cbv] = t.value; cbv.lim = 60; refreshView(); }
+});
+
+Object.assign(A, {
+  locOpen: (el) => { lo = el.dataset.name || ""; openSheet(locSheet); },
+  dkBackOpen: () => { dkb = { q: "", own: cardBacks().some((b) => (backCos(b) || {}).owned), lim: 60 }; openSheet(dkBackSheet); },
+  dkbOwn: (el) => { dkb.own = el.dataset.v === "1"; dkb.lim = 60; refreshSheet(); },
+  dkbMore: () => { dkb.lim += 60; refreshSheet(); },
+  dkBackPick: (el) => { const d = deckEdit(); if (!d) return; d.back = el.dataset.id || ""; save(); openDeck(deId); toast(d.back ? "Card back set" : "Card back removed"); },
+  dkBorderOpen: () => { dkbd = { q: "" }; openSheet(dkBorderSheet); },
+  dkBorderPick: (el) => { const d = deckEdit(); if (!d) return; d.coverBorder = el.dataset.v || ""; save(); const keep = $("#sheetBody").scrollTop; refreshSheet(); $("#sheetBody").scrollTop = keep; },
+  dkBack: () => openDeck(deId),
+  cbOwn: (el) => { const b = cardBackById(el.dataset.id); if (!b) return; const now = !(backCos(b) || {}).owned; setBack(b, "owned", now); if (now) { const c = backCos(b); if (c) c.wish = false; } render(); },
+  cbWish: (el) => { const b = cardBackById(el.dataset.id); if (!b) return; setBack(b, "wish", !(backCos(b) || {}).wish); render(); },
+  cbF: (el) => { cbv.f = el.dataset.v; cbv.lim = 60; render(); },
+  cbMore: () => { cbv.lim += 60; render(); },
+  collDeck: (el) => {
+    if (!collImp) return;
+    const list = el.dataset.i === "all" ? collImp.decks : [collImp.decks[num(el.dataset.i)]].filter(Boolean);
+    let n = 0; for (const d of list) if (addCollDeck(d)) n++;
+    save(); render(); refreshSheet(); toast(n ? `${n} deck${n === 1 ? "" : "s"} added` : "Already added");
+  },
+});
 /* ============ Standalone (Firebase) sign-in and storage ============ */
 const FB_CFG_KEY = "snapstat.firebaseConfig", FB_SKIP_KEY = "snapstat.skipSignIn";
 function parseFirebaseConfig(text) {
@@ -7164,7 +7768,7 @@ initCaps();
 loadCardData();
 loadSchedule();
 loadHistory();
-loadVariantDetails(); loadBorders();
+loadVariantDetails(); loadBorders(); PROMOS.load(); ART.load();
 loadAlbums();
 loadPacks();
 setupAI();

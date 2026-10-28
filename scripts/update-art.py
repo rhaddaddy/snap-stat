@@ -23,21 +23,24 @@ except Exception: prev = {}
 # ---------- Season key art ----------
 seasons = dict(prev.get("seasons") or {})
 pages = 0
-for n in range(1, 8):
+for n in range(1, 16):
     url = "https://marvelsnapzone.com/seasons/" if n == 1 else f"https://marvelsnapzone.com/seasons/page/{n}/"
     try: page = get(url)
     except Exception as e: print("seasons page", n, e); break
     pages += 1; new = 0
-    for m in re.finditer(r'<a class="ct-media-container[^"]*" href="https://marvelsnapzone\.com/([a-z]+)-(\d{4})-season/"(?: aria-label="([^"]*)")?[^>]*>\s*<img[^>]+src="([^"]+)"', page):
-        mon, year, label, img = m.group(1), m.group(2), clean(m.group(3) or ""), html.unescape(m.group(4))
-        if mon not in MONTHS: continue
+    # Older seasons' pages are named a little differently ("marvel-snap-june-2023-season-pass"), so look for the month and year anywhere in the link.
+    mon_re = "|".join(MONTHS)
+    for m in re.finditer(r'<a class="ct-media-container[^"]*" href="(https://marvelsnapzone\.com/[a-z0-9-]*?\b(' + mon_re + r')-(\d{4})\b[a-z0-9-]*/)"(?: aria-label="([^"]*)")?[^>]*>\s*<img[^>]+src="([^"]+)"', page):
+        link, mon, year, label, img = m.group(1), m.group(2), m.group(3), clean(m.group(4) or ""), html.unescape(m.group(5))
+        if "season" not in link and "season" not in label.lower(): continue
         key = f"{year}-{MONTHS.index(mon) + 1:02d}"
-        title = re.sub(r"^Marvel Snap \w+ \d{4} Season\s*[–-]\s*", "", label).strip() or label
+        title = re.sub(r"^Marvel Snap \w+ \d{4} Season( Pass)?\s*[–-]\s*", "", label).strip() or label
         title = re.sub(r"\s*[–-]\s*Marvel Snap .*$", "", title).strip() or title
         img = re.sub(r"\?.*$", "", img) + "?fit=768%2C432&ssl=1" if "i0.wp.com" in img else img
         if seasons.get(key, {}).get("img") != img: new += 1
-        seasons[key] = {"img": img, "title": title[:80], "link": f"https://marvelsnapzone.com/{mon}-{year}-season/"}
-    if n > 1 and not new and "page/" in url: break
+        seasons[key] = {"img": img, "title": title[:80], "link": link}
+    if not re.search(r"ct-media-container", page): break  # past the last page
+    if n > 1 and not new and len(seasons) > 45: break
 print(len(seasons), "seasons with art from", pages, "pages")
 
 # ---------- Card backs ----------

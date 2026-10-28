@@ -11,6 +11,12 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/config/owner)
         && get(/databases/$(database)/documents/config/owner).data.uid == request.auth.uid;
     }
+    // Social admins: players the app owner chose to review reported posts (Settings > App owner).
+    function isModerator() {
+      return isAppOwner() || (signedIn()
+        && exists(/databases/$(database)/documents/config/admins)
+        && request.auth.uid in get(/databases/$(database)/documents/config/admins).data.uids);
+    }
 
     // Each player's private data: matches, collection, decks, settings.
     match /data/users/{uid}/{rest=**} {
@@ -23,8 +29,8 @@ service cloud.firestore {
     match /decks/{uid}     { allow read: if signedIn(); allow write: if isOwner(uid); }
     match /followreq/{uid} { allow read: if signedIn(); allow write: if isOwner(uid); }
     match /approvals/{uid} { allow read: if signedIn(); allow write: if isOwner(uid); }
-    // Posts: the app owner can also remove a reported post.
-    match /posts/{uid}     { allow read: if signedIn(); allow write: if isOwner(uid) || isAppOwner(); }
+    // Posts: the app owner and social admins can also remove a reported post.
+    match /posts/{uid}     { allow read: if signedIn(); allow write: if isOwner(uid) || isModerator(); }
 
     // Uploaded profile banners, kept small.
     match /images/{uid} {
@@ -50,12 +56,12 @@ service cloud.firestore {
       allow delete: if signedIn() && (resource.data.by == request.auth.uid || isAppOwner());
     }
 
-    // Reports about posts: anyone signed in can send one; only the app owner reads or clears them.
+    // Reports about posts: anyone signed in can send one; only the app owner and social admins read or clear them.
     match /reports/{id} {
       allow create: if signedIn() && request.resource.data.by == request.auth.uid
         && request.resource.data.keys().hasOnly(["author", "post", "reason", "note", "by", "at"])
         && request.resource.data.note.size() <= 400;
-      allow read, delete: if isAppOwner();
+      allow read, delete: if isModerator();
     }
 
     // Tournaments: anyone signed in can start one; only its organizer changes it (the app owner can remove one).
@@ -80,6 +86,12 @@ service cloud.firestore {
     match /live/{uid} {
       allow read: if true;
       allow write: if isOwner(uid);
+    }
+
+    // Who the social admins are: everyone signed in can see the list, only the app owner changes it.
+    match /config/admins {
+      allow read: if signedIn();
+      allow write: if isAppOwner() && request.resource.data.uids is list && request.resource.data.uids.size() <= 20;
     }
 
     // Who owns the app. The first person to claim it gets it, and it can't be changed from the app.

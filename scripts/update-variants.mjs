@@ -35,6 +35,7 @@ const today = new Date().toISOString().slice(0, 10), recentCut = new Date(Date.n
 const due = cards.filter((c) => {
   const s = seen[c.id];
   if (!s) return true; // never read
+  if (!s.img && s.found) return true; // read before pictures were kept
   if (s.count !== c.variants.length) return true; // a variant was added or removed
   if (!s.found) return s.at < today; // the page had no gallery last time; try again
   if (c.variants.some((v) => v.unreleased || (v.release && v.release >= recentCut))) return s.at < today; // new ones change details
@@ -57,11 +58,13 @@ for (const c of queue) {
     const field = (label) => strip((block.match(new RegExp(`>${label}: <\\/span>\\s*<span[^>]*>([\\s\\S]*?)<\\/span>\\s*<\\/div>`)) || [])[1]);
     const name = strip((block.match(/font-ultimatum[^>]*>\s*<a [^>]*>([\s\S]*?)<\/a>/) || [])[1]);
     const artists = [...block.matchAll(/href="\/artists\/[^"]+"[^>]*>([^<]+)<\/a>/g)].map((m) => strip(m[1]));
-    const d = { n: name, s: field("Source"), r: field("Rarity"), t: field("Vault Tier"), d: field("Released"), a: [...new Set(artists)].join(" & ") };
+    // The card picture on snap.fan's image server (it allows other sites to read it, which the app needs to compare variants with a screenshot).
+    const pic = (block.match(/card_variant_images\/([A-Za-z0-9_]+-[0-9a-f]{16,}\.webp)/) || [])[1];
+    const d = { n: name, s: field("Source"), r: field("Rarity"), t: field("Vault Tier"), d: field("Released"), a: [...new Set(artists)].join(" & "), i: pic || "" };
     for (const k of Object.keys(d)) if (!d[k] || d[k] === "Unknown") delete d[k];
     variants[id] = d; n++;
   }
-  seen[c.id] = { count: c.variants.length, found: n, at: today };
+  seen[c.id] = { count: c.variants.length, found: n, at: today, img: 1 };
   read++;
 }
 console.log(`Read ${read} pages. ${Object.keys(variants).length} variants have details.`);
@@ -69,5 +72,5 @@ if (Object.keys(variants).length < Number(process.env.VARIANT_MIN || 100)) throw
 
 const body = JSON.stringify(variants);
 if (JSON.stringify(prev.variants || {}) === body && read === 0) { console.log("No changes since last time."); process.exit(0); }
-writeFileSync(OUT, JSON.stringify({ updated: new Date().toISOString(), source: "snap.fan variant galleries", format: { n: "name", s: "source", r: "rarity", t: "vault tier", d: "released", a: "artists" }, variants, cards: seen }));
+writeFileSync(OUT, JSON.stringify({ updated: new Date().toISOString(), source: "snap.fan variant galleries", format: { n: "name", s: "source", r: "rarity", t: "vault tier", d: "released", a: "artists", i: "picture at https://game-assets.snap.fan/card_variant_images/" }, variants, cards: seen }));
 console.log(`Saved ${OUT}.`);
