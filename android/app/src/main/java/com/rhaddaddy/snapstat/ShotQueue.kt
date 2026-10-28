@@ -25,7 +25,7 @@ object ShotQueue {
     fun count(ctx: Context): Int = items(ctx).size
 
     private fun items(ctx: Context): List<File> =
-        (dir(ctx).listFiles() ?: emptyArray()).filter { it.isFile && !it.name.endsWith(".tmp") }.sortedBy { it.name }
+        (dir(ctx).listFiles() ?: emptyArray()).filter { it.isFile && !it.name.endsWith(".tmp") && !it.name.endsWith(".hint") }.sortedBy { it.name }
 
     private fun nameFor(time: Long, source: String, ext: String): String {
         val rnd = (100000..999999).random()
@@ -34,17 +34,18 @@ object ShotQueue {
 
     private fun trim(ctx: Context) {
         val all = items(ctx)
-        if (all.size > MAX_ITEMS) all.take(all.size - MAX_ITEMS).forEach { it.delete() }
+        if (all.size > MAX_ITEMS) all.take(all.size - MAX_ITEMS).forEach { it.delete(); File(it.path + ".hint").delete() }
     }
 
     /** Shrinks a picture to at most 1600 pixels on its long side and saves it as a JPEG. */
-    fun addBitmap(ctx: Context, bmp: Bitmap, time: Long, source: String): Boolean {
+    fun addBitmap(ctx: Context, bmp: Bitmap, time: Long, source: String, hint: String = ""): Boolean {
         val scale = MAX_SIDE.toFloat() / max(bmp.width, bmp.height)
         val out = if (scale < 1f) Bitmap.createScaledBitmap(bmp, (bmp.width * scale).toInt(), (bmp.height * scale).toInt(), true) else bmp
         val f = File(dir(ctx), nameFor(time, source, "jpg"))
         val tmp = File(f.path + ".tmp")
         tmp.outputStream().use { out.compress(Bitmap.CompressFormat.JPEG, 85, it) }
         if (out !== bmp) out.recycle()
+        if (hint.isNotBlank()) File(f.path + ".hint").writeText(hint.take(80))
         val ok = tmp.renameTo(f)
         trim(ctx)
         return ok
@@ -86,6 +87,7 @@ object ShotQueue {
             .put("type", if (json) "application/json" else "image/jpeg")
             .put("time", parts.getOrNull(0)?.toLongOrNull() ?: f.lastModified())
             .put("source", parts.getOrNull(1) ?: "")
+            .put("hint", File(f.path + ".hint").takeIf { it.exists() }?.readText() ?: "")
             .put("b64", Base64.encodeToString(bytes, Base64.NO_WRAP))
             .toString()
     }
@@ -93,6 +95,7 @@ object ShotQueue {
     fun done(ctx: Context, id: String) {
         if (id.contains("/") || id.contains("..")) return
         File(dir(ctx), id).delete()
+        File(dir(ctx), "$id.hint").delete()
     }
 
     fun jpegBytes(bmp: Bitmap): ByteArray = ByteArrayOutputStream().also { bmp.compress(Bitmap.CompressFormat.JPEG, 85, it) }.toByteArray()

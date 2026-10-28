@@ -23,7 +23,17 @@ data class Rules(
         listOf("retreated"), listOf("cubes", "collect"), listOf("cubes", "next"), listOf("cubes", "continue")
     ),
     val not: List<String> = emptyList(),
+    /** Words that tell which game mode or event is on screen, like "conquest" or an event's name. */
+    val modes: Map<String, List<String>> = emptyMap(),
 ) {
+    /** The mode whose words appear in [text], preferring the longest match. */
+    fun modeIn(text: String): String? {
+        val t = text.lowercase()
+        var best: String? = null; var bestLen = 0
+        for ((name, words) in modes) for (w in words) if (w.length > bestLen && t.contains(w)) { best = name; bestLen = w.length }
+        return best
+    }
+
     fun matches(text: String): Boolean {
         val t = text.lowercase()
         if (not.any { it.isNotBlank() && t.contains(it) }) return false
@@ -61,6 +71,7 @@ data class Rules(
                         if (g is JSONArray) words(g) else listOf(g.toString().lowercase().trim())
                     }.filter { it.isNotEmpty() },
                     not = if (j.has("not")) words(j.optJSONArray("not")) else d.not,
+                    modes = j.optJSONObject("modes")?.let { m -> m.keys().asSequence().associateWith { words(m.optJSONArray(it)) }.filterValues { it.isNotEmpty() } } ?: d.modes,
                 )
             } catch (e: Exception) {
                 null

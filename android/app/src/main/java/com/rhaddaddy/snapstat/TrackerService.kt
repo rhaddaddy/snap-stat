@@ -76,6 +76,8 @@ class TrackerService : Service() {
     private var hits = 0
     private var cooldownUntil = 0L
     private var lastText = ""
+    private var lastMode = ""
+    private var lastModeAt = 0L
     private var width = 0
     private var height = 0
 
@@ -174,13 +176,16 @@ class TrackerService : Service() {
         try {
             val flat = text.replace(Regex("\\s+"), " ").trim()
             val match = rules.matches(flat)
+            // Remember the last game mode or event the screen named (the main menu shows it before a match)
+            if (!match) rules.modeIn(flat)?.let { if (it != lastMode) TrackerLog.add("Mode: $it"); lastMode = it; lastModeAt = System.currentTimeMillis() }
             // Note the screen's words whenever they change, for tuning the rules
             if (flat.isNotEmpty() && similarity(flat, lastText) < 0.6) { TrackerLog.add("${if (match) "END" else "saw"}: $flat"); lastText = flat }
             hits = if (match) hits + 1 else 0
             if (hits >= rules.frames) {
                 hits = 0
                 cooldownUntil = System.currentTimeMillis() + rules.cooldownSec * 1000L
-                if (ShotQueue.addBitmap(this, bmp, System.currentTimeMillis(), "tracker")) {
+                val hint = if (System.currentTimeMillis() - lastModeAt < 20 * 60_000L) lastMode else ""
+                if (ShotQueue.addBitmap(this, bmp, System.currentTimeMillis(), "tracker", hint)) {
                     captured++
                     TrackerLog.add("Saved the end of a match")
                     notifyCaptured()
