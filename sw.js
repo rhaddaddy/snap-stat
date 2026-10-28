@@ -1,8 +1,8 @@
 // SNAP Stat's service worker. It lets the app open without a connection, and checks for things
 // to notify you about: a wishlist item on sale, an event starting, the season ending, a daily goal or checklist.
 // It also receives screenshots shared to the app from Android's share menu.
-const VERSION = "snapstat-v1";
-const SHELL = ["./", "index.html", "firebase-config.js", "firebase-init.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
+const VERSION = "snapstat-v2";
+const SHELL = ["./", "index.html", "firebase-config.js", "firebase-init.js", "manifest.webmanifest?v=2", "icon-192-v2.png", "icon-512-v2.png", "apple-touch-icon-v2.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -78,7 +78,7 @@ async function check() {
 
   // Show up to five at a time. Each one is remembered only once it was actually shown.
   for (const n of notes.slice(0, 5)) {
-    try { await self.registration.showNotification(n.title, { body: n.body, tag: n.tag, icon: "icon-192.png", badge: "icon-192.png", data: { url: n.url } }); seen[n.tag] = Date.now(); }
+    try { await self.registration.showNotification(n.title, { body: n.body, tag: n.tag, icon: "icon-192-v2.png", badge: "icon-192-v2.png", data: { url: n.url } }); seen[n.tag] = Date.now(); }
     catch { /* notifications are blocked; try again next time */ }
   }
   // Forget old notices after two months.
