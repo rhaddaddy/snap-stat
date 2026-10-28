@@ -1,5 +1,6 @@
 // SNAP Stat's service worker. It lets the app open without a connection, and checks for things
 // to notify you about: a wishlist item on sale, an event starting, the season ending, a daily goal or checklist.
+// It also receives screenshots shared to the app from Android's share menu.
 const VERSION = "snapstat-v1";
 const SHELL = ["./", "index.html", "firebase-config.js", "firebase-init.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
@@ -12,6 +13,18 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   const req = e.request;
+  // Screenshots shared to SNAP Stat from Android's share menu: keep them for the app to read, then open it.
+  if (req.method === "POST" && new URL(req.url).pathname.endsWith("/share-target")) {
+    e.respondWith((async () => {
+      try {
+        const form = await req.formData(); const files = form.getAll("shots").filter((f) => f && typeof f === "object" && f.size);
+        const c = await caches.open("snapstat-share"); let i = 0;
+        for (const f of files.slice(0, 20)) await c.put(`shared/${Date.now()}-${i++}`, new Response(f, { headers: { "content-type": f.type || "image/png", "x-name": encodeURIComponent(f.name || "screenshot.png"), "x-time": String(f.lastModified || Date.now()) } }));
+      } catch { /* nothing saved; the app says so */ }
+      return Response.redirect(new URL("./#shared", self.registration.scope).href, 303);
+    })());
+    return;
+  }
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   const same = url.origin === self.location.origin;

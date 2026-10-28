@@ -378,6 +378,7 @@ html.overlay .wrap { padding: 8px !important; }
 .ov-pill { background: linear-gradient(180deg, var(--snap-a), var(--snap-b)); color: var(--snap-ink); border-radius: 999px; padding: 1px 10px; font-weight: 800; font-size: 15px; }
 .ov-small { font-size: 14px; opacity: .85; font-family: var(--body); }
 .ov-card .pos { color: #3DD68C; } .ov-card .neg { color: #FF5D7B; }
+.shot-thumb { width: 56px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); flex: none; }
 @media (max-width: 420px) {
   .tiles { grid-template-columns: repeat(2, 1fr); }
   .wallet { grid-template-columns: repeat(2, 1fr); }
@@ -1380,7 +1381,7 @@ function subscribeCloud(localState, localMatches) {
     const next = {}; qs.docs.forEach((d) => { const b = d.data(); next[d.id] = arr(b && b.items).length ? clone(b.items) : []; });
     if (firstM && qs.empty && localMatches && Object.keys(localMatches).length) { matchWeeks = localMatches; Object.keys(matchWeeks).forEach(dirtyWeek); }
     else matchWeeks = next;
-    firstM = false; _mVer++; requestRender();
+    firstM = false; store.matchesLoaded = true; _mVer++; requestRender();
   }, onSubErr);
   const sub = (coll) => db.collection(coll).onSnapshot((qs) => {
     const o = {}; qs.docs.forEach((d) => { const b = d.data(); if (b && typeof b === "object") o[d.id] = b; });
@@ -3306,7 +3307,7 @@ function vShops() {
   const now = Date.now(); const byShop = Object.keys(SHOPS).map((s) => ({ s, list: S.shops.filter((o) => o.shop === s) }));
   return `<section class="sec">${backBar("Shops")}
     <div class="grid3">${[["credits", "Credits"], ["gold", "Gold"], ["tokens", "Collector's Tokens"]].map(([k, l]) => `<label class="f">${l}<input type="number" id="w-${k}" data-bind="wallet.${k}" data-num="1" value="${esc(S.wallet[k])}" inputmode="numeric"></label>`).join("")}</div>
-    <p class="muted small">Update these from the game when they change. Alerts compare offer prices against them.</p></section>
+    <p class="muted small">Update these from the game when they change, or share a screenshot of the game's shop or home screen and they fill in. Alerts compare offer prices against them.</p>${canReadShots() ? `<div class="row"><label class="btn sm">${ICON.spark} Read from a screenshot<input type="file" accept="image/*" multiple data-shots="1" hidden></label></div>` : ""}</section>
   ${plannerHtml()}
   ${packHelperHtml()}
   ${finishHtml()}
@@ -3384,7 +3385,7 @@ function vAccount() {
     ${store.provider === "firebase" ? `<p><b>${accountLine()}</b></p><p>${store.mode === "cloud" ? "Your data follows you to any device where you sign in." : "Sign in to keep your data across devices and use the social features. Anything saved here moves into your account when you sign in."}</p>${store.mode === "cloud" ? `<div><button class="btn sm" data-a="signOut">Sign out</button></div>` : store.fb ? `<div><button class="btn sm snap" data-a="signIn">Sign in</button></div>` : ""}`
       : `<p>${store.mode === "cloud" ? "You're signed in with your Claude account, and your data follows you across devices." : "Your data is saved on this device. Open the app signed in to Claude to keep it across devices and use the social features."}</p>`}
     <p>MARVEL SNAP has no official way for other apps to read your account. To bring in your collection and decks, use SnapVault sync on the Home screen.</p></div></section>
-  ${accountsHtml()}${lookHtml()}${badgesHtml()}${overlayPanel()}${aiPanel()}${appPanel()}${ownerPanel()}
+  ${sfPanel()}${accountsHtml()}${lookHtml()}${badgesHtml()}${overlayPanel()}${aiPanel()}${appPanel()}${ownerPanel()}
   <section class="sec"><h2>Backup</h2><div class="row"><button class="btn" data-a="csvMatches">Matches spreadsheet</button><button class="btn" data-a="csvCollection">Collection spreadsheet</button></div><div class="row"><button class="btn" data-a="backupCopy">${ICON.copy} Copy backup</button>${store.downloads ? `<button class="btn" data-a="backupSave">Save backup file</button>` : ""}<button class="btn" data-a="restoreOpen">Restore</button><button class="btn" data-a="svOpen">Import from SnapVault</button></div>
     ${allMatches().some((m) => m.example) || S.decks.some((d) => d.example) ? `<button class="btn ghost" data-a="clearExamples">Clear example data</button>` : ""}
     <button class="btn ghost danger" data-a="resetAll">${ui.resetArm ? "Tap again to erase everything" : "Erase all my data"}</button></section>
@@ -3526,7 +3527,7 @@ const TABS = Object.keys(VIEWS);
 const MORE = ["shops", "promos", "seasons", "events", "locations", "balance", "reports", "custom", "account", "about"];
 function route() {
   const h = location.hash.slice(1);
-  if ((h.startsWith("deck=") || h === "quicklog" || h.startsWith("replay=") || h.startsWith("overlay")) && specialRoute(h)) return;
+  if ((h.startsWith("deck=") || h === "quicklog" || h.startsWith("replay=") || h.startsWith("overlay") || h === "shared") && specialRoute(h)) return;
   if (TABS.includes(h)) { ui.tab = h; ui.more = null; } else if (MORE.includes(h)) { ui.tab = "more"; ui.more = h; } else { ui.tab = "home"; ui.more = null; }
   closeSheet(); render(); window.scrollTo(0, 0);
 }
@@ -4406,7 +4407,7 @@ function quickSheet() {
   return `${sheetHead("Quick log", "One tap saves the match")}
     <span class="eyebrow">Deck</span><div class="chips">${dch("", "No deck")}${decks.map((d) => dch(d.id, d.name)).join("")}</div>
     <span class="eyebrow">Mode</span><div class="chips">${[...new Set(["Ranked", "Conquest", "Friendly", "Draft", mode])].map(mch).join("")}</div>
-    ${voiceHtml()}
+    ${voiceHtml()}${canReadShots() ? `<div class="row"><label class="btn sm">${ICON.spark} Log from screenshots<input type="file" accept="image/*" multiple data-shots="1" hidden></label></div>` : ""}
     <div class="chiplist">${fl("snapped", "I snapped")}${fl("oppSnapped", "They snapped")}${fl("retreated", "I retreated")}${fl("oppRetreated", "They retreated")}</div>
     ${ranked ? `<span class="eyebrow">Won</span><div class="qgrid">${[1, 2, 4, 8].map((c) => b("W", c, "+" + c, "qw")).join("")}</div><span class="eyebrow">Lost</span><div class="qgrid">${[1, 2, 4, 8].map((c) => b("L", c, "−" + c, "ql")).join("")}</div>${b("T", 0, "Tie", "")}`
       : `<div class="qgrid three">${b("W", 0, "Win", "qw")}${b("L", 0, "Loss", "ql")}${b("T", 0, "Tie", "")}</div>`}
@@ -4637,7 +4638,8 @@ const canReadShots = () => !!(store.sample && store.sample.own);
 function shotInput(kind) {
   if (!window.SNAPSTAT_STANDALONE) return "";
   if (!canReadShots()) return `<p class="muted small">Add an AI key in More › Profile & account to read ${kind === "deck" ? "a deck" : "a match result"} from a screenshot.</p>`;
-  return `<label class="btn sm">${ICON.spark} ${kind === "deck" ? "Read a deck screenshot" : "Log from a screenshot"}<input type="file" accept="image/*" data-shot="${kind}" hidden></label>`;
+  if (kind !== "deck") return `<label class="btn sm">${ICON.spark} Read screenshots<input type="file" accept="image/*" multiple data-shots="1" hidden></label>`;
+  return `<label class="btn sm">${ICON.spark} Read a deck screenshot<input type="file" accept="image/*" data-shot="${kind}" hidden></label>`;
 }
 async function imageForAI(file) {
   const url = URL.createObjectURL(file);
@@ -4691,6 +4693,7 @@ Reply as JSON: {"result": "W" | "L" | "T" | "" (from the player's side at the bo
 MORE.push("tournaments");
 function specialRoute(h) {
   if (h.startsWith("replay=") || h.startsWith("overlay")) return specialRoute2(h);
+  if (h === "shared") return sharedRoute();
   if (h.startsWith("deck=")) {
     const p = new URLSearchParams(h); linkDeck = { code: p.get("deck") || "", name: p.get("n") || "" };
     ui.tab = "decks"; ui.more = null; render();
@@ -5776,6 +5779,202 @@ function bundleSheet() {
     <p class="muted small">Ratings come from snap.fan and count cosmetics at their usual gold price. A bundle is only worth it if you want what's inside.</p>`;
 }
 Object.assign(A, { bundleOpen: (el) => { bundleI = num(el.dataset.i); openSheet(bundleSheet); } });
+/* ============ Less typing: screenshots shared from Android (or picked several at once) are read by AI and logged,
+   your numbers (rank, Collection Level, currencies) come from screenshots, and matches can flow in from a snap.fan link ============ */
+const dataReady = () => store.ready && (store.mode !== "cloud" || (store.stateLoaded && store.matchesLoaded));
+const whenDataReady = (fn, tries = 0) => { if (dataReady()) fn(); else if (tries < 120) setTimeout(() => whenDataReady(fn, tries + 1), 500); };
+
+/* ---------- Reading any MARVEL SNAP screenshot ---------- */
+const shots = { items: [], busy: false };
+function shotHash(s) { let h = 2166136261; for (let i = 0; i < s.length; i += 7) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36) + s.length.toString(36); }
+const SHOT_PROMPT = (roster) => `You are reading a screenshot from the mobile game MARVEL SNAP. Decide what screen it shows and pull out everything visible that's listed below.
+Valid card names (name cost/power): ${roster}
+Reply as JSON:
+{"kind": "match" (end of a match, or the board during one) | "numbers" (home, profile, rank, shop, collection or season pass screens showing the player's numbers) | "deck" (a deck of cards) | "other",
+ "match": {"result": "W" | "L" | "T" | "" (from the player's side at the bottom), "cubes": cubes won or lost as a positive number (0 if not shown), "retreated": true if the player retreated, "oppRetreated": true if the opponent retreated, "snapped": true if the player snapped, "oppSnapped": true if the opponent snapped, "mode": "Ranked" | "Conquest" | "Friendly" | other mode name | "", "oppName": "", "locations": [{"name": "", "my": bottom player's power, "opp": top player's power}], "oppCards": ["card names on the top side"], "myCards": ["card names on the bottom side"], "turn": final turn number or null},
+ "numbers": {"rank": rank number 1-99, or "Infinite", or null, "rankCubes": cubes toward the next rank or null, "collectionLevel": number or null, "credits": number or null, "gold": number or null, "tokens": Collector's Tokens number or null, "passLevel": season pass level or null},
+ "deck": {"name": "", "cards": ["card names"]}}
+Leave out sections that don't apply. Never guess numbers you can't read.`;
+async function fileToShot(file) { const img = await imageForAI(file); return { img, hash: shotHash(img.data), time: num(file.lastModified) || Date.now(), url: URL.createObjectURL(file) }; }
+function shotsSheet() {
+  const rows = shots.items.map((x, i) => `<div class="li" style="align-items:flex-start">${x.url ? `<img src="${x.url}" alt="" class="shot-thumb">` : ""}<div class="grow" style="min-width:0"><div class="t small">${esc(x.status || "Waiting…")}</div>${x.detail ? `<div class="s" style="white-space:normal">${esc(x.detail)}</div>` : ""}
+    <div class="row" style="margin-top:4px">${x.matchId ? `<button class="btn sm" data-a="matchEdit" data-id="${esc(x.matchId)}">Check</button>` : ""}${x.deckId ? `<button class="btn sm" data-a="deckOpen" data-id="${esc(x.deckId)}">Open deck</button>` : ""}${x.undo ? `<button class="btn sm ghost" data-a="shotUndo" data-i="${i}">Undo</button>` : ""}</div></div></div>`).join("");
+  const done = shots.items.filter((x) => x.done).length;
+  return `${sheetHead("Screenshots", shots.busy ? `Reading ${Math.min(done + 1, shots.items.length)} of ${shots.items.length}…` : `${done} of ${shots.items.length} read`)}
+    ${!canReadShots() ? `<p class="note">Reading screenshots needs an AI key. Add one in More › Profile & account › AI features, then share them again.</p>` : ""}
+    <div class="list">${rows || `<div class="li muted small">No screenshots yet.</div>`}</div>
+    <p class="muted small">Match screens are logged straight away, and screens with your rank, Collection Level or currencies update those numbers. Tap Check to fix anything the AI got wrong.</p>`;
+}
+async function readShots(files) {
+  files = [...files].filter((f) => f && /^image\//.test(f.type || "image/")).slice(0, 20); if (!files.length) return;
+  for (const f of files) shots.items.push({ file: f, status: "Waiting…" });
+  openSheet(shotsSheet);
+  if (shots.busy || !canReadShots()) { refreshSheet(); return; }
+  shots.busy = true;
+  whenDataReady(async () => {
+    for (const x of shots.items) {
+      if (x.done || !x.file) continue;
+      x.status = "Reading…"; refreshSheet();
+      try { await readOneShot(x); } catch (e) { x.status = "Couldn't read this one"; x.detail = e && e.message ? e.message : ""; }
+      x.done = true; x.file = null; refreshSheet();
+    }
+    shots.busy = false; refreshSheet(); render();
+  });
+}
+async function readOneShot(x) {
+  const s = await fileToShot(x.file); x.url = s.url;
+  const seen = arr(S.shotSeen); if (seen.includes(s.hash)) { x.status = "Already read this screenshot"; return; }
+  const r = obj(await store.sample.json(SHOT_PROMPT(cardRoster()), { images: [s.img], modelTier: "default" }));
+  S.shotSeen = [...seen, s.hash].slice(-200);
+  const kind = String(r.kind || "");
+  if (kind === "match") return applyShotMatch(x, obj(r.match), s.time);
+  if (kind === "numbers") return applyShotNumbers(x, obj(r.numbers), s.time);
+  if (kind === "deck") return applyShotDeck(x, obj(r.deck));
+  x.status = "Nothing to log in this one"; save();
+}
+function applyShotMatch(x, mm, time) {
+  const res = ["W", "L", "T"].includes(mm.result) ? mm.result : mm.retreated ? "L" : mm.oppRetreated ? "W" : "";
+  const plays = [...new Set(arr(mm.myCards).map((n) => (fuzzyCard(n) || {}).key).filter(Boolean))];
+  const d = S.decks.find((dk) => plays.length >= 3 && plays.filter((k) => dk.cards.includes(k)).length >= Math.min(4, plays.length));
+  const locs = arr(mm.locations).slice(0, 3).map((l) => ({ name: String(l.name || "").slice(0, 40), my: num(l.my), opp: num(l.opp) }));
+  const mode = MODES.find((mo) => keyOf(mo) === keyOf(mm.mode)) || (mm.mode ? String(mm.mode).slice(0, 30) : "Ranked");
+  const mag = clamp(Math.abs(num(mm.cubes)), 0, 8);
+  const m = { id: uid(), ts: time, result: res || "W", cubes: res === "L" ? -mag : res === "T" ? 0 : mag, mode, deckId: d ? d.id : "", deckName: d ? d.name : "", oppName: String(mm.oppName || "").slice(0, 40),
+    oppCards: [...new Set(arr(mm.oppCards).map((n) => (fuzzyCard(n) || {}).name).filter(Boolean))].slice(0, 12), snapped: !!mm.snapped, oppSnapped: !!mm.oppSnapped, retreated: !!mm.retreated, oppRetreated: !!mm.oppRetreated,
+    turn: num(mm.turn) || 6, bot: "unsure", notes: "", locs, tracked: locs.length === 3, plays: plays.map((k) => ({ k, loc: -1, power: num(card(k).power) })), shot: true };
+  if (!res) { x.status = "Couldn't tell who won"; x.detail = "Tap Check to fill it in."; }
+  putMatch(m); onMatchSaved(m);
+  x.matchId = m.id; x.undo = { type: "match", id: m.id };
+  if (res) { x.status = `Logged: ${res === "W" ? "win" : res === "L" ? "loss" : "tie"}${m.cubes ? " " + signed(m.cubes) : ""}${m.oppName ? " vs " + m.oppName : ""}`; x.detail = [d ? d.name : "", locs.map((l) => `${l.name} ${l.my}–${l.opp}`).join(", ")].filter(Boolean).join(" · "); }
+  save();
+}
+function applyShotNumbers(x, n, time) {
+  const before = { wallet: { ...S.wallet }, col: S.me.colLevel, rank: S.me.rank, peak: S.me.peak, climb: clone(obj(S.climb)), passes: clone(obj(S.passes)) };
+  const done = [];
+  for (const [k, l] of [["credits", "credits"], ["gold", "gold"], ["tokens", "tokens"]]) if (n[k] !== null && n[k] !== undefined && Number.isFinite(Number(n[k]))) { S.wallet[k] = Math.max(0, Math.round(Number(n[k]))); done.push(`${fmt(S.wallet[k])} ${l}`); if (k === "tokens") { const lg = arr(S.walletLog); lg.push({ t: time, v: S.wallet.tokens }); S.walletLog = lg.slice(-60); } }
+  if (Number.isFinite(Number(n.collectionLevel)) && Number(n.collectionLevel) > 0) { S.me.colLevel = Math.round(Number(n.collectionLevel)); done.push(`Collection Level ${fmt(S.me.colLevel)}`); }
+  const rk = /^inf/i.test(String(n.rank)) ? 100 : Number(n.rank);
+  if (rk >= 1 && rk <= 100) { S.climb = { rank: Math.round(rk), cubes: clamp(num(n.rankCubes), 0, CPR - 1), at: time }; syncRankFromClimb(); if (!climbNow()) { S.me.rank = rankStr(Math.round(rk)); } done.push(rk >= 100 ? "rank Infinite" : `rank ${Math.round(rk)}`); }
+  const cs = currentSeason(); if (cs && Number(n.passLevel) > 0) { const p = (S.passes[cs.id] = obj(S.passes[cs.id])); p.level = Math.round(Number(n.passLevel)); done.push(`pass level ${p.level}`); }
+  if (!done.length) { x.status = "No numbers I could read"; return; }
+  x.status = "Updated your numbers"; x.detail = done.join(" · "); x.undo = { type: "numbers", before }; save();
+}
+function applyShotDeck(x, dd) {
+  const keys = [...new Set(arr(dd.cards).map((n) => (fuzzyCard(n) || {}).key).filter(Boolean))].slice(0, 12);
+  if (keys.length < 6) { x.status = "Looks like a deck, but I couldn't read enough cards"; return; }
+  const d = newDeck(String(dd.name || "Deck from a screenshot").slice(0, 60), keys, "draft");
+  x.status = `Saved a deck: ${d.name}`; x.detail = `${keys.length} cards`; x.deckId = d.id; x.undo = { type: "deck", id: d.id };
+}
+function shotUndo(i) {
+  const x = shots.items[i]; if (!x || !x.undo) return; const u = x.undo;
+  if (u.type === "match") { removeMatch(u.id); if (syncRankFromClimb()) { /* rank moved back */ } }
+  if (u.type === "deck") S.decks = S.decks.filter((d) => d.id !== u.id);
+  if (u.type === "numbers") { S.wallet = u.before.wallet; S.me.colLevel = u.before.col; S.me.rank = u.before.rank; S.me.peak = u.before.peak; S.climb = u.before.climb; S.passes = u.before.passes; }
+  x.undo = null; x.matchId = ""; x.deckId = ""; x.status = "Undone"; x.detail = ""; save(); refreshSheet(); render();
+}
+
+/* ---------- Screenshots shared from Android's share menu ---------- */
+async function takeSharedShots() {
+  if (!("caches" in window)) return [];
+  try {
+    const c = await caches.open("snapstat-share"); const keys = (await c.keys()).filter((r) => r.url.includes("/shared/"));
+    const files = [];
+    for (const k of keys) { const r = await c.match(k); if (r) { const b = await r.blob(); files.push(new File([b], decodeURIComponent(r.headers.get("x-name") || "shot.png"), { type: b.type || "image/png", lastModified: num(r.headers.get("x-time")) || Date.now() })); } await c.delete(k); }
+    return files;
+  } catch { return []; }
+}
+function sharedRoute() {
+  ui.tab = "play"; ui.playSeg = "log"; ui.more = null; render();
+  try { history.replaceState(null, "", "#play"); } catch { /* fine */ }
+  setTimeout(async () => { const files = await takeSharedShots(); if (files.length) readShots(files); else toast("Nothing came through. Try sharing the screenshot again."); }, 0);
+  return true;
+}
+
+/* ---------- Matches from a snap.fan link ---------- */
+const sfl = { busy: false, msg: "", raw: "" };
+function findMatchArray(j, depth = 0) {
+  if (depth > 5 || !j || typeof j !== "object") return null;
+  if (Array.isArray(j)) {
+    const objs = j.filter((x) => x && typeof x === "object" && !Array.isArray(x));
+    if (objs.length && objs.some((o) => Object.keys(o).some((k) => /cube|result|outcome|won|win/i.test(k)))) return objs;
+    for (const x of j) { const f = findMatchArray(x, depth + 1); if (f) return f; }
+    return null;
+  }
+  for (const v of Object.values(j)) { const f = findMatchArray(v, depth + 1); if (f) return f; }
+  return null;
+}
+function pick(o, re) { for (const [k, v] of Object.entries(obj(o))) if (re.test(k)) return v; return undefined; }
+function cardKeyFrom(x) { const id = typeof x === "string" ? x : pick(x, /^(cardDefId|carddefid|defId|cardId|id|name|card)$/i); if (!id) return ""; const c = cardByCode(cardCode(String(id))) || cardByName(String(id)) || fuzzyCard(String(id)); return c ? c.key : ""; }
+function mapSfMatch(o) {
+  let t = pick(o, /^(ended|endedAt|end|finished|finishedAt|createdAt|created|playedAt|played|time|timestamp|date)$/i); t = typeof t === "number" ? (t < 1e12 ? t * 1000 : t) : Date.parse(t);
+  const cubesV = num(pick(o, /cube/i)); let res = pick(o, /^(result|outcome|matchResult)$/i); const wonV = pick(o, /^(won|win|isWin|victory|isVictory)$/i);
+  res = String(res || "").toLowerCase(); let r = /win|won|victory/.test(res) ? "W" : /los|defeat/.test(res) ? "L" : /tie|draw/.test(res) ? "T" : wonV === true ? "W" : wonV === false ? "L" : cubesV > 0 ? "W" : cubesV < 0 ? "L" : "";
+  const deckV = pick(o, /^(deck|myDeck|playerDeck|deckCards|cards)$/i); const deckCards = arr(Array.isArray(deckV) ? deckV : obj(deckV).cards || obj(deckV).Cards).map(cardKeyFrom).filter(Boolean);
+  const oppV = pick(o, /^(opponent|opp|enemy)$/i); const oppName = typeof oppV === "string" ? oppV : pick(oppV, /name/i) || pick(o, /opponent.?name|opp.?name/i) || "";
+  const oppCards = arr(pick(o, /opponent.?cards|opp.?cards/i) || pick(oppV, /cards/i)).map(cardKeyFrom).filter(Boolean).map((k) => card(k).name);
+  const modeV = String(pick(o, /^(mode|gameMode|queue|type|matchType)$/i) || ""); const mode = /conquest/i.test(modeV) ? "Conquest" : /friend/i.test(modeV) ? "Friendly" : /draft/i.test(modeV) ? "Draft" : /rank/i.test(modeV) || !modeV ? "Ranked" : modeV.slice(0, 30);
+  const locsV = arr(pick(o, /^(locations|locs|zones)$/i)); const locs = locsV.slice(0, 3).map((l) => ({ name: String(typeof l === "string" ? l : pick(l, /name/i) || "").slice(0, 40), my: num(pick(l, /^(my|mine|me|ours?|player|playerPower|ourPower|myPower|myScore|playerScore)$/i)), opp: num(pick(l, /^(opp|opponent|theirs?|enemy|theirPower|oppPower|opponentPower|enemyPower|oppScore|opponentScore)$/i)) }));
+  const id = String(pick(o, /^(id|matchId|gameId|uuid|_id)$/i) || (Number.isFinite(t) ? t : "")).slice(0, 60);
+  return { id, ts: Number.isFinite(t) ? t : 0, result: r, cubes: r === "W" ? Math.abs(cubesV) : r === "L" ? -Math.abs(cubesV) : 0, mode, deckCards, oppName: String(oppName).slice(0, 40), oppCards, locs,
+    snapped: !!pick(o, /^(snapped|playerSnapped|iSnapped)$/i), oppSnapped: !!pick(o, /opponent.?snapped|opp.?snapped/i), retreated: !!pick(o, /^(retreated|playerRetreated)$/i), oppRetreated: !!pick(o, /opponent.?retreated|opp.?retreated/i) };
+}
+async function fetchSfLink(link) {
+  try { const r = await fetch(link, { cache: "no-store" }); if (r.ok) return await r.text(); throw new Error("status " + r.status); }
+  catch (e) {
+    const relay = aiRelay(); if (!relay) throw new Error("snap.fan didn't let the app read the link directly. Set up the relay (More › Profile & account › AI features) and try again.");
+    const r = await fetch(`${relay}/fetch?url=${encodeURIComponent(link)}`, { cache: "no-store" }); if (!r.ok) throw new Error(`The relay couldn't read the link (${r.status}). Update the relay code if you set it up before October 28.`); return r.text();
+  }
+}
+async function checkSfLink(manual) {
+  const link = String(S.sfLink || "").trim(); if (!link || sfl.busy) return;
+  if (!dataReady()) { setTimeout(() => checkSfLink(manual), 1500); return; }
+  sfl.busy = true; if (manual) { sfl.msg = "Checking…"; requestRender(); }
+  try {
+    const text = await fetchSfLink(link); sfl.raw = text.slice(0, 20000);
+    let j; try { j = JSON.parse(text); } catch { throw new Error("The link didn't return data the app can read. Copy what it shows and send it to Claude to connect it."); }
+    const list = findMatchArray(j); if (!list) throw new Error("No matches found in what the link returned. Play a game, or copy what it shows and send it to Claude.");
+    const seen = new Set(arr(S.sfSeen)); let added = 0;
+    for (const o of list.slice(0, 200)) {
+      const m = mapSfMatch(o); if (!m.result || !m.ts) continue; const key = "sf-" + (m.id || m.ts); if (seen.has(key) || findMatch(key)) continue;
+      const sig = [...m.deckCards].sort().join(","); const d = m.deckCards.length >= 10 ? S.decks.find((x) => [...x.cards].sort().join(",") === sig) || S.decks.find((x) => m.deckCards.filter((k) => x.cards.includes(k)).length >= 10) : null;
+      const match = { id: key, ts: m.ts, result: m.result, cubes: m.cubes, mode: m.mode, deckId: d ? d.id : "", deckName: d ? d.name : "", oppName: m.oppName, oppCards: m.oppCards, snapped: m.snapped, oppSnapped: m.oppSnapped, retreated: m.retreated, oppRetreated: m.oppRetreated, turn: 6, bot: "unsure", notes: "", locs: m.locs.filter((l) => l.name), tracked: m.locs.filter((l) => l.name).length === 3, sf: true };
+      putMatch(match); seen.add(key); added++;
+    }
+    S.sfSeen = [...seen].slice(-600); S.sfChecked = Date.now(); if (added) { onMatchSaved(); S.sfAdded = num(S.sfAdded) + added; } save();
+    sfl.msg = added ? `Added ${plural(added, "new match", "new matches")}.` : "No new matches."; if (added) toast(`snap.fan: ${plural(added, "new match", "new matches")} logged`);
+  } catch (e) { sfl.msg = e && e.message ? e.message : "Couldn't check the link."; }
+  sfl.busy = false; requestRender();
+}
+function sfPanel() {
+  if (!window.SNAPSTAT_STANDALONE) return "";
+  return `<section class="sec"><h2>Automatic matches from snap.fan</h2><div class="panel stack small">
+    <p>snap.fan can see your matches once you sign in there with the same login you use for MARVEL SNAP. It gives you a free personal link (SnapVault calls it a “personal API URL”). Paste it here and SNAP Stat brings in new matches whenever you open the app.</p>
+    <ol class="tips"><li>Go to <a href="https://snap.fan/" target="_blank" rel="noopener">snap.fan</a> and sign in with the same Google, Apple or other login your game uses.</li><li>In your snap.fan account settings, find your personal API link and copy it.</li><li>Paste it below and tap Save.</li></ol>
+    <label class="f">Your snap.fan link<input type="url" id="sf-link" value="${esc(S.sfLink || "")}" placeholder="https://snap.fan/…" autocomplete="off"></label>
+    <div class="row"><button class="btn snap" data-a="sfSave">Save</button>${S.sfLink ? `<button class="btn" data-a="sfCheck" ${sfl.busy ? "disabled" : ""}>Check now</button><button class="btn ghost danger" data-a="sfRemove">Remove</button>` : ""}</div>
+    ${sfl.msg ? `<p class="${/Added|No new/.test(sfl.msg) ? "" : "note"}">${esc(sfl.msg)}</p>` : ""}
+    ${S.sfChecked ? `<span class="muted">Last checked ${esc(ago(S.sfChecked))}${num(S.sfAdded) ? ` · ${fmt(S.sfAdded)} matches added so far` : ""}.</span>` : ""}
+    ${sfl.raw && !/Added|No new/.test(sfl.msg) ? `<button class="btn sm" data-a="sfCopyRaw">${ICON.copy} Copy what the link returned</button>` : ""}
+    <span class="muted">This gives snap.fan access to your game login. Only do it if you're comfortable with that. The link stays in your private account data.</span></div></section>`;
+}
+
+/* ---------- Wiring ---------- */
+Object.assign(A, {
+  shotUndo: (el) => shotUndo(num(el.dataset.i)),
+  shotsOpen: () => openSheet(shotsSheet),
+  sfSave: () => { const v = String(($("#sf-link") || {}).value || "").trim(); if (v && !/^https:\/\/([a-z0-9-]+\.)*snap\.fan\//i.test(v)) { toast("That doesn't look like a snap.fan link"); return; } S.sfLink = v; save(); sfl.msg = ""; render(); if (v) checkSfLink(true); },
+  sfCheck: () => checkSfLink(true),
+  sfRemove: () => { S.sfLink = ""; sfl.msg = ""; sfl.raw = ""; save(); render(); },
+  sfCopyRaw: () => copyText(sfl.raw, "Copied. Paste it to Claude in your chat."),
+});
+document.addEventListener("change", (e) => {
+  const t = e.target, d = t.dataset;
+  if (d.shots) { const fs = [...(t.files || [])]; t.value = ""; if (fs.length) readShots(fs); }
+});
+// Check the snap.fan link when the app opens and every 5 minutes while it's open.
+setTimeout(() => whenDataReady(() => { if (S.sfLink) checkSfLink(false); }), 3000);
+setInterval(() => { if (S.sfLink && document.visibilityState === "visible") checkSfLink(false); }, 5 * 60e3);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && S.sfLink && Date.now() - num(S.sfChecked) > 60e3) checkSfLink(false); });
 /* ============ Standalone (Firebase) sign-in and storage ============ */
 const FB_CFG_KEY = "snapstat.firebaseConfig", FB_SKIP_KEY = "snapstat.skipSignIn";
 function parseFirebaseConfig(text) {
