@@ -1,4 +1,4 @@
-# One-off look at location, season, variant-gallery and promo-code sources (round 6). Results go to the probe-results branch.
+# One-off look at season art, card backs and location art (round 7). Results go to the probe-results branch.
 import io, json, os, re, urllib.request
 from PIL import Image
 os.makedirs("probe", exist_ok=True)
@@ -10,42 +10,28 @@ def get(url, binary=False):
 def img(url, save=None):
     try:
         b, h = get(url, True); im = Image.open(io.BytesIO(b))
-        if save: im.convert("RGBA").save(f"probe/{save}.png")
-        return {"size": im.size, "mode": im.mode, "frames": getattr(im, "n_frames", 1), "acao": h.get("Access-Control-Allow-Origin") or h.get("access-control-allow-origin"), "bytes": len(b)}
+        if save: t = im.convert("RGBA"); t.thumbnail((512, 512)); t.save(f"probe/{save}.png")
+        return {"size": im.size, "mode": im.mode, "acao": h.get("Access-Control-Allow-Origin"), "bytes": len(b)}
     except Exception as e: return {"err": str(e)[:60]}
-def urls(page, pat=r'https://[^"\'\s)\\]+\.(?:webp|png|jpg|jpeg)'): return sorted(set(re.findall(pat, page)))
-def tryget(k, url, n=60000):
-    try: p = get(url); out[k + "_urls"] = urls(p)[:80]; out[k + "_og"] = re.findall(r'og:image" content="([^"]+)"', p)[:3]; return p
-    except Exception as e: out[k + "_err"] = str(e)[:80]; return ""
-
-# Locations
-tryget("msz_loc", "https://marvelsnapzone.com/locations/altar-of-death/")
-tryget("sf_loc", "https://snap.fan/locations/AltarOfDeath/")
-for u in ["https://static.marvelsnap.pro/locations/AltarOfDeath.webp", "https://static.marvelsnap.pro/locations/AltarOfDeath_bg.webp", "https://static.marvelsnap.pro/art/locations/AltarOfDeath.webp",
-          "https://static.marvelsnap.pro/backgrounds/AltarOfDeath.webp", "https://static.marvelsnap.pro/locations/512/AltarOfDeath.webp"]:
-    out.setdefault("loc_guess", {})[u] = img(u)
-for u in (out.get("sf_loc_urls") or [])[:12] + (out.get("msz_loc_urls") or [])[:12]:
-    if "ltar" in u or "ocation" in u: out.setdefault("loc_imgs", {})[u] = img(u, "loc_" + str(len(out.get("loc_imgs", {}))))
-# Seasons
-sl = tryget("sf_seasons", "https://snap.fan/seasons/")
-sp = tryget("sf_season", "https://snap.fan/seasons/september2026/")
-for u in (out.get("sf_season_urls") or [])[:40]:
-    if re.search(r"season|Season|loading|Loading|Key|key|banner|Banner|splash|Splash", u): out.setdefault("season_imgs", {})[u] = img(u, "season_" + str(len(out.get("season_imgs", {}))))
-tryget("msz_season", "https://marvelsnapzone.com/seasons/")
-out["sf_seasons_list_sample"] = sl[sl.find("/seasons/september2026/") - 1500: sl.find("/seasons/september2026/") + 1500] if "/seasons/september2026/" in sl else sl[:2000]
-# Variant gallery block on a card page (does it carry the picture?)
-cp = tryget("sf_card", "https://snap.fan/cards/SpiderMan/")
-blocks = cp.split('<li class="group overflow-hidden')
-out["sf_card_block"] = blocks[2][:2500] if len(blocks) > 2 else ""
-up = tryget("sf_upcoming", "https://snap.fan/variants/upcoming/")
-out["sf_upcoming_sample"] = up[:3000]
-# Spider-Man faces
-for v in ["SpiderMan_avatar", "SpiderMan_02_avatar", "SpiderMan_15_avatar", "Psylocke_avatar"]:
-    out.setdefault("avatars", {})[v] = img(f"https://static.marvelsnap.pro/avatars/{v}.webp", "av_" + v)
-# Promo codes
-for k, u in [("dexerto", "https://www.dexerto.com/marvel-snap/marvel-snap-codes-3361570/"), ("popverse", "https://www.thepopverse.com/gaming-marvel-snap-codes-nuverse-second-dinner-active-new/"), ("msz_promo", "https://marvelsnapzone.com/promo-codes/")]:
-    p = tryget(k, u)
-    i = p.find("CREDITFIX") if "CREDITFIX" in p else p.find("NEWYEARNEWSNAP")
-    out[k + "_sample"] = p[max(0, i - 2500): i + 4000] if i >= 0 else p[:1500]
-json.dump(out, open("probe/result6.json", "w"), indent=1)
+# Seasons on Marvel Snap Zone: how each season and its picture appear
+try:
+    p = get("https://marvelsnapzone.com/seasons/")
+    i = p.find("Axis-Inversion"); out["msz_seasons_axis"] = p[max(0, i - 2500): i + 1500]
+    j = p.find("S031_PC_SplashScreen"); out["msz_seasons_old"] = p[max(0, j - 2000): j + 800]
+    out["msz_season_links"] = sorted(set(re.findall(r'href="(https://marvelsnapzone\.com/[^"]*season[^"]*)"', p, re.I)))[:80]
+except Exception as e: out["msz_seasons_err"] = str(e)
+for u in ["https://marvelsnapzone.com/seasons/axis-inversion/", "https://marvelsnapzone.com/season/axis-inversion/"]:
+    try: p = get(u); out["msz_season_page"] = {"url": u, "imgs": sorted(set(re.findall(r'https://[^"\'\s]+\.(?:webp|png|jpg)', p)))[:40], "og": re.findall(r'og:image" content="([^"]+)"', p)}; break
+    except Exception as e: out.setdefault("msz_season_page_err", []).append(str(e)[:60])
+# Card backs
+for k, u in [("msz_cardbacks", "https://marvelsnapzone.com/cardbacks/"), ("msz_cardbacks2", "https://marvelsnapzone.com/card-backs/")]:
+    try:
+        p = get(u); out[k + "_urls"] = sorted(set(re.findall(r'https://static\.marvelsnap\.pro/[^"\'\s]+', p)))[:30]
+        i = p.find("msz-cat-i"); out[k + "_sample"] = p[i: i + 2500]; out[k + "_count"] = re.findall(r'id="msz-count">(\d+)', p)
+    except Exception as e: out[k + "_err"] = str(e)[:60]
+for u in (out.get("msz_cardbacks_urls") or [])[:2]: out.setdefault("cb_imgs", {})[u] = img(u, "cb_" + str(len(out.get("cb_imgs", {}))))
+# Location art
+for n, u in [("loc_static", "https://static.marvelsnap.pro/locations/AltarOfDeath.webp"), ("loc_static2", "https://static.marvelsnap.pro/locations/Asgard.webp"), ("loc_msz", "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/altar-of-death.webp")]:
+    out[n] = img(u, n)
+json.dump(out, open("probe/result7.json", "w"), indent=1)
 print({k: (len(v) if isinstance(v, (list, dict, str)) else v) for k, v in out.items()})
