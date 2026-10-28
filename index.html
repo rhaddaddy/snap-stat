@@ -1133,13 +1133,17 @@ function allCards() {
   const costN = (c) => (c.cost === "?" || c.cost === "" ? 99 : num(c.cost));
   const full = [...map.values()].sort((a, b) => costN(a) - costN(b) || a.name.localeCompare(b.name));
   _byKey = new Map(full.map((c) => [c.key, c])); _byCode = new Map(); full.forEach((c) => { if (c.code && !_byCode.has(c.code)) _byCode.set(c.code, c); });
+  _byLoose = new Map(); full.forEach((c) => { const l = looseCode(c.code); if (l) _byLoose.set(l, _byLoose.has(l) && _byLoose.get(l) !== c ? null : c); });
   full.forEach((c) => { const nk = keyOf(c.name); if (nk && !_byKey.has(nk)) _byKey.set(nk, c); });
   _cardsCache = full.filter((c) => !c.hidden);
   _cardsSig = sig;
   return _cardsCache;
 }
-let _byKey = new Map(), _byCode = new Map();
-function cardByCode(code) { allCards(); return _byCode.get(String(code || "").trim()) || null; }
+let _byKey = new Map(), _byCode = new Map(), _byLoose = new Map();
+// SnapVault spells some new cards' codes a little differently (Vampire America Chavez is "VmprmrcChvz14", not "VmprAmrcChvz14"),
+// so if there's no exact match, compare the letters without any vowels, as long as only one card fits.
+const looseCode = (code) => String(code || "").toLowerCase().replace(/[aeiouy]/g, "");
+function cardByCode(code) { allCards(); const c = String(code || "").trim(); return _byCode.get(c) || _byLoose.get(looseCode(c)) || null; }
 function customCard(id) { const c = S.custom.find((x) => x.id === id); return c ? { key: "custom:" + c.id, name: c.name, cost: c.cost, power: c.power, ability: c.ability, tags: [], custom: true, frame: c.frame } : null; }
 function card(k) {
   if (String(k).startsWith("custom:")) return customCard(String(k).slice(7)) || { key: k, name: "Deleted custom card", cost: "?", power: "?", tags: [], custom: true, unknown: true };
@@ -1728,11 +1732,13 @@ function catVarName(v) {
   return v.rarity ? `${v.rarity} variant` : `Variant ${v.order || ""}`.trim();
 }
 /* Called from allCards(): fills in names, costs, power and abilities, adds released cards the app didn't know, and indexes the variants. */
+// A card in the daily card list whose code matches (exactly, or without vowels), for cards the app doesn't list yet.
+function catCardByCode(code) { if (!CAT) return null; const c = String(code || ""), l = looseCode(c); return arr(CAT.cards).find((d) => d && d.id && (cardCode(d.id) === c || looseCode(cardCode(d.id)) === l)) || null; }
 function mergeCatalog(map) {
   _catVars = new Map(); _catByCard = new Map();
   if (!CAT) return;
   const byCode = new Map(); for (const c of map.values()) if (c.code && !byCode.has(c.code)) byCode.set(c.code, c.key);
-  const unk = new Map(); for (const a of arr(S.addedCards)) if (a && a.key && a.code && /^Unknown card \(/.test(a.name)) unk.set(a.code, a);
+  const unk = new Map(); for (const a of arr(S.addedCards)) if (a && a.key && a.code && /^Unknown card \(/.test(a.name)) { unk.set(a.code, a); unk.set("~" + looseCode(a.code), a); }
   const claimed = new Set();
   for (const d of CAT.cards) {
     if (!d || !d.name || claimed.has(keyOf(d.name))) continue;
@@ -1740,7 +1746,8 @@ function mergeCatalog(map) {
     const code = d.id ? cardCode(d.id) : "";
     let k = (code && byCode.get(code)) || (map.has(keyOf(d.name)) ? keyOf(d.name) : "");
     if (k && !map.has(k)) k = "";
-    if (!k && code && unk.has(code)) { const a = unk.get(code); k = a.key; map.set(k, { tags: [], series: "", ability: "", release: "", ...a, added: true, resolved: true }); }
+    const ua = code ? unk.get(code) || unk.get("~" + looseCode(code)) : null;
+    if (!k && ua) { const a = ua; k = a.key; map.set(k, { tags: [], series: "", ability: "", release: "", ...a, added: true, resolved: true }); }
     if (!k) {
       if (!catCollectible(d)) continue;
       k = keyOf(d.name); map.set(k, { key: k, name: d.name, cost: "?", power: "?", tags: [], ability: "", series: "", release: "", code, fromCat: true });
@@ -3467,8 +3474,9 @@ function privacyLink() { return window.SNAPSTAT_STANDALONE ? `<a href="privacy.h
 const sv = { text: "", res: null, err: "", owned: true, decks: true, showAll: false };
 function ensureCodeCard(code) {
   const c = cardByCode(code); if (c) return c.key;
-  const name = `Unknown card (${code})`; const k = keyOf(name);
-  if (!S.addedCards.some((x) => x.key === k)) S.addedCards.push({ key: k, name, cost: "?", power: "?", tags: [], ability: "", series: "", release: "", code });
+  const d = catCardByCode(code); // in the daily card list but not the app's own (event cards like Vampire America Chavez)
+  const name = d ? String(d.name) : `Unknown card (${code})`; const k = keyOf(name);
+  if (!S.addedCards.some((x) => x.key === k)) S.addedCards.push({ key: k, name, cost: d && d.cost !== undefined ? num(d.cost) : "?", power: d && d.power !== undefined ? num(d.power) : "?", tags: [], ability: d ? String(d.ability || "") : "", series: "", release: "", code });
   return k;
 }
 function decodeCodes(b64) { try { const raw = atob(String(b64 || "").trim()); return /^[A-Za-z0-9]+(,[A-Za-z0-9]+)*$/.test(raw) ? raw.split(",") : []; } catch { return []; } }
@@ -3482,7 +3490,7 @@ function parseSnapVault(text) {
   }).filter((d) => d.codes.length);
   if (!codes.length && !decks.length) return { err: "No cards or decks were found in that file." };
   const all = [...new Set([...codes, ...decks.flatMap((d) => d.codes)])];
-  return { codes, decks, known: codes.filter((c) => cardByCode(c)).length, unknown: all.filter((c) => !cardByCode(c)), newOwned: codes.filter((c) => { const x = cardByCode(c); return !x || !S.owned[x.key]; }).length, date: j.exportDate };
+  return { codes, decks, known: codes.filter((c) => cardByCode(c)).length, unknown: all.filter((c) => !cardByCode(c) && !catCardByCode(c)), newOwned: codes.filter((c) => { const x = cardByCode(c); return !x || !S.owned[x.key]; }).length, date: j.exportDate };
 }
 function svSheet() {
   const r = sv.res;
@@ -5978,7 +5986,18 @@ async function takeSharedShots() {
 function sharedRoute() {
   ui.tab = "play"; ui.playSeg = "log"; ui.more = null; render();
   try { history.replaceState(null, "", "#play"); } catch { /* fine */ }
-  setTimeout(async () => { const files = await takeSharedShots(); if (files.length) readShots(files); else toast("Nothing came through. Try sharing the screenshot again."); }, 0);
+  setTimeout(async () => {
+    const files = await takeSharedShots();
+    // A SnapVault export shared from the Files app syncs your cards and decks; screenshots get read.
+    const isData = (f) => /json|text\/plain/.test(f.type || "") || /\.json$/i.test(f.name || "");
+    const data = files.filter(isData), pics = files.filter((f) => !isData(f));
+    if (data.length) {
+      if (!pics.length) { ui.tab = "home"; ui.more = null; try { history.replaceState(null, "", "#home"); } catch { /* fine */ } render(); }
+      for (const f of data) { try { svQuickSync(await f.text()); } catch { toast("Couldn't read that file."); } }
+    }
+    if (pics.length) readShots(pics);
+    if (!files.length) toast("Nothing came through. Try sharing it again.");
+  }, 0);
   return true;
 }
 

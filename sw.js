@@ -1,6 +1,6 @@
 // SNAP Stat's service worker. It lets the app open without a connection, and checks for things
 // to notify you about: a wishlist item on sale, an event starting, the season ending, a daily goal or checklist.
-// It also receives screenshots shared to the app from Android's share menu.
+// It also receives screenshots and SnapVault exports shared to the app from Android's share menu.
 const VERSION = "snapstat-v2";
 const SHELL = ["./", "index.html", "firebase-config.js", "firebase-init.js", "manifest.webmanifest?v=2", "icon-192-v2.png", "icon-512-v2.png", "apple-touch-icon-v2.png"];
 
@@ -17,7 +17,7 @@ self.addEventListener("fetch", (e) => {
   if (req.method === "POST" && new URL(req.url).pathname.endsWith("/share-target")) {
     e.respondWith((async () => {
       try {
-        const form = await req.formData(); const files = form.getAll("shots").filter((f) => f && typeof f === "object" && f.size);
+        const form = await req.formData(); const files = [...form.getAll("shots"), ...form.getAll("data")].filter((f) => f && typeof f === "object" && f.size);
         const c = await caches.open("snapstat-share"); let i = 0;
         for (const f of files.slice(0, 20)) await c.put(`shared/${Date.now()}-${i++}`, new Response(f, { headers: { "content-type": f.type || "image/png", "x-name": encodeURIComponent(f.name || "screenshot.png"), "x-time": String(f.lastModified || Date.now()) } }));
       } catch { /* nothing saved; the app says so */ }

@@ -76,6 +76,14 @@
             ".jpeg",
             ".webp"
           ]
+        },
+        {
+          "name": "data",
+          "accept": [
+            "application/json",
+            ".json",
+            "text/plain"
+          ]
         }
       ]
     }
