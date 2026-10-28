@@ -1,15 +1,8 @@
 {
  "anim": [
-  "WebPink",
-  "BorderBrainsGreen",
-  "BorderCandyCane_Halloween",
-  "BorderStickerHalloween",
-  "BorderBrains",
-  "BorderBrainsPurple",
   "FireGreen",
   "Fire",
   "FireBlue",
-  "DistressedGreen",
   "FireGold",
   "FirePink",
   "FirePurple",
@@ -66,7 +59,9 @@
   "WrappingPaper"
  ],
  "still": [
-  "MetalChainsGold"
+  "WebPink",
+  "MetalChainsGold",
+  "DistressedGreen"
  ],
  "drawn": [
   "ChromaticAqua",
@@ -94,6 +89,11 @@
   "Faction_Thunderbolts",
   "Faction_WebSlingers",
   "Faction_XMen",
+  "BorderBrainsGreen",
+  "BorderCandyCane_Halloween",
+  "BorderStickerHalloween",
+  "BorderBrains",
+  "BorderBrainsPurple",
   "Champion",
   "CosmicPurple"
  ],
