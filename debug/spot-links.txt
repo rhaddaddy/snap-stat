@@ -1,0 +1,6 @@
+debug/cards_spotlights_.html:href="/cards/spotlights/"
+debug/cards_spotlights_.html:href="/cards/spotlights/past/"
+debug/cards_spotlights_.html:href="https://snap.fan/cards/spotlights/"
+debug/cards_spotlights__page_2.html:href="/cards/spotlights/"
+debug/cards_spotlights__page_2.html:href="/cards/spotlights/past/"
+debug/cards_spotlights__page_2.html:href="https://snap.fan/cards/spotlights/"

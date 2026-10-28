@@ -1,0 +1,2 @@
+cards/spotlights/ 200 44107
+cards/spotlights/?page=2 200 44107
