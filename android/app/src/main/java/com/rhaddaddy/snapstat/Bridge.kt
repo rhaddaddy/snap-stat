@@ -118,8 +118,11 @@ class Bridge(private val act: MainActivity) {
     // ---- Automatic screenshots ----
     @JavascriptInterface fun setAutoShots(on: Boolean) {
         Screenshots.setOn(ctx, on)
-        if (on && !Screenshots.hasPhotos(ctx)) act.runOnUiThread { act.askPhotos() }
-        act.emit("perm", info())
+        val state = info()
+        act.runOnUiThread {
+            if (on && !Screenshots.hasPhotos(ctx)) act.askPhotos()
+            act.emit("perm", state)
+        }
     }
 
     @JavascriptInterface fun askPhotos() { act.runOnUiThread { act.askPhotos() } }

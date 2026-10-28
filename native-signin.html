@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Sign in to SNAP Stat</title>
+<style>
+  :root { color-scheme: dark; --bg: #0A0918; --fg: #F2EFFF; --muted: #A9A3C9; --blue: #8FE3FF; --panel: #17142E; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 0%, #2a1d5c, var(--bg) 70%); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
+  main { width: min(420px, calc(100% - 32px)); background: var(--panel); border: 1px solid #2f2958; border-radius: 18px; padding: 28px 22px; text-align: center; }
+  h1 { font-size: 22px; margin: 8px 0 6px; } h1 b { color: var(--blue); font-weight: 700; }
+  p { color: var(--muted); margin: 8px 0 18px; }
+  button, a.btn { display: block; width: 100%; box-sizing: border-box; padding: 14px; border-radius: 12px; border: 0; font: 600 17px system-ui, sans-serif; text-decoration: none; cursor: pointer; }
+  button { background: #fff; color: #1f1f1f; } a.btn { background: var(--blue); color: #0A0918; margin-top: 12px; }
+  .note { font-size: 14px; color: #ffb4b4; min-height: 20px; margin: 14px 0 0; }
+  svg { width: 56px; height: 56px; }
+</style>
+</head>
+<body>
+<main>
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 20.5 7.2 12 12 3.5 7.2z" fill="#7a46c8"/><path d="M3.5 7.2 12 12v9.5l-8.5-4.7z" fill="#1d3a8f"/><path d="M12 12l8.5-4.8v9.6L12 21.5z" fill="#4a1d7a"/><path d="M12 2.5 3.5 7.2v9.6L12 21.5l8.5-4.7V7.2zM3.5 7.2 12 12l8.5-4.8M12 12v9.5" fill="none" stroke="#8FE3FF" stroke-width="1.7" stroke-linejoin="round"/></svg>
+  <h1>Sign in to SNAP <b>STAT</b></h1>
+  <p id="msg">Google doesn't allow signing in inside apps, so this part happens in Chrome. Then you go back to the app.</p>
+  <button id="go">Continue with Google</button>
+  <a class="btn" id="back" hidden>Back to the SNAP Stat app</a>
+  <div class="note" id="err"></div>
+</main>
+<script src="firebase-config.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+  const $ = (id) => document.getElementById(id);
+  const auth = getAuth(initializeApp(window.FIREBASE_CONFIG));
+  $("go").onclick = async () => {
+    $("err").textContent = "";
+    try {
+      const result = await signInWithPopup(auth, new GoogleAuthProvider());
+      const token = GoogleAuthProvider.credentialFromResult(result)?.idToken;
+      if (!token) throw new Error("Google didn't send back a sign-in. Try again.");
+      // Hands the sign-in to the SNAP Stat app on this phone only (the link names the app's package)
+      const link = `intent://signin?token=${encodeURIComponent(token)}#Intent;scheme=snapstat;package=com.rhaddaddy.snapstat;end`;
+      $("go").hidden = true; $("back").hidden = false; $("back").href = link;
+      $("msg").textContent = `Signed in as ${result.user.email || result.user.displayName || "you"}. Tap below to go back to the app.`;
+      location.href = link;
+    } catch (e) {
+      $("err").textContent = e && e.code === "auth/popup-closed-by-user" ? "The Google window was closed. Tap Continue to try again." : (e && e.message) || "Sign-in didn't work. Try again.";
+    }
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "v": 1,
+  "about": "How the SNAP Stat Android app's match tracker spots the end of a match. A frame counts when its words include every word of one 'end' group and none of the 'not' words, on 'frames' checks in a row. Tuned from the tracker log.",
+  "intervalMs": 1500,
+  "scale": 0.6,
+  "frames": 2,
+  "cooldownSec": 45,
+  "onlyInSnap": true,
+  "end": [["victory"], ["defeat"], ["you won"], ["you lost"], ["escaped"], ["retreated"], ["cubes", "collect"], ["cubes", "next"], ["cubes", "continue"]],
+  "not": []
+}

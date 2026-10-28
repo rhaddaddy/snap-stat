@@ -53,7 +53,18 @@ jobs:
         env:
           VERSION_CODE: ${{ github.run_number }}
           VERSION_NAME: 1.${{ github.run_number }}
-        run: gradle -p android assembleRelease --stacktrace --no-daemon
+        run: |
+          set -o pipefail
+          gradle -p android assembleRelease --stacktrace --no-daemon 2>&1 | tee build.log
+
+      # Build logs can't be read from outside GitHub, so a failed build's log is saved to the android-build-log branch
+      - name: Save the log if the build failed
+        if: failure()
+        run: |
+          git config user.email noreply@anthropic.com && git config user.name "SNAP Stat build"
+          tail -c 60000 build.log > /tmp/build.log
+          git checkout --orphan android-build-log && git rm -rf --cached . -q && cp /tmp/build.log build.log
+          git add build.log && git commit -qm "Android build log for ${GITHUB_SHA::7}" && git push -f origin android-build-log
 
       - name: Keep the build
         uses: actions/upload-artifact@v4

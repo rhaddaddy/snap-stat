@@ -2316,6 +2316,7 @@ async function checkNotificationsNow() {
 }
 function appPanel() {
   if (!window.SNAPSTAT_STANDALONE) return "";
+  if (window.SnapStatNative) return `<section class="sec"><h2>Notifications</h2><div class="panel small"><p class="muted">Sale, event and reminder notifications don't work in the Android app yet. If you want them, keep the SNAP Stat you installed from Chrome too, with notifications on there.</p></div></section>`;
   const p = notifyPrefs(), perm = "Notification" in window ? Notification.permission : "unsupported";
   const box = (k, l) => `<label class="check"><input type="checkbox" data-notifychk="${k}" ${p[k] ? "checked" : ""} ${p.on ? "" : "disabled"}> ${l}</label>`;
   return `<section class="sec"><h2>App & notifications</h2><div class="panel stack small">
@@ -3462,7 +3463,7 @@ function vAccount() {
     ${store.provider === "firebase" ? `<p><b>${accountLine()}</b></p><p>${store.mode === "cloud" ? "Your data follows you to any device where you sign in." : "Sign in to keep your data across devices and use the social features. Anything saved here moves into your account when you sign in."}</p>${store.mode === "cloud" ? `<div><button class="btn sm" data-a="signOut">Sign out</button></div>` : store.fb ? `<div><button class="btn sm snap" data-a="signIn">Sign in</button></div>` : ""}`
       : `<p>${store.mode === "cloud" ? "You're signed in with your Claude account, and your data follows you across devices." : "Your data is saved on this device. Open the app signed in to Claude to keep it across devices and use the social features."}</p>`}
     <p>MARVEL SNAP has no official way for other apps to read your account. To bring in your collection and decks, use SnapVault sync on the Home screen.</p></div></section>
-  ${sfPanel()}${accountsHtml()}${lookHtml()}${badgesHtml()}${overlayPanel()}${aiPanel()}${appPanel()}${ownerPanel()}
+  ${androidPanel()}${sfPanel()}${accountsHtml()}${lookHtml()}${badgesHtml()}${overlayPanel()}${aiPanel()}${appPanel()}${ownerPanel()}
   <section class="sec"><h2>Backup</h2><div class="row"><button class="btn" data-a="csvMatches">Matches spreadsheet</button><button class="btn" data-a="csvCollection">Collection spreadsheet</button></div><div class="row"><button class="btn" data-a="backupCopy">${ICON.copy} Copy backup</button>${store.downloads ? `<button class="btn" data-a="backupSave">Save backup file</button>` : ""}<button class="btn" data-a="restoreOpen">Restore</button><button class="btn" data-a="svOpen">Import from SnapVault</button></div>
     ${allMatches().some((m) => m.example) || S.decks.some((d) => d.example) ? `<button class="btn ghost" data-a="clearExamples">Clear example data</button>` : ""}
     <button class="btn ghost danger" data-a="resetAll">${ui.resetArm ? "Tap again to erase everything" : "Erase all my data"}</button></section>
@@ -6089,7 +6090,8 @@ async function checkSfLink(manual) {
   sfl.busy = false; requestRender();
 }
 function sfPanel() {
-  if (!window.SNAPSTAT_STANDALONE) return "";
+  // snap.fan removed match history (August 31, 2026), so this only shows for someone who already saved a link
+  if (!window.SNAPSTAT_STANDALONE || !S.sfLink) return "";
   return `<section class="sec"><h2>Automatic matches from snap.fan</h2><div class="panel stack small">
     <p>snap.fan can see your matches once you sign in there with the same login you use for MARVEL SNAP. It gives you a free personal link (SnapVault calls it a “personal API URL”). Paste it here and SNAP Stat brings in new matches whenever you open the app.</p>
     <ol class="tips"><li>Go to <a href="https://snap.fan/" target="_blank" rel="noopener">snap.fan</a> and sign in with the same Google, Apple or other login your game uses.</li><li>In your snap.fan account settings, find your personal API link and copy it.</li><li>Paste it below and tap Save.</li></ol>
@@ -6118,6 +6120,131 @@ document.addEventListener("change", (e) => {
 setTimeout(() => whenDataReady(() => { if (S.sfLink) checkSfLink(false); }), 3000);
 setInterval(() => { if (S.sfLink && document.visibilityState === "visible") checkSfLink(false); }, 5 * 60e3);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && S.sfLink && Date.now() - num(S.sfChecked) > 60e3) checkSfLink(false); });
+/* ============ The Android app ============
+   When SNAP Stat runs inside its Android app, the app adds window.SnapStatNative. With it SNAP Stat can read new
+   MARVEL SNAP screenshots on its own, run the match tracker, save files and use Android's share menu.
+   Pictures the app collects wait in a queue on the phone until SNAP Stat reads them with your AI service. */
+const NATIVE = window.SnapStatNative || null;
+const APK_URL = "https://github.com/rhaddaddy/snap-stat/releases/latest/download/snap-stat.apk";
+const nat = { info: {}, log: "", logOpen: false, busy: false };
+function natInfo() { if (!NATIVE) return {}; try { nat.info = obj(JSON.parse(NATIVE.info())); } catch { nat.info = {}; } return nat.info; }
+const b64ToBytes = (b64) => { const s = atob(b64); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
+const blobToB64 = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
+
+if (NATIVE) {
+  // Web views can't save blob: links, so files the app makes (deck pictures, backups) go to the phone's Downloads
+  const click = HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click = function () {
+    if (this.hasAttribute("download") && /^(blob:|data:)/.test(this.href)) {
+      const name = this.getAttribute("download") || "snap-stat-file";
+      fetch(this.href).then((r) => r.blob()).then(async (b) => NATIVE.saveFile(name, b.type || "application/octet-stream", await blobToB64(b))).catch(() => toast("Couldn't save the file"));
+      return;
+    }
+    return click.call(this);
+  };
+  // Android's share menu stands in for the browser's
+  navigator.canShare = () => true;
+  navigator.share = async (d = {}) => {
+    const files = [];
+    for (const f of arr(d.files)) files.push({ name: f.name || "file", type: f.type || "application/octet-stream", b64: await blobToB64(f) });
+    NATIVE.share(JSON.stringify({ title: d.title || "", text: d.text || "", url: d.url || "", files }));
+  };
+  window.snapNative = {
+    on: (type, data) => natEvent(type, data),
+    // Android's back button closes an open panel first
+    back: () => { const sh = $("#sheet"); if (sh && !sh.hidden) { closeSheet(); return true; } return false; },
+  };
+  const ready = () => { try { NATIVE.ready(); } catch { /* old app */ } natRules(); };
+  if (document.readyState === "complete") setTimeout(ready, 0); else window.addEventListener("load", ready);
+  document.addEventListener("toggle", (e) => { if (e.target && e.target.dataset && e.target.dataset.natlog) nat.logOpen = e.target.open; }, true);
+}
+
+function natEvent(type, data) {
+  if (type === "signin") {
+    if (window.__snapNativeToken) window.__snapNativeToken(data || "");
+    else if (data && window.__snapSignInToken) window.__snapSignInToken(data).catch(() => toast("Sign-in didn't finish. Try again."));
+    return;
+  }
+  natInfo();
+  if (type === "queue" || type === "resume") natPull();
+  if (ui.more === "account") refreshView();
+}
+
+/* Reads waiting pictures (and SnapVault files shared to the app). Pictures stay in the queue until an AI key is set. */
+function natPull() {
+  if (!NATIVE || nat.busy) return;
+  if (!dataReady()) { whenDataReady(natPull); return; }
+  if (!num(NATIVE.queueCount())) return;
+  if (!canReadShots()) { if (ui.more === "account") refreshView(); return; }
+  nat.busy = true;
+  setTimeout(async () => {
+    try {
+      const pics = [];
+      for (let i = 0; i < 20; i++) {
+        const s = NATIVE.next(); if (!s) break;
+        let it; try { it = JSON.parse(s); } catch { break; }
+        NATIVE.done(it.id);
+        const f = new File([b64ToBytes(it.b64 || "")], it.name || "shot.jpg", { type: it.type || "image/jpeg", lastModified: num(it.time) || Date.now() });
+        if (/json/.test(f.type)) { try { svQuickSync(await f.text()); } catch { toast("Couldn't read that SnapVault file."); } }
+        else pics.push(f);
+      }
+      if (pics.length) readShots(pics);
+    } finally { nat.busy = false; }
+    natInfo(); if (num(nat.info.queue)) setTimeout(natPull, 800);
+  }, 0);
+}
+
+/* The tracker's rules for spotting the end of a match live on the website, so they can be tuned without a new app. */
+async function natRules() {
+  if (!NATIVE) return false;
+  for (const u of catUrls("tracker-rules.json")) {
+    try { const r = await fetch(u, { cache: "no-store" }); if (r.ok) { const t = await r.text(); if (NATIVE.setRules(t)) return true; } } catch { /* next */ }
+  }
+  return false;
+}
+
+function androidPanel() {
+  if (!NATIVE) {
+    if (!window.SNAPSTAT_STANDALONE || !/Android/i.test(navigator.userAgent)) return "";
+    return `<section class="sec"><h2>Android app</h2><div class="panel stack small">
+      <p>The SNAP Stat Android app reads your MARVEL SNAP screenshots on its own and can track your matches while you play. It's the same SNAP Stat, with the same account.</p>
+      <div><a class="btn snap" href="${APK_URL}">Download the Android app</a></div>
+      <span class="muted">Open the file once it downloads. If your phone asks, allow Chrome to install apps.</span></div></section>`;
+  }
+  const i = natInfo(), q = num(i.queue);
+  return `<section class="sec"><h2>Android app</h2>
+    ${!aiOn() ? `<div class="panel small"><p class="note">Add your AI key in <b>AI features</b> below. The app keeps its own copy of your keys, so paste your Gemini key here once.</p></div>` : ""}
+    <div class="panel stack small">
+      <div class="row between"><b>Read new screenshots automatically</b>${i.autoShots ? `<button class="btn sm" data-a="natShots" data-v="0">Turn off</button>` : `<button class="btn sm snap" data-a="natShots" data-v="1">Turn on</button>`}</div>
+      <span class="muted">Each time you open SNAP Stat, the screenshots you took in MARVEL SNAP since last time get read and logged. You don't have to share them.</span>
+      ${i.autoShots && !i.photos ? `<p class="note">SNAP Stat needs to see your photos to find them. <button class="btn sm" data-a="natAsk" data-v="photos">Allow</button> Choose <b>Allow all</b>. If you don't see that, open <button class="btn sm ghost" data-a="natAsk" data-v="settings">App settings</button> › Permissions › Photos.</p>` : ""}
+      ${i.usage ? `<span class="muted">✓ Usage access is on, so only screenshots taken in MARVEL SNAP are read.</span>` : `<p>Turn on <b>usage access</b> so SNAP Stat can tell which screenshots were taken in MARVEL SNAP, and the tracker only looks while the game is open. <button class="btn sm" data-a="natAsk" data-v="usage">Turn on usage access</button><br><span class="muted">In the list that opens, tap SNAP Stat and switch it on, then come back.</span></p>`}
+    </div>
+    <div class="panel stack small">
+      <div class="row between"><b>Match tracker</b>${i.tracking ? `<span class="pill W">Tracking</span>` : `<span class="pill dim">Off</span>`}</div>
+      <span class="muted">Watches your screen while MARVEL SNAP is open and saves the end of each match, so the AI can log the result, cubes, opponent, locations and cards. The screen is read on your phone. Only the end-of-match picture is sent to your AI service. Android asks you to allow screen recording each time you start. If it offers <b>A single app</b>, pick MARVEL SNAP.</span>
+      <div class="row">${i.tracking ? `<button class="btn" data-a="natTrack" data-v="0">Stop tracking</button>${i.snap ? `<button class="btn snap" data-a="natSnap">Open MARVEL SNAP</button>` : ""}` : `<button class="btn snap" data-a="natTrack" data-v="1">Start tracking</button>`}</div>
+      ${i.tracking ? `<span class="muted">${num(i.captured) ? `${fmt(i.captured)} match${num(i.captured) === 1 ? "" : "es"} saved so far.` : "No matches saved yet. Play a game and they'll show up here."}</span>` : ""}
+      ${q ? `<p class="note">${fmt(q)} picture${q === 1 ? "" : "s"} waiting to be read. ${canReadShots() ? `<button class="btn sm" data-a="natPull">Read now</button>` : "Add an AI key to read them."}</p>` : ""}
+      <details data-natlog="1" ${nat.logOpen ? "open" : ""}><summary class="small">What the tracker saw</summary>
+        <pre class="small" style="white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto;margin:8px 0">${esc(nat.log || "Tap Refresh to see it.")}</pre>
+        <div class="row"><button class="btn sm" data-a="natLogRefresh">Refresh</button><button class="btn sm" data-a="natLogCopy">${ICON.copy} Copy for Claude</button></div></details>
+    </div></section>`;
+}
+
+Object.assign(A, {
+  natShots: (el) => { NATIVE.setAutoShots(el.dataset.v === "1"); natInfo(); render(); if (el.dataset.v === "1") toast("On. Screenshots you take in MARVEL SNAP from now on will be read."); },
+  natAsk: (el) => { const v = el.dataset.v; if (v === "photos") NATIVE.askPhotos(); else if (v === "usage") NATIVE.askUsage(); else if (v === "notify") NATIVE.askNotify(); else NATIVE.openAppSettings(); },
+  natTrack: async (el) => {
+    if (el.dataset.v === "1") { if (!aiOn()) toast("Add an AI key too, so saved matches can be read."); await natRules(); NATIVE.startTracker(); }
+    else NATIVE.stopTracker();
+    setTimeout(() => { natInfo(); refreshView(); }, 800);
+  },
+  natSnap: () => NATIVE.openSnap(),
+  natPull: () => natPull(),
+  natLogRefresh: () => { nat.log = NATIVE.log(); nat.logOpen = true; render(); },
+  natLogCopy: () => { nat.log = NATIVE.log(); copyText(nat.log || "(nothing yet)", "Copied. Paste it to Claude in your chat."); },
+});
 /* ============ Standalone (Firebase) sign-in and storage ============ */
 const FB_CFG_KEY = "snapstat.firebaseConfig", FB_SKIP_KEY = "snapstat.skipSignIn";
 function parseFirebaseConfig(text) {
