@@ -84,7 +84,7 @@ button { cursor: pointer; }
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .top > div:first-child { min-width: 0; flex: 1 1 auto; }
 .brand { display: flex; align-items: center; gap: 8px; font-family: var(--comic); font-size: 24px; letter-spacing: .04em; white-space: nowrap; line-height: 1; min-width: 0; }
-.brand > span { overflow: hidden; text-overflow: ellipsis; }
+.brand > span { overflow: hidden; text-overflow: ellipsis; padding: .06em .22em .06em 0; } /* room for the slanted letters, so the last T isn't clipped */
 .brand .ic { width: 28px; height: 28px; color: var(--cube); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--cube) 60%, transparent)); }
 .brand b { font-weight: 400; color: var(--cube); }
 .sync { font-family: var(--ui); font-size: 11px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
