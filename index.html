@@ -370,6 +370,14 @@ details.panel > summary { cursor: pointer; font-weight: 600; }
 .badge-c.on { opacity: 1; border-color: color-mix(in srgb, var(--snap-a) 55%, var(--line)); background: linear-gradient(160deg, var(--snap-soft), var(--surface)); }
 .chip.swatch { display: inline-flex; align-items: center; gap: 6px; }
 .chip.swatch .sw { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,.4); flex: none; }
+html.overlay, html.overlay body { background: transparent !important; }
+html.overlay .top, html.overlay #tabs, html.overlay #sheet { display: none !important; }
+html.overlay .wrap { padding: 8px !important; }
+.ov-card { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 14px; background: rgba(10, 9, 24, .82); color: #F2EFFF; border: 1px solid rgba(255,255,255,.18); max-width: 420px; font-family: var(--ui); font-size: 18px; }
+.ov-row { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.ov-pill { background: linear-gradient(180deg, var(--snap-a), var(--snap-b)); color: var(--snap-ink); border-radius: 999px; padding: 1px 10px; font-weight: 800; font-size: 15px; }
+.ov-small { font-size: 14px; opacity: .85; font-family: var(--body); }
+.ov-card .pos { color: #3DD68C; } .ov-card .neg { color: #FF5D7B; }
 @media (max-width: 420px) {
   .tiles { grid-template-columns: repeat(2, 1fr); }
   .wallet { grid-template-columns: repeat(2, 1fr); }
@@ -1272,6 +1280,9 @@ function deckMatches(d) { return allMatches().filter((m) => m.deckId === d.id ||
 
 /* ============ Persistence ============ */
 const LS = { state: "cubeledger.state", matches: "cubeledger.matches", live: "cubeledger.live" };
+/* Each MARVEL SNAP account you add keeps its own data. "" is your main account. */
+const SLOT = (() => { try { return localStorage.getItem("snapstat.slot") || ""; } catch { return ""; } })();
+if (SLOT) for (const k of Object.keys(LS)) LS[k] += "." + SLOT;
 function lsGet(k) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage unavailable */ } }
 let dirty = false, saveTimer = null, writing = null;
@@ -1309,7 +1320,7 @@ function deckPublic(d) {
 function deckVariantNames(d) { const o = {}; d.cards.forEach((k) => { const v = deckVariant(d, k); if (v) o[card(k).name] = v.name + (v.artist ? " · " + v.artist : ""); }); return o; }
 let profTimer = null;
 function syncProfile() {
-  if (store.mode !== "cloud") return;
+  if (store.mode !== "cloud" || SLOT) return;
   clearTimeout(profTimer);
   profTimer = setTimeout(async () => {
     const ref = store.db.doc("profiles/" + store.uid), dref = store.db.doc("decks/" + store.uid);
@@ -1352,7 +1363,7 @@ async function initCaps() {
 }
 function subscribeCloud(localState, localMatches) {
   const db = store.db;
-  store.stateRef = db.doc("data/users/" + store.uid + "/state");
+  store.stateRef = db.doc("data/users/" + store.uid + (SLOT ? "/slot-" + SLOT : "/state"));
   let firstState = true;
   store.stateRef.onSnapshot((snap) => {
     if (dirty || snap.metadata.hasPendingWrites) return;
@@ -1421,7 +1432,7 @@ function newLive(deck) {
 }
 function normLive(l) { if (!l || !l.on) return { on: false }; l.myPow = obj(l.myPow); l.adj = l.adj || { my: [0, 0, 0], opp: [0, 0, 0] }; l.opp = arr(l.opp).map((o) => ({ zone: "L" + num(o.loc), power: card(o.key).power, ...o })); return l; }
 let live = normLive(lsGet(LS.live));
-function saveLive() { lsSet(LS.live, live); }
+function saveLive() { lsSet(LS.live, live); overlayPush(); }
 function locTotals(i) {
   const my = Object.entries(live.my).filter(([, z]) => z === "L" + i).reduce((s, [k]) => s + num(live.myPow[k] ?? card(k).power), 0) + num(live.adj.my[i]);
   const opp = live.opp.filter((o) => o.zone === "L" + i).reduce((s, o) => s + num(o.power), 0) + num(live.adj.opp[i]);
@@ -2188,7 +2199,7 @@ async function registerSW() {
   if (!window.SNAPSTAT_STANDALONE || !("serviceWorker" in navigator) || !/^https:|^http:\/\/(127\.0\.0\.1|localhost)/.test(location.href)) return null;
   try { const reg = await navigator.serviceWorker.register("sw.js"); store.sw = reg; return reg; } catch { return null; }
 }
-function notifyPrefs() { return { on: false, wish: true, events: true, season: true, goals: true, missions: true, ...obj(S.notify) }; }
+function notifyPrefs() { return { on: false, wish: true, events: true, season: true, goals: true, missions: true, daily: true, ...obj(S.notify) }; }
 /* What the background check needs: your wishlist, upcoming events and the season's end. Saved where the service worker can read it. */
 async function saveNotifyState() {
   if (!("caches" in window)) return;
@@ -2200,6 +2211,7 @@ async function saveNotifyState() {
     events: events().filter((e) => e.startTs > now - DAY && e.startTs < now + 30 * DAY).map((e) => ({ id: e.id, name: e.name, start: e.start })),
     season: (() => { const s = currentSeason(); return s && Number.isFinite(s.endTs) ? { id: s.id, name: s.name, end: s.end } : null; })(),
     goals: arr(S.goals).filter((g) => obj(GOAL_KINDS[g.kind]).per === "day").map((g) => { const p = goalProgress(g); return p ? { id: g.id, day: localDate(now), left: Math.max(0, p.goal - p.have), text: p.text } : null; }).filter(Boolean),
+    today: todaySummary(),
     missions: (() => { const mi = missionState(); return mi.items.length ? { key: missionDay(), left: mi.left, resetAt: nextReset() } : null; })(),
     saved: now,
   };
@@ -2231,7 +2243,7 @@ function appPanel() {
   return `<section class="sec"><h2>App & notifications</h2><div class="panel stack small">
     ${isInstalled() ? `<p>SNAP Stat is installed on this device.</p>` : installEvt ? `<p>Install SNAP Stat to open it like an app, use it offline and get notifications while it's closed.</p><div><button class="btn snap" data-a="installApp">Install the app</button></div>` : `<p>To install: open Chrome's ⋮ menu and tap <b>Add to Home screen</b> or <b>Install app</b>. Installed, it opens like an app, works offline and can notify you while it's closed.</p>`}
     <div class="row between"><b>Notifications</b>${p.on && perm === "granted" ? `<button class="btn sm" data-a="notifyOff">Turn off</button>` : `<button class="btn sm snap" data-a="notifyOn">Turn on</button>`}</div>
-    ${box("wish", "A wishlist card or variant goes on sale")}${box("events", "An event or mode starts")}${box("season", "The season ends tomorrow")}${box("goals", "Evening reminder when a daily goal isn't done")}${box("missions", "Reminder before the daily checklist resets")}
+    ${box("wish", "A wishlist card or variant goes on sale")}${box("events", "An event or mode starts")}${box("season", "The season ends tomorrow")}${box("goals", "Evening reminder when a daily goal isn't done")}${box("missions", "Reminder before the daily checklist resets")}${box("daily", "A summary of your day at night")}
     ${perm === "denied" ? `<p class="note">Chrome is blocking notifications for this site. Allow them in the site settings (the icon left of the address).</p>` : ""}</div></section>`;
 }
 
@@ -2288,6 +2300,8 @@ async function deleteAccount() {
     for (const p of [`data/users/${uidNow}/state`, `profiles/${uidNow}`, `posts/${uidNow}`, `reactions/${uidNow}`, `decks/${uidNow}`, `followreq/${uidNow}`, `approvals/${uidNow}`, `images/${uidNow}`]) await del(p);
     for (const [id, j] of Object.entries(tjoins)) if (j && j.uid === uidNow) await del("tjoin/" + id);
     for (const [id, t] of Object.entries(tourneys)) if (t && t.by === uidNow) await del("tournaments/" + id);
+    await del("live/" + uidNow); await del(`data/users/${uidNow}/accounts`);
+    for (const a of accountsList().filter((x) => x.id)) { for (const wk of await collIds(`data/users/${uidNow}/slot-${a.id}/matches`)) await del(`data/users/${uidNow}/slot-${a.id}/matches/${wk}`); await del(`data/users/${uidNow}/slot-${a.id}`); }
     if (store.fb.deleteAccount) await store.fb.deleteAccount();
     try { localStorage.clear(); } catch { /* ignore */ }
     location.reload();
@@ -2385,7 +2399,7 @@ function vHome() {
   return `${seasonHero()}
   ${!S.me.onboarded ? `<div class="panel stack halftone"><h3>Create your profile</h3><p class="muted small">Add your in-game name, country and alliance so friends can follow your stats.</p><div><button class="btn snap" data-a="onboard">Get started</button></div></div>` : ""}
   <section class="sec">${wallet}</section>
-  ${challengesHomeHtml()}${todayHtml()}
+  ${catchUpBanner()}${sessionPanel()}${challengesHomeHtml()}${todayHtml()}
   ${svSyncPanel()}
   ${eventsStrip()}
   ${balanceHomePanel()}
@@ -2550,7 +2564,7 @@ function pickerSheet() {
 function vLog() {
   const p = periodById(ui.period); const ms = inPeriod(allMatches(), p);
   return `<section class="sec"><div class="sec-h"><h2>Matches</h2><div class="row"><button class="btn sm" data-a="quickOpen">Quick log</button><button class="btn sm snap" data-a="matchNew">${ICON.plus} Log a match</button></div></div>${shotInput("match")}${periodChips()}${exampleNote(ms)}
-    ${ms.length ? `<div class="list">${ms.slice(0, 300).map((m) => `<button class="li" data-a="matchEdit" data-id="${esc(m.id)}"><span class="pill ${m.result}">${m.result}</span><div class="grow"><div class="t">${esc(m.deckName || "No deck")}${m.oppName ? ` <span class="muted">vs ${esc(m.oppName)}</span>` : ""}</div><div class="s">${esc(dateTimeStr(m.ts))} · ${esc(m.mode || "Ranked")}${m.tracked ? " · tracked" : ""}${m.snapped ? " · snapped" : ""}${m.retreated ? " · retreated" : ""}${m.bot === "likely" ? " · likely bot" : ""}</div></div>${cubes(signed(num(m.cubes)), num(m.cubes) >= 0 ? "pos" : "neg")}</button>`).join("")}</div>${ms.length > 300 ? `<p class="muted small">Showing the latest 300.</p>` : ""}`
+    ${ms.length ? `<div class="list">${ms.slice(0, 300).map((m) => `<button class="li" data-a="matchEdit" data-id="${esc(m.id)}"><span class="pill ${m.result}">${m.result}</span><div class="grow"><div class="t">${esc(m.deckName || "No deck")}${m.oppName ? ` <span class="muted">vs ${esc(m.oppName)}</span>` : ""}</div><div class="s">${esc(dateTimeStr(m.ts))} · ${esc(m.mode || "Ranked")}${m.tracked ? (replayOf(m) ? " · replay" : " · tracked") : ""}${m.snapped ? " · snapped" : ""}${m.retreated ? " · retreated" : ""}${m.bot === "likely" ? " · likely bot" : ""}</div></div>${cubes(signed(num(m.cubes)), num(m.cubes) >= 0 ? "pos" : "neg")}</button>`).join("")}</div>${ms.length > 300 ? `<p class="muted small">Showing the latest 300.</p>` : ""}`
       : `<div class="empty"><strong>No matches in ${esc(p.label)}</strong><span>Log one now or pick a longer period.</span></div>`}</section>`;
 }
 let mf = null;
@@ -2581,7 +2595,7 @@ function matchSheet() {
   <label class="check"><input type="checkbox" data-mfchk="retreated" ${mf.retreated ? "checked" : ""}> You retreated</label><label class="check"><input type="checkbox" data-mfchk="oppRetreated" ${mf.oppRetreated ? "checked" : ""}> They retreated</label></div>
   <label class="f">Opponent was<select id="mf-bot" data-mf="bot">${Object.entries(BOT_TXT).map(([k, v]) => `<option value="${k}" ${mf.bot === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
   <label class="f">Notes<textarea id="mf-notes" data-mf="notes">${esc(mf.notes)}</textarea></label>
-  <div class="row"><button class="btn snap" data-a="mfSave">Save match</button>${mf.isNew ? "" : `<button class="btn danger" data-a="mfDelete">${mf.confirmDel ? "Tap again to delete" : "Delete"}</button>`}</div>`;
+  <div class="row"><button class="btn snap" data-a="mfSave">Save match</button>${!mf.isNew && replayOf(mf) ? `<button class="btn" data-a="replayOpen" data-id="${esc(mf.id)}">Watch replay</button>` : ""}${mf.isNew ? "" : `<button class="btn danger" data-a="mfDelete">${mf.confirmDel ? "Tap again to delete" : "Delete"}</button>`}</div>`;
 }
 /* ============ Collection ============ */
 function vCards() {
@@ -2772,11 +2786,12 @@ function vDecks() {
   const chip = (v, l) => `<button class="chip" data-a="deckFilter" data-v="${v}" aria-pressed="${f === v}">${l} <span class="muted num">${v === "all" ? S.decks.length : S.decks.filter((d) => d.status === v).length}</span></button>`;
   return `<section class="sec"><h1>Decks</h1>
     <div class="grid2"><button class="btn snap" data-a="deckNew">${ICON.plus} New deck</button><button class="btn" data-a="aiOpen">${ICON.spark} AI deck builder</button>
-    <button class="btn" data-a="draftOpen">Draft a deck</button><button class="btn" data-a="importOpen">Paste deck code</button></div>
-    <button class="btn" data-a="svOpen">Import from SnapVault</button>
+    <button class="btn" data-a="draftOpen">Draft a deck</button><button class="btn" data-a="importOpen">Paste deck code</button>
+    <button class="btn" data-a="svOpen">Import from SnapVault</button><button class="btn" data-a="dhOpen">Draft helper</button></div>
     <div class="chips">${chip("all", "All")}${chip("active", "Ready")}${chip("draft", "Drafts")}${chip("future", "Future")}</div></section>
   <section class="sec">${list.length ? `<div class="list">${list.map((d) => { const r = statsFor(deckMatches(d)); const avg = avgCost(d.cards); return `<button class="li" data-a="deckOpen" data-id="${esc(d.id)}">${deckCover(d)}<div class="grow"><div class="t">${esc(d.name)} ${d.status !== "active" ? `<span class="pill dim">${DECK_STATUS[d.status]}</span>` : ""}${S.me.featuredDeck === d.id ? ` <span class="pill gold">Featured</span>` : ""}${d.public ? ` <span class="pill dim">Public</span>` : ""}${d.example ? ` <span class="pill dim">Example</span>` : ""}</div><div class="s">${d.cards.length}/12 cards · avg cost ${avg}${r.games ? ` · ${r.w}-${r.l}-${r.t}` : ""}${d.svRecord && (d.svRecord.w || d.svRecord.l) ? ` · SnapVault ${num(d.svRecord.w)}-${num(d.svRecord.l)}` : ""}${d.from ? " · from " + esc(d.from) : ""}</div></div>${r.games ? `<span class="num" style="font-weight:800">${r.wr}%</span>` : ""}</button>`; }).join("")}</div>`
     : `<div class="empty"><strong>No decks here</strong><span>Build one from your cards, paste a code copied from the game, draft one, or let AI build it.</span></div>`}</section>
+  ${buildableHtml()}
   ${metaSection()}`;
 }
 function avgCost(keys) { const cs = keys.map(card).filter((c) => c.cost !== "?" && c.cost !== ""); const miss = keys.length - cs.length; return (cs.length ? (cs.reduce((s, c) => s + num(c.cost), 0) / cs.length).toFixed(1) : "—") + (miss ? ` (${miss} missing cost)` : ""); }
@@ -2820,7 +2835,7 @@ function deckStatsHtml(d) {
   const pick = (r, l, v) => r ? `<div class="tile"><div class="k">${l}</div><div class="v" style="font-size:17px">${esc(card(r.k).name)}</div><div class="small muted">${v(r)}</div></div>` : "";
   return `${sv}<div class="tiles"><div class="tile"><div class="k">Record</div><div class="v">${st.w}-${st.l}-${st.t}</div></div><div class="tile"><div class="k">Win rate</div><div class="v">${st.wr}%</div></div><div class="tile"><div class="k">Net cubes</div><div class="v ${st.cubes >= 0 ? "pos" : "neg"}">${signed(st.cubes)}</div></div></div>
     ${ins.tracked ? `<div class="tiles">${pick(ins.mvp, "MVP", (r) => `${r.wr}% when played`)}${pick(ins.most, "Most played", (r) => `${r.rate}% of games`)}${pick(ins.highest, "Highest power", (r) => `${r.max} power`)}${pick(ins.least, "Least used", (r) => `${r.rate}% of games`)}</div>
-    <div class="tbl-wrap"><table><thead><tr><th>Card</th><th class="n">Played</th><th class="n">W-L</th><th class="n">Win %</th><th class="n">Avg pow</th><th class="n">Best</th></tr></thead><tbody>${[...ins.rows].sort((a, b) => b.played - a.played).map((r) => `<tr><td>${esc(card(r.k).name)}</td><td class="n">${r.rate}%</td><td class="n">${r.w}-${r.l}</td><td class="n">${r.played ? r.wr + "%" : "—"}</td><td class="n">${r.avg || "—"}</td><td class="n">${r.max || "—"}</td></tr>`).join("")}</tbody></table></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Card</th><th class="n">Played</th><th class="n">W-L</th><th class="n">Win %</th><th class="n">Cube impact</th><th class="n">Avg pow</th><th class="n">Best</th></tr></thead><tbody>${(() => { const imp = cardImpact(ins.ms, ins.rows.map((r) => r.k)); return [...ins.rows].sort((a, b) => b.played - a.played).map((r) => `<tr><td>${esc(card(r.k).name)}</td><td class="n">${r.rate}%</td><td class="n">${r.w}-${r.l}</td><td class="n">${r.played ? r.wr + "%" : "—"}</td><td class="n ${imp[r.k] > 0 ? "pos" : imp[r.k] < 0 ? "neg" : ""}">${imp[r.k] !== undefined ? signed(imp[r.k]) : "—"}</td><td class="n">${r.avg || "—"}</td><td class="n">${r.max || "—"}</td></tr>`).join(""); })()}</tbody></table></div>
     ${ins.locs.length ? `<h3>Locations</h3><div class="tbl-wrap"><table><thead><tr><th>Location</th><th class="n">Games</th><th class="n">Match W%</th><th class="n">Won it</th><th class="n">Avg pow</th><th class="n">Best</th></tr></thead><tbody>${ins.locs.map((r) => `<tr><td>${esc(r.name)}</td><td class="n">${r.games}</td><td class="n">${r.wr}%</td><td class="n">${r.lwr}%</td><td class="n">${r.avg}</td><td class="n">${r.max}</td></tr>`).join("")}</tbody></table></div>` : ""}
     <p class="muted small">From ${ins.tracked} tracked game${ins.tracked === 1 ? "" : "s"}. “Played” counts games where the card hit the board.</p>
     <button class="btn snap" data-a="aiImprove">${ICON.spark} Suggest swaps from these stats</button>`
@@ -3108,7 +3123,7 @@ function vLeaderboard() {
   rows.sort((a, b) => val[sortBy](b) - val[sortBy](a));
   const sc = (v, l) => `<button class="chip" data-a="lbScope" data-v="${v}" aria-pressed="${scope === v}">${l}</button>`;
   const show = { cubes: (r) => signed(num(r.s.cubes)), wr: (r) => (num(r.s.games) >= 5 ? num(r.s.wr) + "%" : "—"), games: (r) => num(r.s.games), rank: (r) => esc(r.p.rank || "—"), cl: (r) => (r.p.colLevel ? fmt(r.p.colLevel) : "—"), allcubes: (r) => signed(num(r.a.cubes)) };
-  return `<section class="sec"><h2>Leaderboard</h2>
+  return `<section class="sec"><h2>Leaderboard</h2>${percentilesHtml()}
     <div class="chips">${sc("all", "Everyone")}${sc("country", S.me.country ? flag(S.me.country) + " My country" : "My country")}${sc("following", "Following")}${sc("alliance", "Alliance")}</div>
     <label class="f">Rank by<select id="lb-sort" data-uisel="lbSort">${[["cubes", "Season cubes"], ["wr", "Season win % (5+ games)"], ["games", "Season games"], ["rank", "Current rank"], ["cl", "Collection level"], ["allcubes", "All-time cubes"]].map(([v, l]) => `<option value="${v}" ${sortBy === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
     ${scope === "country" && !S.me.country ? `<p class="note">Add your country in your profile to see your country's board.</p>` : ""}
@@ -3131,7 +3146,7 @@ function composeSheet() {
 }
 /* ============ More ============ */
 function vMore() {
-  if (ui.more) return { shops: vShops, promos: vPromos, seasons: vSeasons, events: vEvents, locations: vLocations, balance: vBalance, reports: vReports, tournaments: vTournaments, custom: vCustom, account: vAccount, about: vAbout }[ui.more]();
+  if (ui.more) return { shops: vShops, promos: vPromos, seasons: vSeasons, events: vEvents, locations: vLocations, balance: vBalance, reports: vReports, tournaments: vTournaments, catchup: () => `<section class="sec">${backBar("Catch-up plan")}</section><section class="sec">${catchUpSheet().replace(/<div class="sheet-h">[\s\S]*?<\/button><\/div>/, "")}</section>`, custom: vCustom, account: vAccount, about: vAbout }[ui.more]();
   const item = (to, t, s) => `<button class="li" data-a="go" data-to="${to}"><div class="grow"><div class="t">${t}</div><div class="s">${s}</div></div><span class="muted">›</span></button>`;
   const alerts = wishAlerts().length; const promos = promoList().filter((p) => p.status === "active" && !S.redeemed[p.id]).length;
   const cs = currentSeason(); const liveEv = events().filter((e) => timeState(e) === "live").length;
@@ -3140,6 +3155,7 @@ function vMore() {
     ${item("events", "Events & limited-time modes", liveEv ? `${liveEv} live now` : `${events().length} tracked`)}
     ${item("locations", "Locations", allLocations().length ? `${allLocations().filter((l) => !l.soon).length} locations, their effects and how you do on them` : "How you do on each location")}
     ${item("balance", "Balance changes", (() => { const n = balanceChanges().filter((x) => x.date >= localDate(Date.now() - 14 * DAY) && deckCardKeys().has(x.key)).length; return n ? `${n} change${n > 1 ? "s" : ""} to cards in your decks lately` : "Every buff, nerf and rework"; })())}
+    ${item("catchup", "Catch-up plan", "New or coming back? What to do first")}
     ${item("tournaments", "Tournaments", (() => { const n = Object.values(tourneys).filter((t) => t && t.name && tVisible(t) && t.status !== "done").length; return n ? `${n} open or being played` : "Brackets with friends or your alliance"; })())}
     ${store.ownerUid && store.ownerUid === store.uid ? item("reports", "Reported posts", "Review what players reported") : ""}
     ${item("shops", "Shops & wishlist alerts", alerts ? `${alerts} wishlist item${alerts > 1 ? "s" : ""} on sale` : "Credits, gold, tokens and current offers")}
@@ -3173,7 +3189,7 @@ function vLocations() {
   const row = (l) => { const r = st(l);
     return `<div class="li lrow"><span class="lph art" style="${artStyle(l.name)}">${esc((l.name[0] || "?").toUpperCase())}${imgTag(l.art, "lthumb")}</span>
       <div class="grow"><div class="t">${esc(l.name)} ${l.soon ? `<span class="pill gold">Soon</span>` : ""}</div>${l.ability ? `<div class="s">${esc(l.ability)}</div>` : ""}
-      ${r ? `<div class="s num">You: ${r.games} game${r.games === 1 ? "" : "s"} · ${r.wr}% match wins · won it ${r.lwr}% · avg power ${r.avg}</div>` : ""}</div></div>`; };
+      ${r ? `<div class="s num">You: ${r.games} game${r.games === 1 ? "" : "s"} · ${r.wr}% match wins · won it ${r.lwr}% · avg power ${r.avg}</div>` : ""}${locCommunityLine(l.name)}</div></div>`; };
   return `<section class="sec">${backBar("Locations")}
     <p class="muted small">${CAT ? "Every location in the game with its effect, updated daily from Marvel Snap Zone. " : ""}Your numbers come from matches where you named the locations, in the live tracker or when logging a match.</p>
     <input type="search" id="loc-q" data-ui="locQ" value="${esc(ui.locQ || "")}" placeholder="Search name or effect" aria-label="Search locations">
@@ -3268,6 +3284,7 @@ function eventSheet() {
       <label class="check"><input type="checkbox" data-evchk="played" data-id="${esc(e.id)}" ${pr.played ? "checked" : ""}> I played this</label>
       <label class="f">Notes<textarea id="ev-notes" data-evnotes="${esc(e.id)}" placeholder="Best result, decks that worked…">${esc(pr.notes || "")}</textarea></label>
       ${stat.games ? `<span class="small">Logged event games: ${stat.w}-${stat.l}-${stat.t} · ${stat.wr}%</span>` : `<span class="muted small">Log games with mode “Event” or “Limited-time mode” during these dates to see your record here.</span>`}</div>` : ""}
+    ${eventRecapHtml(e)}
     <div class="sec-h"><h3>Rewards & collectibles</h3><span class="muted small">${got}/${items.length} collected</span></div>
     ${items.length ? collectibleList(items, e.name) : `<p class="muted small">No rewards listed. Edit the event to add them.</p>`}
     ${canEditShared() ? `<div class="row"><button class="btn" data-a="eventEdit">Edit event info</button></div>` : ""}`;
@@ -3292,8 +3309,10 @@ function vShops() {
     <p class="muted small">Update these from the game when they change. Alerts compare offer prices against them.</p></section>
   ${plannerHtml()}
   ${packHelperHtml()}
+  ${finishHtml()}
   ${creditsHtml()}
   <section class="sec"><h2>Wishlist alerts</h2><div id="shop-alerts">${shopAlertsHtml()}</div></section>
+  ${bundleRatingsHtml()}
   ${autoShopSection()}
   ${byShop.map(({ s, list }) => `<section class="sec"><h2>${SHOPS[s]}</h2>${list.length ? `<div class="list">${list.map((o) => { const exp = o.expires && dayEnd(o.expires) < now; return `<div class="li"><div class="grow"><div class="t">${esc(o.item)}</div><div class="s">${esc(o.kind)} · ${fmt(o.price)} ${esc(CURR[o.currency] || "")}${o.expires ? ` · ${exp ? "ended" : "until"} ${esc(dateStr(o.expires))}` : ""}</div></div>${exp ? `<span class="pill dim">Ended</span>` : ""}<button class="x" data-a="offerDel" data-id="${esc(o.id)}" aria-label="Remove offer">${ICON.x}</button></div>`; }).join("")}</div>` : `<p class="muted small">No offers added.</p>`}</section>`).join("")}
   <section class="sec"><div class="panel stack"><h3>Add an offer you see in game</h3>
@@ -3365,7 +3384,7 @@ function vAccount() {
     ${store.provider === "firebase" ? `<p><b>${accountLine()}</b></p><p>${store.mode === "cloud" ? "Your data follows you to any device where you sign in." : "Sign in to keep your data across devices and use the social features. Anything saved here moves into your account when you sign in."}</p>${store.mode === "cloud" ? `<div><button class="btn sm" data-a="signOut">Sign out</button></div>` : store.fb ? `<div><button class="btn sm snap" data-a="signIn">Sign in</button></div>` : ""}`
       : `<p>${store.mode === "cloud" ? "You're signed in with your Claude account, and your data follows you across devices." : "Your data is saved on this device. Open the app signed in to Claude to keep it across devices and use the social features."}</p>`}
     <p>MARVEL SNAP has no official way for other apps to read your account. To bring in your collection and decks, use SnapVault sync on the Home screen.</p></div></section>
-  ${lookHtml()}${badgesHtml()}${aiPanel()}${appPanel()}${ownerPanel()}
+  ${accountsHtml()}${lookHtml()}${badgesHtml()}${overlayPanel()}${aiPanel()}${appPanel()}${ownerPanel()}
   <section class="sec"><h2>Backup</h2><div class="row"><button class="btn" data-a="csvMatches">Matches spreadsheet</button><button class="btn" data-a="csvCollection">Collection spreadsheet</button></div><div class="row"><button class="btn" data-a="backupCopy">${ICON.copy} Copy backup</button>${store.downloads ? `<button class="btn" data-a="backupSave">Save backup file</button>` : ""}<button class="btn" data-a="restoreOpen">Restore</button><button class="btn" data-a="svOpen">Import from SnapVault</button></div>
     ${allMatches().some((m) => m.example) || S.decks.some((d) => d.example) ? `<button class="btn ghost" data-a="clearExamples">Clear example data</button>` : ""}
     <button class="btn ghost danger" data-a="resetAll">${ui.resetArm ? "Tap again to erase everything" : "Erase all my data"}</button></section>
@@ -3495,18 +3514,19 @@ function missingBanner() {
 /* ============ Render & routing ============ */
 const VIEWS = { home: vHome, play: vPlay, cards: vCards, decks: vDecks, social: vSocial, more: vMore };
 function render() {
+  if (window.__overlay) return;
   applyLook();
   keepFocus(() => { $("#view").innerHTML = VIEWS[ui.tab](); });
   document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-current", b.dataset.to === ui.tab ? "page" : "false"));
   $("#mechip").innerHTML = `${avatarHtml(S.me.avatar, S.me.handle || "?", store.uid || "me")}<span class="h">${esc(S.me.handle || "Set up profile")}</span>`;
-  $("#sync").textContent = store.mode === "cloud" ? "Saved to your account" : store.ready ? "Saved on this device" : "Loading…";
+  $("#sync").textContent = (store.mode === "cloud" ? "Saved to your account" : store.ready ? "Saved on this device" : "Loading…") + (SLOT ? " · " + currentAccountName() : "");
   updateBadge();
 }
 const TABS = Object.keys(VIEWS);
 const MORE = ["shops", "promos", "seasons", "events", "locations", "balance", "reports", "custom", "account", "about"];
 function route() {
   const h = location.hash.slice(1);
-  if ((h.startsWith("deck=") || h === "quicklog") && specialRoute(h)) return;
+  if ((h.startsWith("deck=") || h === "quicklog" || h.startsWith("replay=") || h.startsWith("overlay")) && specialRoute(h)) return;
   if (TABS.includes(h)) { ui.tab = h; ui.more = null; } else if (MORE.includes(h)) { ui.tab = "more"; ui.more = h; } else { ui.tab = "home"; ui.more = null; }
   closeSheet(); render(); window.scrollTo(0, 0);
 }
@@ -3605,7 +3625,9 @@ function liveEndToForm() {
   const tot = locs.reduce((s, l) => s + l.my - l.opp, 0);
   const result = won >= 2 ? "W" : lost >= 2 ? "L" : tot > 0 ? "W" : tot < 0 ? "L" : "T";
   const stakes = Math.min(8, Math.pow(2, (live.mySnap ? 1 : 0) + (live.oppSnap ? 1 : 0)) * 2);
+  liveSnapshot();
   openMatchForm(null);
+  mf.replay = arr(live.log).length ? { locs: [...live.locs], turns: clone(live.log) } : undefined;
   Object.assign(mf, { result, deckId: live.deckId, deckName: live.deckName === "No deck" ? "" : live.deckName, oppName: live.oppName, oppCards: [...new Set(live.opp.map((o) => card(o.key).name))], snapped: live.mySnap, oppSnapped: live.oppSnap, snapTurn: live.mySnap ? live.snapTurn || live.turn : 0, oppSnapTurn: live.oppSnap ? live.oppSnapTurn || live.turn : 0, turn: live.turn, bot: botLabel(score), botScore: score, fromLive: true, mag: result === "T" ? 0 : stakes, tracked: true, plays, locs, gy: { my: { destroyed: gz("destroyed"), discarded: gz("discarded"), banished: gz("banished") }, opp: { destroyed: oz("destroyed"), discarded: oz("discarded"), banished: oz("banished") } } });
   refreshSheet();
 }
@@ -3630,7 +3652,7 @@ const A = {
 
   liveStart: (el) => { const d = S.decks.find((x) => x.id === el.dataset.id); live = newLive(d); saveLive(); render(); },
   liveCancel: () => { if (!live.confirmCancel) { live.confirmCancel = true; render(); setTimeout(() => { if (live.on) { live.confirmCancel = false; if (ui.tab === "play") render(); } }, 4000); return; } live = { on: false }; saveLive(); render(); toast("Match discarded"); },
-  turn: (el) => { live.turn = clamp(live.turn + num(el.dataset.v), 1, live.lastTurn); saveLive(); render(); },
+  turn: (el) => { liveSnapshot(); live.turn = clamp(live.turn + num(el.dataset.v), 1, live.lastTurn); saveLive(); render(); },
   oppHand: (el) => { live.oppHand = clamp(live.oppHand + num(el.dataset.v), 0, 12); saveLive(); render(); },
   emote: (el) => { live.sig.emotes = clamp(num(live.sig.emotes) + num(el.dataset.v), 0, 99); saveLive(); render(); },
   draw: (el) => { live.my[el.dataset.k] = "hand"; saveLive(); render(); },
@@ -3650,6 +3672,7 @@ const A = {
 
   pick: (el) => {
     const k = el.dataset.k;
+    if (picker.mode === "doffer" || picker.mode === "dpick") { draftHelpPick(k); return; }
     if (picker.mode === "opp") { picker.pending = k; refreshSheet(); return; }
     if (picker.mode === "mf") { const n = card(k).name; const i = mf.oppCards.indexOf(n); if (i >= 0) mf.oppCards.splice(i, 1); else mf.oppCards.push(n); refreshSheet(); return; }
     if (picker.mode === "deck") { const d = deckEdit(); if (!d) return; const i = d.cards.indexOf(k); if (i >= 0) d.cards.splice(i, 1); else if (d.cards.length < 12) d.cards.push(k); else { toast("A deck holds 12 cards"); return; } save(); refreshSheet(); return; }
@@ -4113,6 +4136,7 @@ function vInsights() {
     <section class="sec"><div class="sec-h"><h2>Snap & retreat coach</h2><button class="btn sm snap" data-a="coachOpen">${ICON.spark} Ask the coach</button></div>${coachHtml(ms)}</section>
     <section class="sec"><h2>Matchups</h2>${matchupsHtml(ms)}</section>
     <section class="sec"><h2>Rivals</h2>${rivalsHtml()}</section>
+    ${sessionsHtml()}
     <section class="sec"><h2>Modes</h2>${modesHtml(inPeriod(allMatches(), p))}</section>
     ${communitySection()}`;
 }
@@ -4350,7 +4374,7 @@ function synergyHtml(k) {
   const rows = synergyFor(k); if (!rows.length) return "";
   return `<h3>Works well with</h3><div class="list">${rows.map((r) => `<div class="li">${cardChip(r.x.key, { a: "cardOpen" })}<span class="muted small grow" style="min-width:0">${esc(r.why.join(" · "))}</span></div>`).join("")}</div>`;
 }
-function cardSheetExtras(k) { return `${communityCardHtml(k)}${splitsHtml(k)}${synergyHtml(k)}`; }
+function cardSheetExtrasBase(k) { return `${communityCardHtml(k)}${splitsHtml(k)}${synergyHtml(k)}`; }
 
 /* ============ Shareable deck links ============ */
 function deckLink(d) { return `${APP_URL}#deck=${encodeURIComponent(deckCode(d))}&n=${encodeURIComponent(String(d.name || "").slice(0, 60))}`; }
@@ -4575,7 +4599,7 @@ function myCardStats() {
   const f = Object.fromEntries(Object.entries(fc).sort((a, b) => b[1] - a[1]).slice(0, 40));
   return { at: Date.now(), n: ms.filter((m) => m.tracked).length, g: ms.length, c, f };
 }
-function profileExtras() { return { wk: weekStats(), cs: myCardStats(), tres: myTourneyReports(), badges: earnedBadges(), td: myTopDecks() }; }
+function profileExtras() { return { wk: weekStats(), cs: myCardStats(), tres: myTourneyReports(), badges: earnedBadges(), td: myTopDecks(), ...myLocStats(), ev: myEventDecks() }; }
 let _comSig = "", _com = null;
 function communityAgg() {
   const sig = `${sharedVer}|${store.uid}`; if (sig === _comSig) return _com;
@@ -4666,6 +4690,7 @@ Reply as JSON: {"result": "W" | "L" | "T" | "" (from the player's side at the bo
 /* ============ Routes, actions and inputs for these features ============ */
 MORE.push("tournaments");
 function specialRoute(h) {
+  if (h.startsWith("replay=") || h.startsWith("overlay")) return specialRoute2(h);
   if (h.startsWith("deck=")) {
     const p = new URLSearchParams(h); linkDeck = { code: p.get("deck") || "", name: p.get("n") || "" };
     ui.tab = "decks"; ui.more = null; render();
@@ -4735,6 +4760,13 @@ document.addEventListener("change", (e) => {
   if (d.shot) { const f = t.files && t.files[0]; t.value = ""; if (f) readShot(f, d.shot); return; }
   if (d.bind && /^prices\./.test(d.bind)) { const b = $("#planner"); if (b) b.innerHTML = plannerInner(); }
 });
+
+function cardSheetExtras(k) { return cardImpactLine(k) + cardSheetExtrasBase(k) + cardBoardHtml(k); }
+function cardImpactLine(k) {
+  const ms = realMatches().filter((m) => { const d = S.decks.find((x) => x.id === m.deckId); return d && d.cards.includes(k); });
+  const v = cardImpact(ms, [k])[k]; if (v === undefined) return "";
+  return `<p class="small">When you play it: <b class="${v >= 0 ? "pos" : "neg"}">${signed(v)} cubes a game</b> compared with games it stays in your deck.</p>`;
+}
 /* ============ Round three: draw odds, turn planner, rivals, voice logging, coach chat, deck test runs, goals and streaks,
    daily missions, credits planner, Snap Pack helper, season recap, achievements, tier list, challenges, spreadsheets, looks ============ */
 
@@ -4997,6 +5029,7 @@ function afterMatchChecks() {
   else earned.forEach((id) => { if (!seenB.has(id)) { const b = BADGES.find((x) => x.id === id); msgs.push("Achievement: " + b.name); seenB.add(id); changed = true; } });
   if (changed && S.badgesSeen !== earned) S.badgesSeen = [...seenB];
   if (msgs.length) setTimeout(() => toast(msgs.slice(0, 2).join(" · ")), 900);
+  overlayPush(); if (notifyPrefs().on) setTimeout(saveNotifyState, 0);
   return changed;
 }
 
@@ -5333,11 +5366,416 @@ function packSheet() {
     <div class="list">${p.vars.map((x) => (x.v ? variantRow(x.v) : `<div class="li muted small">${esc(x.vid.replace(/_(\d+)$/, " variant $1"))}</div>`)).join("")}</div><p class="muted small">Tick “Want” on the ones you're after. Each pack gives you one of these.</p>`;
   const s = packSummary(p);
   return `${sheetHead(esc(p.name), `${fmt(p.price)} tokens · ${s.missing.length ? `you're missing ${s.missing.length} of ${p.keys.length}` : `you own all ${p.keys.length}`}`)}
-    ${s.missing.length ? `<span class="eyebrow">You'd get one of these</span><div class="chiplist">${s.missing.map((k) => cardChip(k, { a: "cardOpen" })).join("")}</div>` : ""}
+    ${s.missing.length ? `<span class="eyebrow">You'd get one of these</span><div class="chiplist">${s.missing.map((k) => cardChip(k, { a: "packTarget", on: packTarget === k })).join("")}</div>` : ""}
+    ${packPlanHtml(p, s.missing)}
     ${s.have ? `<span class="eyebrow">Already yours</span><div class="chiplist">${p.keys.filter((k) => S.owned[k]).slice(0, 60).map((k) => cardChip(k, { a: "cardOpen", noOwn: true })).join("")}${s.have > 60 ? `<span class="muted small">and ${s.have - 60} more</span>` : ""}</div>` : ""}`;
 }
-Object.assign(A, { packOpen: (el) => { packId = el.dataset.id; openSheet(packSheet); } });
+Object.assign(A, { packOpen: (el) => { packId = el.dataset.id; packTarget = ""; openSheet(packSheet); }, packTarget: (el) => { packTarget = packTarget === el.dataset.k ? "" : el.dataset.k; refreshSheet(); } });
 document.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target && e.target.id === "coach-q") { e.preventDefault(); coachAsk(e.target.value); } });
+/* ============ Round four: completion timeline, pack planner, decks you can build, catch-up plan, event recaps, replays,
+   percentiles, card impact, location guide, sessions, nightly summary, draft helper, multiple accounts, stream overlay ============ */
+
+/* ---------- Finish-my-collection timeline ---------- */
+function missingBySeries() {
+  const out = {}; for (const s of ["Series 5", "Series 4", "Series 3"]) out[s] = [];
+  allCards().forEach((c) => { const s = seriesOf(c); if (out[s] && !c.upcoming && !c.custom && !c.catModeOnly && !S.owned[c.key]) out[s].push(c.key); });
+  return out;
+}
+function finishCost() {
+  const miss = missingBySeries(); const P = PACKS ? packPools() : null;
+  const seasonalKeys = (sr) => new Set(P ? P.seasonal.filter((p) => p.series === sr).flatMap((p) => p.keys) : []);
+  const price = (sr, isNew) => { if (P) { const sp = P.seasonal.find((p) => p.series === sr); const op = P.old.find((p) => p.series === sr); return isNew && sp ? sp.price : op ? op.price : 0; } return tokenPrice(card(miss["Series " + sr][0] || "")) || { 5: 6000, 4: 3000, 3: 650 }[sr]; };
+  let tokens = 0; const rows = [];
+  for (const sr of ["5", "4", "3"]) {
+    const list = miss["Series " + sr]; const nw = seasonalKeys(sr); const fresh = list.filter((k) => nw.has(k)), old = list.filter((k) => !nw.has(k));
+    const cost = fresh.length * price(sr, true) + old.length * price(sr, false); tokens += cost;
+    rows.push({ sr, n: list.length, cost, fresh: fresh.length });
+  }
+  return { rows, tokens };
+}
+function tokenRate() {
+  if (num(S.tokenRate) > 0) return { perWeek: num(S.tokenRate), guess: false };
+  const log = arr(S.walletLog).filter((x) => x.t >= Date.now() - 45 * DAY).sort((a, b) => a.t - b.t);
+  let gain = 0; for (let i = 1; i < log.length; i++) gain += Math.max(0, num(log[i].v) - num(log[i - 1].v));
+  const days = log.length > 1 ? (log[log.length - 1].t - log[0].t) / DAY : 0;
+  return days >= 7 && gain > 0 ? { perWeek: Math.round((gain / days) * 7), guess: true } : { perWeek: 0, guess: true };
+}
+function finishHtml() {
+  const f = finishCost(), have = num(S.wallet.tokens), need = Math.max(0, f.tokens - have), r = tokenRate();
+  const keepUp = 4 * (PACKS ? num((packPools().seasonal.find((p) => p.series === "5") || {}).price) || 5000 : 5000); // about one new Series 5 card a week
+  const weeks = r.perWeek ? Math.ceil(need / r.perWeek) : 0;
+  return `<section class="sec"><h2>Finish your collection</h2><div class="panel stack small">
+    ${f.tokens ? `<p>To own every Series 3–5 card that's out today you need about <b>${fmt(f.tokens)} tokens</b>${have ? (need ? ` (you have ${fmt(have)}, so ${fmt(need)} to go)` : ` and you have ${fmt(have)}: enough for all of it`) : ""}.</p>` : `<p><b>You own every Series 3–5 card that's out.</b> Nice.</p>`}
+    <div class="tbl-wrap"><table><thead><tr><th>Series</th><th class="n">Missing</th><th class="n">Tokens</th></tr></thead><tbody>${f.rows.map((x) => `<tr><td>Series ${x.sr}${x.fresh ? ` <span class="muted small">(${x.fresh} new)</span>` : ""}</td><td class="n">${x.n}</td><td class="n">${fmt(x.cost)}</td></tr>`).join("")}</tbody></table></div>
+    <label class="f">Tokens you earn a week${r.guess && r.perWeek ? " (estimated from your wallet)" : ""}<input type="number" id="fc-rate" data-bind="tokenRate" data-num="1" value="${esc(S.tokenRate || "")}" placeholder="${r.perWeek ? fmt(r.perWeek) : "e.g. 2000"}" inputmode="numeric"></label>
+    ${need && r.perWeek ? `<p>At ${fmt(r.perWeek)} a week that's about <b>${weeks < 9 ? plural(weeks, "week") : plural(Math.ceil(weeks / 4.3), "month")}</b>${weeks ? ` (around ${esc(dateStr(localDate(Date.now() + weeks * 7 * DAY)))})` : ""} for today's cards.</p>` : need ? `<p class="muted">Enter how many tokens you earn a week, or keep your token count up to date for a few weeks and the app works it out.</p>` : ""}
+    <span class="muted">New Series 5 cards arrive about once a week, so keeping up takes roughly ${fmt(keepUp)} tokens a month on its own. Costs use the cheapest pack for each card.</span></div></section>`;
+}
+
+/* ---------- Pack planner (inside a pack's sheet) ---------- */
+let packTarget = "";
+function packPlanHtml(p, missing) {
+  if (!missing.length) return "";
+  const tokens = num(S.wallet.tokens), can = Math.floor(tokens / p.price), m = missing.length;
+  const want = missing.filter((k) => S.wishCards[k]); if (!missing.includes(packTarget)) packTarget = want[0] || "";
+  const rows = Array.from({ length: Math.min(m, 6) }, (_, i) => i + 1);
+  return `<h3>If you open…</h3>${packTarget ? `<p class="small">Chance to get <b>${esc(card(packTarget).name)}</b> shown in the last column.</p>` : ""}<div class="tbl-wrap"><table><thead><tr><th>Packs</th><th class="n">Tokens</th><th class="n">New cards</th>${packTarget ? `<th class="n">Get it</th>` : ""}</tr></thead><tbody>${rows.map((n) => `<tr${n <= can ? "" : ' class="muted"'}><td>${n}</td><td class="n">${fmt(n * p.price)}</td><td class="n">${n} of ${m}</td>${packTarget ? `<td class="n">${Math.round((n / m) * 100)}%</td>` : ""}</tr>`).join("")}</tbody></table></div>
+    <p class="muted small">Each pack always gives a card you don't own from this pool, so ${m} packs get you all ${m}. Bonus rolls can add more. ${can ? `You can afford ${plural(can, "pack")} now.` : `You need ${fmt(p.price - tokens)} more tokens for one.`} ${packTarget ? "" : "Tap a card below to see your chance of getting it."}</p>`;
+}
+
+/* ---------- Decks you can build ---------- */
+function deckPoolForBuild() {
+  const seen = new Map(); const add = (keys, name, src, extra = {}) => { const c = [...new Set(arr(keys).filter(Boolean))]; if (c.length < 10) return; const k = [...c].sort().join(","); if (!seen.has(k)) seen.set(k, { c, name: name || "Deck", src, ...extra }); };
+  tierRows().forEach((r) => add(r.c, r.name, "Tier " + r.tier, { wr: r.wr, games: r.w + r.l }));
+  publicDecksAll().forEach((x) => add(arr(x.cards).map((n) => (cardByName(n) || {}).key), x.name, "Shared by " + (handleOf(x.owner) || "a player"), { wr: num(obj(x.stats).wr), games: num(obj(x.stats).games) }));
+  Object.entries(shared.profiles).forEach(([id, p]) => { if (id !== store.uid && canSee(id) && p.featured) add(arr(p.featured.cards).map((n) => (cardByName(n) || {}).key), p.featured.name, "Featured by " + (p.handle || "a player"), { wr: num(obj(p.featured.stats).wr), games: num(obj(p.featured.stats).games) }); });
+  const mine = new Set(S.decks.map((d) => [...d.cards].sort().join(","))); return [...seen.values()].filter((x) => !mine.has([...x.c].sort().join(",")));
+}
+function swapFor(k, deck) {
+  const c = card(k), words = synWords(c.ability).map(([w]) => w), tags = new Set(cardTags(c));
+  const cand = allCards().filter((x) => S.owned[x.key] && !deck.includes(x.key) && !x.upcoming && Math.abs(num(x.cost, 99) - num(c.cost, 99)) <= 1);
+  let best = null, bs = -1;
+  for (const x of cand) { let s = num(x.cost) === num(c.cost) ? 3 : 0; s += synWords(x.ability).filter(([w]) => words.includes(w)).length * 2; s += cardTags(x).filter((t) => tags.has(t) && t !== "R").length; s += deck.filter((d) => mentions(card(d).ability, x.name) || mentions(x.ability, card(d).name)).length * 3; if (s > bs) { bs = s; best = x.key; } }
+  return best;
+}
+function buildableHtml() {
+  if (store.mode !== "cloud") return "";
+  const list = deckPoolForBuild().map((d) => ({ ...d, missing: d.c.filter((k) => !S.owned[k]) })).sort((a, b) => a.missing.length - b.missing.length || num(b.wr) - num(a.wr)).slice(0, 12);
+  if (!list.length) return "";
+  return `<section class="sec"><h2>Decks you can build</h2><p class="muted small">Decks from SNAP Stat players, sorted by how few cards you're missing. Missing cards get a stand-in from your collection.</p>
+    <div class="list">${list.map((d) => `<button class="li" data-a="buildOpen" data-k="${esc([...d.c].sort().join(","))}"><div class="grow" style="min-width:0"><div class="t">${esc(d.name)}</div><div class="s">${d.missing.length ? `Missing ${d.missing.length}: ${esc(d.missing.slice(0, 3).map((k) => card(k).name).join(", "))}${d.missing.length > 3 ? "…" : ""}` : "You own every card"} · ${esc(d.src)}${d.games ? ` · ${d.wr}% over ${d.games}` : ""}</div></div>${d.missing.length ? `<span class="pill dim">${d.missing.length}</span>` : `<span class="pill W">Ready</span>`}</button>`).join("")}</div></section>`;
+}
+let buildKey = "";
+function buildSheet() {
+  const d = deckPoolForBuild().find((x) => [...x.c].sort().join(",") === buildKey); if (!d) return sheetHead("Deck not found");
+  const missing = d.c.filter((k) => !S.owned[k]); const swaps = missing.map((k) => [k, swapFor(k, d.c)]);
+  return `${sheetHead(esc(d.name), `${esc(d.src)}${d.games ? ` · ${d.wr}% over ${d.games} games` : ""}`)}
+    <div class="chiplist">${[...d.c].sort((a, b) => num(card(a).cost) - num(card(b).cost)).map((k) => cardChip(k, { a: "cardOpen" })).join("")}</div>${curveHtml(d.c)}
+    ${swaps.length ? `<h3>Stand-ins from your collection</h3><div class="list">${swaps.map(([k, s]) => `<div class="li">${cardChip(k, { noOwn: false })}<span class="muted">→</span>${s ? cardChip(s, { a: "cardOpen" }) : `<span class="muted small">No close match</span>`}</div>`).join("")}</div>` : ""}
+    <div class="grid2">${swaps.length ? `<button class="btn snap" data-a="buildSave" data-swap="1">Save with stand-ins</button>` : ""}<button class="btn ${swaps.length ? "" : "snap"}" data-a="buildSave">Save as it is</button></div>`;
+}
+
+/* ---------- Catch-up plan for returning players ---------- */
+function daysAway() { const m = realMatches()[0]; return m ? Math.floor((Date.now() - m.ts) / DAY) : 999; }
+function catchUpSheet() {
+  const away = daysAway(), last = realMatches()[0];
+  const bal = last ? balanceChanges().filter((x) => x.date >= localDate(last.ts)).length : 0;
+  const com = store.mode === "cloud" ? Object.values(communityAgg().cards).sort((a, b) => b.g - a.g).filter((r) => !S.owned[r.k] && !card(r.k).catModeOnly).slice(0, 5) : [];
+  const ready = store.mode === "cloud" ? deckPoolForBuild().filter((d) => d.c.filter((k) => !S.owned[k]).length <= 1).slice(0, 3) : [];
+  const P = PACKS ? packPools() : null; const s5 = P ? P.seasonal.find((p) => p.series === "5") : null; const s5m = s5 ? packSummary(s5).missing : [];
+  const cs = currentSeason();
+  const step = (n, t, body, btn) => `<div class="li" style="flex-direction:column;align-items:stretch;gap:6px"><div class="row nowrap" style="gap:8px"><span class="pill gold">${n}</span><b>${t}</b></div><div class="small">${body}</div>${btn || ""}</div>`;
+  let n = 0;
+  return `${sheetHead("Catch-up plan", away < 999 ? `Your last logged game was ${plural(away, "day")} ago` : "A quick start for new and returning players")}
+    <div class="list">
+    ${step(++n, "Bring your collection up to date", "Sync with SnapVault (or tick off what you own) so everything below knows what you have.", `<div><button class="btn sm" data-a="svOpen">Sync with SnapVault</button></div>`)}
+    ${bal ? step(++n, "See what changed", `${plural(bal, "card change")} since your last game.`, `<div><button class="btn sm" data-a="go" data-to="balance">Balance changes</button></div>`) : ""}
+    ${s5 ? step(++n, "Spend tokens on new cards", s5m.length ? `You're missing ${s5m.length} of the newest Series 5 cards. The ${esc(s5.name)} pack (${fmt(s5.price)} tokens) gives you one each time.` : "You own all the newest Series 5 cards.", `<div><button class="btn sm" data-a="go" data-to="shops">Card Shop helper</button></div>`) : ""}
+    ${com.length ? step(++n, "Cards other players use most that you don't have", com.map((r) => esc(card(r.k).name)).join(", ") + ".", `<div class="chiplist">${com.map((r) => cardChip(r.k, { a: "cardOpen" })).join("")}</div>`) : ""}
+    ${ready.length ? step(++n, "Decks you can play today", ready.map((d) => esc(d.name)).join(", ") + ".", `<div><button class="btn sm" data-a="go" data-to="decks">See them in Decks</button></div>`) : ""}
+    ${num(S.wallet.credits) >= 50 ? step(++n, "Use your credits", `${fmt(S.wallet.credits)} credits is about ${fmt(Math.floor(num(S.wallet.credits) / 50))} Collection Levels of upgrades.`) : ""}
+    ${cs ? step(++n, "This season", `${esc(cs.name)} ends in ${esc(countdown(cs.endTs))}. Set your rank in Play › Insights to track your climb.`, `<div><button class="btn sm" data-a="go" data-to="play">Play</button></div>`) : ""}
+    </div>`;
+}
+function catchUpBanner() { const away = daysAway(); return away >= 21 && away < 999 ? `<section class="sec"><div class="panel row between nowrap halftone"><div><b>Welcome back!</b><div class="small muted">It's been ${plural(away, "day")}. Here's how to catch up fast.</div></div><button class="btn sm snap" data-a="catchUp">Catch-up plan</button></div></section>` : ""; }
+
+/* ---------- Event recaps ---------- */
+const STD_MODES = new Set(["Ranked", "Conquest", "Friendly"]);
+function myEventDecks() {
+  const out = {}; const now = Date.now();
+  for (const e of events().filter((x) => x.startTs > now - 120 * DAY && x.startTs <= now)) {
+    const ms = realMatches().filter((m) => m.ts >= e.startTs && m.ts <= e.endTs && !STD_MODES.has(modeOf(m)) && m.deckId);
+    const by = {}; ms.forEach((m) => (by[m.deckId] = by[m.deckId] || []).push(m));
+    const top = Object.entries(by).map(([id, l]) => ({ d: S.decks.find((x) => x.id === id), l })).filter((x) => x.d && x.l.length >= 2).sort((a, b) => b.l.length - a.l.length).slice(0, 3)
+      .map(({ d, l }) => { const s = statsFor(l); return { n: String(d.name).slice(0, 40), c: d.cards.filter((k) => /^[a-z0-9]+$/.test(k)).sort(), w: s.w, l: s.l }; });
+    if (top.length) out[String(e.id).replace(/[.~*/[\]]/g, "_")] = top;
+  }
+  return out;
+}
+function eventRecapHtml(e) {
+  if (store.mode !== "cloud") return "";
+  const sameName = (x) => keyOf(String(x.name).replace(/\b(20\d\d|returns?|is back|again)\b/gi, "")) === keyOf(String(e.name).replace(/\b(20\d\d|returns?|is back|again)\b/gi, ""));
+  const ids = [e.id, ...events().filter((x) => x.id !== e.id && sameName(x) && x.endTs < Date.now()).map((x) => x.id)].map((id) => String(id).replace(/[.~*/[\]]/g, "_"));
+  const g = new Map(); let used = "";
+  for (const id of ids) {
+    for (const [uid2, p] of Object.entries(shared.profiles)) { if (!canSee(uid2)) continue; for (const d of arr(obj(p.ev)[id])) { const k = arr(d.c).join(","); if (!k) continue; const x = g.get(k) || { c: arr(d.c), name: d.n, w: 0, l: 0, players: new Set() }; x.w += num(d.w); x.l += num(d.l); x.players.add(uid2); g.set(k, x); } }
+    if (g.size) { used = id; break; }
+  }
+  const rows = [...g.values()].filter((x) => x.w + x.l >= 3).map((x) => ({ ...x, wr: pct(x.w, x.w + x.l) })).sort((a, b) => b.wr - a.wr || b.w + b.l - (a.w + a.l)).slice(0, 5);
+  if (!rows.length) return `<p class="muted small">Once SNAP Stat players log games in this mode, the decks that did best show up here${timeState(e) === "upcoming" ? " (from the last time it ran)" : ""}.</p>`;
+  return `<h3>${used === String(e.id).replace(/[.~*/[\]]/g, "_") ? "What's winning" : "Best decks last time"}</h3><div class="list">${rows.map((r) => `<button class="li" data-a="evDeckSave" data-k="${esc(r.c.join(","))}" data-n="${esc(r.name)}"><div class="grow" style="min-width:0"><div class="t">${esc(r.name)}</div><div class="s">${r.w}-${r.l} · ${plural(r.players.size, "player")} · tap to save it</div></div><span class="num">${r.wr}%</span></button>`).join("")}</div>`;
+}
+
+/* ---------- Turn-by-turn replays ---------- */
+function liveSnapshot() {
+  if (!live.on) return;
+  const my = Object.entries(live.my).filter(([, z]) => z !== "deck").map(([k, z]) => [k, z, z.startsWith("L") ? num(live.myPow[k] ?? card(k).power) : 0]);
+  const opp = arr(live.opp).map((o) => [o.key, o.zone, o.zone && o.zone.startsWith("L") ? num(o.power) : 0]);
+  const snap = { t: live.turn, my, opp, adj: clone(live.adj), ms: live.mySnap ? 1 : 0, os: live.oppSnap ? 1 : 0 };
+  live.log = [...arr(live.log).filter((x) => x.t !== live.turn), snap].sort((a, b) => a.t - b.t).slice(-8);
+}
+function replayOf(m) { const r = obj(m && m.replay); return arr(r.turns).length ? r : null; }
+let rp2 = { r: null, i: 0, title: "" };
+function replaySheet() {
+  const r = rp2.r; if (!r) return sheetHead("No replay");
+  const t = r.turns[clamp(rp2.i, 0, r.turns.length - 1)]; const locs = arr(r.locs);
+  const tot = (side, i) => arr(side === "my" ? t.my : t.opp).filter((x) => x[1] === "L" + i).reduce((s, x) => s + num(x[2]), 0) + num(obj(obj(t.adj)[side])[i]);
+  const chip = (x) => { const c = card(x[0]); return `<span class="cchip"><span class="c">${esc(c.cost)}</span><span class="p">${esc(x[2])}</span><span>${esc(c.name)}</span></span>`; };
+  return `${sheetHead(esc(rp2.title || "Replay"), `Turn ${t.t}${t.ms ? " · you snapped" : ""}${t.os ? " · they snapped" : ""}`)}
+    <div class="board">${[0, 1, 2].map((i) => { const a = tot("my", i), b = tot("opp", i); return `<div class="loc"><div class="lh"><b class="small" style="color:#fff">${esc(locs[i] || "Location " + (i + 1))}</b></div><div class="side opp">${arr(t.opp).filter((x) => x[1] === "L" + i).map(chip).join("")}</div><div class="tot ${a > b ? "win" : a < b ? "lose" : ""}"><span>${b}</span><span class="muted small">vs</span><span>${a}</span></div><div class="side">${arr(t.my).filter((x) => x[1] === "L" + i).map(chip).join("")}</div></div>`; }).join("")}</div>
+    <div class="row between nowrap"><button class="btn" data-a="replayStep" data-v="-1" ${rp2.i <= 0 ? "disabled" : ""}>‹ Turn</button><span class="num">${clamp(rp2.i, 0, r.turns.length - 1) + 1} / ${r.turns.length}</span><button class="btn" data-a="replayStep" data-v="1" ${rp2.i >= r.turns.length - 1 ? "disabled" : ""}>Turn ›</button></div>
+    ${rp2.own ? `<button class="btn" data-a="replayShare">${ICON.copy} Share this replay</button>` : ""}
+    <p class="muted small">Recorded by the live tracker at the end of each turn. Their side is on top.</p>`;
+}
+const b64u = (s) => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const unb64u = (s) => decodeURIComponent(escape(atob(String(s).replace(/-/g, "+").replace(/_/g, "/"))));
+function replayLink(m) {
+  const r = replayOf(m); if (!r) return "";
+  const codeOf = (k) => card(k).code || k; const pack = { l: r.locs, n: String(m.deckName || "").slice(0, 40), o: String(m.oppName || "").slice(0, 40), r: m.result, t: r.turns.map((t) => ({ t: t.t, m: t.my.map((x) => [codeOf(x[0]), x[1], x[2]]), o: t.opp.map((x) => [codeOf(x[0]), x[1], x[2]]), a: t.adj, s: (t.ms ? 1 : 0) + (t.os ? 2 : 0) })) };
+  return `${APP_URL}#replay=${b64u(JSON.stringify(pack))}`;
+}
+function replayFromLink(data) {
+  try {
+    const j = JSON.parse(unb64u(data)); const keyOfCode = (c) => (cardByCode(c) || card(c) || {}).key || c;
+    return { title: `${j.r === "W" ? "Win" : j.r === "L" ? "Loss" : "Game"}${j.n ? " with " + j.n : ""}${j.o ? " vs " + j.o : ""}`, r: { locs: arr(j.l), turns: arr(j.t).map((t) => ({ t: num(t.t), my: arr(t.m).map((x) => [keyOfCode(x[0]), x[1], num(x[2])]), opp: arr(t.o).map((x) => [keyOfCode(x[0]), x[1], num(x[2])]), adj: obj(t.a), ms: num(t.s) & 1, os: num(t.s) & 2 })) } };
+  } catch { return null; }
+}
+
+/* ---------- Where you stand (percentiles) and card leaderboards ---------- */
+function percentilesHtml() {
+  if (store.mode !== "cloud") return "";
+  const others = Object.entries(shared.profiles).filter(([id, p]) => id !== store.uid && p.handle && canSee(id));
+  const cur = currentSeasonPeriod(); const ms = realMatches(); const mySeason = slimStats(statsFor(cur ? inPeriod(ms, cur) : [])), myAll = slimStats(statsFor(ms));
+  const metrics = [
+    ["Season win rate", (p) => (num(obj(obj(p.stats).season).games) >= 10 ? num(obj(obj(p.stats).season).wr) : null), mySeason.games >= 10 ? mySeason.wr : null, (v) => v + "%"],
+    ["Cubes per game", (p) => (num(obj(obj(p.stats).all).games) >= 20 ? num(obj(obj(p.stats).all).cpg) : null), myAll.games >= 20 ? myAll.cpg : null, (v) => signed(v)],
+    ["Season cubes", (p) => num(obj(obj(p.stats).season).cubes), mySeason.cubes, (v) => signed(v)],
+    ["Games this season", (p) => num(obj(obj(p.stats).season).games), mySeason.games, (v) => fmt(v)],
+    ["Collection Level", (p) => num(p.colLevel) || null, num(S.me.colLevel) || null, (v) => fmt(v)],
+    ["Cards owned", (p) => num(p.owned) || null, Object.keys(S.owned).length || null, (v) => fmt(v)],
+  ];
+  const rows = metrics.map(([l, f, mine, show]) => { const vals = others.map(([, p]) => f(p)).filter((v) => v !== null && v !== undefined); if (mine === null || vals.length < 4) return null; const below = vals.filter((v) => v < mine).length; const top = Math.max(1, Math.round(100 - (below / vals.length) * 100)); return { l, v: show(mine), top, n: vals.length + 1 }; }).filter(Boolean);
+  if (!rows.length) return `<div class="panel small muted">Once more players use the app, you'll see where you stand among them here.</div>`;
+  return `<div class="panel stack small"><span class="eyebrow">Where you stand</span>${rows.map((r) => `<div class="row between nowrap"><span>${esc(r.l)} <span class="muted">· ${esc(r.v)}</span></span><span class="pill ${r.top <= 10 ? "gold" : r.top <= 50 ? "W" : "dim"}">Top ${r.top}%</span></div>`).join("")}<span class="muted">Among ${plural(rows[0].n, "SNAP Stat player")} with enough games.</span></div>`;
+}
+function cardBoardHtml(k) {
+  if (store.mode !== "cloud") return "";
+  const rows = Object.entries(shared.profiles).filter(([id, p]) => canSee(id) && p.handle && obj(obj(p.cs).c)[k]).map(([id, p]) => { const v = arr(obj(p.cs.c)[k]); return { id, h: p.handle, g: num(v[0]), w: num(v[1]) }; }).filter((r) => r.g >= 3).sort((a, b) => b.w - a.w || b.g - a.g).slice(0, 5);
+  if (rows.length < 2) return "";
+  return `<h3>Top players with this card</h3><div class="list">${rows.map((r, i) => `<button class="li" data-a="profileOpen" data-id="${esc(r.id)}"><span class="num" style="width:20px">${i + 1}</span><div class="grow">${esc(r.h)}${r.id === store.uid ? ` <span class="muted small">you</span>` : ""}</div><span class="small muted">${r.w} wins · ${r.g} games</span></button>`).join("")}</div><p class="muted small">Wins in tracked games over the last 30 days.</p>`;
+}
+
+/* ---------- Card impact on cubes ---------- */
+function cardImpact(ms, keys) {
+  const tracked = ms.filter((m) => m.tracked); const out = {};
+  for (const k of keys) {
+    const yes = [], no = [];
+    for (const m of tracked) { const played = arr(m.plays).some((p) => p.k === k) || arr(obj(obj(m.gy).my).destroyed).includes(k); (played ? yes : no).push(num(m.cubes)); }
+    if (yes.length >= 3 && no.length >= 3) { const a = yes.reduce((s, v) => s + v, 0) / yes.length, b = no.reduce((s, v) => s + v, 0) / no.length; out[k] = Math.round((a - b) * 10) / 10; }
+  }
+  return out;
+}
+
+/* ---------- Location guide (everyone's tracked games) ---------- */
+function myLocStats() {
+  const ms = realMatches().filter((m) => m.tracked && m.ts >= Date.now() - 60 * DAY); const ls = {}, lc = {};
+  for (const m of ms) arr(m.locs).forEach((L, i) => {
+    const k = keyOf(L.name); if (!k || k.length > 40) return; const won = num(L.my) > num(L.opp);
+    const r = (ls[k] = ls[k] || [0, 0, 0]); r[0]++; if (won) r[1]++; if (m.result === "W") r[2]++;
+    arr(m.plays).filter((p) => num(p.loc) === i && /^[a-z0-9]+$/.test(p.k)).forEach((p) => { const x = ((lc[k] = lc[k] || {})[p.k] = lc[k][p.k] || [0, 0]); x[0]++; if (won) x[1]++; });
+  });
+  const keep = Object.entries(ls).sort((a, b) => b[1][0] - a[1][0]).slice(0, 40); const top = new Set(keep.slice(0, 15).map(([k]) => k));
+  const lc2 = {}; for (const [k, cs] of Object.entries(lc)) if (top.has(k)) lc2[k] = Object.fromEntries(Object.entries(cs).sort((a, b) => b[1][0] - a[1][0]).slice(0, 5));
+  return { ls: Object.fromEntries(keep), lc: lc2 };
+}
+let _clSig = "", _cl = null;
+function communityLocs() {
+  const sig = `${sharedVer}|${store.uid}`; if (sig === _clSig) return _cl;
+  const ls = {}, lc = {};
+  for (const [id, p] of Object.entries(shared.profiles)) {
+    if (!canSee(id)) continue;
+    for (const [k, v] of Object.entries(obj(p.ls))) { const r = (ls[k] = ls[k] || [0, 0, 0, 0]); r[0] += num(arr(v)[0]); r[1] += num(arr(v)[1]); r[2] += num(arr(v)[2]); r[3]++; }
+    for (const [k, cs] of Object.entries(obj(p.lc))) for (const [ck, v] of Object.entries(obj(cs))) { const x = ((lc[k] = lc[k] || {})[ck] = lc[k][ck] || [0, 0]); x[0] += num(arr(v)[0]); x[1] += num(arr(v)[1]); }
+  }
+  _cl = { ls, lc }; _clSig = sig; return _cl;
+}
+function locCommunityLine(name) {
+  if (store.mode !== "cloud") return "";
+  const k = keyOf(name), C = communityLocs(), r = C.ls[k]; if (!r || r[0] < 5) return "";
+  const best = Object.entries(obj(C.lc[k])).filter(([, v]) => v[0] >= 3).sort((a, b) => b[1][1] / b[1][0] - a[1][1] / a[1][0]).slice(0, 3).map(([ck]) => card(ck).name);
+  return `<div class="s">SNAP Stat players: won it ${pct(r[1], r[0])}% of ${fmt(r[0])} times${best.length ? ` · best here: ${esc(best.join(", "))}` : ""}</div>`;
+}
+
+/* ---------- Sessions ---------- */
+function sessionsOf(ms, gap = 45 * 60e3) {
+  const list = [...ms].sort((a, b) => a.ts - b.ts); const out = []; let cur = null;
+  for (const m of list) { if (!cur || m.ts - cur.end > gap) { cur = { start: m.ts, end: m.ts, ms: [] }; out.push(cur); } cur.ms.push(m); cur.end = m.ts; }
+  return out.reverse();
+}
+function sessionPanel() {
+  const ss = sessionsOf(realMatches()); const s = ss[0]; if (!s || Date.now() - s.end > 60 * 60e3 || s.ms.length < 2) return "";
+  const st = statsFor(s.ms), usual = ss.slice(1, 31).filter((x) => x.ms.length >= 3); const uc = usual.length ? Math.round((usual.reduce((a, x) => a + statsFor(x.ms).cubes / x.ms.length, 0) / usual.length) * 100) / 100 : null;
+  let streak = 0; for (let i = s.ms.length - 1; i >= 0 && s.ms[i].result === "L"; i--) streak++;
+  return `<section class="sec"><div class="panel stack small"><div class="row between"><b>This session</b><span class="muted">${plural(s.ms.length, "game")} · ${esc(ago(s.start))}</span></div>
+    <div class="row between nowrap"><span class="num" style="font-size:20px;font-weight:800"><span class="pos">${st.w}W</span> · <span class="neg">${st.l}L</span></span>${cubes(signed(st.cubes), st.cubes >= 0 ? "pos" : "neg")}</div>
+    ${uc !== null ? `<span>${st.cpg >= uc ? "Better" : "Worse"} than usual: ${signed(st.cpg)} cubes a game (you usually get ${signed(uc)}).</span>` : ""}
+    ${streak >= 3 ? `<p class="note">${streak} losses in a row. A short break often helps more than one more game.</p>` : ""}</div></section>`;
+}
+function sessionsHtml() {
+  const ss = sessionsOf(realMatches()).filter((s) => s.ms.length >= 2).slice(0, 10); if (!ss.length) return "";
+  return `<section class="sec"><h2>Sessions</h2><div class="tbl-wrap"><table><thead><tr><th>Started</th><th class="n">Games</th><th class="n">W-L</th><th class="n">Cubes</th></tr></thead><tbody>${ss.map((s) => { const st = statsFor(s.ms); return `<tr><td>${esc(dateTimeStr(s.start))}</td><td class="n">${s.ms.length}</td><td class="n">${st.w}-${st.l}</td><td class="n ${st.cubes >= 0 ? "pos" : "neg"}">${signed(st.cubes)}</td></tr>`; }).join("")}</tbody></table></div><p class="muted small">A session is a run of games with no break longer than 45 minutes.</p></section>`;
+}
+function todaySummary() { const ms = realMatches().filter((m) => localDate(m.ts) === localDate(Date.now())); const s = statsFor(ms); return { day: localDate(Date.now()), games: s.games, w: s.w, l: s.l, t: s.t, cubes: s.cubes }; }
+
+/* ---------- Draft helper ---------- */
+const dh = { picks: [], offer: [] };
+const IDEAL_CURVE = { 1: 2, 2: 3, 3: 3, 4: 2, 5: 1, 6: 1 };
+function pickScore(k, picks) {
+  const c = card(k); let s = 0; const why = [];
+  const com = store.mode === "cloud" ? communityAgg().cards[k] : null;
+  if (com && com.g >= 15) { const d = (pct(com.w, com.g) - 50) / 5; s += d; why.push(`players win ${pct(com.w, com.g)}% with it`); }
+  const mine = cardAnalytics(realMatches()).find((r) => r.k === k); if (mine && mine.played >= 5) { s += (mine.wr - 50) / 10; why.push(`you win ${mine.wr}% with it`); }
+  const words = synWords(c.ability).map(([w]) => w); let syn = 0;
+  for (const p of picks) { const pc = card(p); if (mentions(c.ability, pc.name) || mentions(pc.ability, c.name)) syn += 3; syn += synWords(pc.ability).filter(([w]) => words.includes(w) && w !== "on reveal").length; }
+  if (syn) { s += Math.min(6, syn); why.push("works with your picks"); }
+  const b = clamp(num(c.cost) || 1, 1, 6); const have = picks.filter((p) => clamp(num(card(p).cost) || 1, 1, 6) === b).length;
+  if (have < IDEAL_CURVE[b]) { s += 1; why.push(`your curve needs a ${b}-cost`); } else if (have > IDEAL_CURVE[b] + 1) { s -= 1; why.push(`you have plenty of ${b}-costs`); }
+  s += num(c.power) / Math.max(1, num(c.cost)) / 4;
+  return { k, s: Math.round(s * 10) / 10, why };
+}
+function draftHelpSheet() {
+  const scored = dh.offer.map((k) => pickScore(k, dh.picks)).sort((a, b) => b.s - a.s);
+  return `${sheetHead("Draft helper", "Add the cards you're offered and it scores each pick")}
+    <span class="eyebrow">Cards offered</span>
+    ${scored.length ? `<div class="list">${scored.map((x, i) => `<div class="li" style="align-items:flex-start">${i === 0 && scored.length > 1 ? `<span class="pill gold">Best</span>` : `<span class="pill dim">${x.s}</span>`}<div class="grow" style="min-width:0">${cardChip(x.k, { noOwn: true })}<div class="muted small">${esc(x.why.join(" · ") || "No strong signal either way")}</div></div><button class="btn sm snap" data-a="dhTake" data-k="${esc(x.k)}">Take</button></div>`).join("")}</div>` : `<p class="muted small">Add the cards the game offers you, then tap Take on the one you choose.</p>`}
+    <div class="row"><button class="btn sm" data-a="dhAdd" data-v="doffer" ${dh.offer.length >= 4 ? "disabled" : ""}>${ICON.plus} Add an offered card</button>${dh.offer.length ? `<button class="btn sm ghost" data-a="dhClear">Clear offers</button>` : ""}</div>
+    <span class="eyebrow">Your picks (${dh.picks.length})</span><div class="chiplist">${dh.picks.map((k, i) => `<button class="cchip" data-a="dhDrop" data-i="${i}" aria-label="Remove ${esc(card(k).name)}"><span class="c">${esc(card(k).cost)}</span><span>${esc(card(k).name)}</span>${ICON.x}</button>`).join("") || `<span class="muted small">None yet.</span>`}<button class="btn sm" data-a="dhAdd" data-v="dpick">${ICON.plus}</button></div>
+    ${dh.picks.length ? curveHtml(dh.picks) : ""}
+    <div class="row">${dh.picks.length >= 6 ? `<button class="btn" data-a="dhSave">Save picks as a deck</button>` : ""}${dh.picks.length ? `<button class="btn ghost" data-a="dhReset">Start over</button>` : ""}</div>
+    <p class="muted small">Scores mix how well SNAP Stat players and you do with each card, how it fits your picks, and your energy curve. The game's Draft mode rules aren't out yet, so treat it as a second opinion.</p>`;
+}
+
+/* ---------- Multiple MARVEL SNAP accounts ---------- */
+const ACCTS_KEY = "snapstat.accounts";
+function accountsList() { let l = []; try { l = JSON.parse(localStorage.getItem(ACCTS_KEY) || "[]"); } catch { l = []; } return arr(l).filter((a) => a && a.id && a.name); }
+function setAccounts(l) { try { localStorage.setItem(ACCTS_KEY, JSON.stringify(l)); } catch { /* ignore */ } if (store.mode === "cloud" && store.uid) store.db.doc(`data/users/${store.uid}/accounts`).set({ items: clone(l) }).catch(() => {}); }
+function loadAccounts() { if (store.mode !== "cloud" || !store.db || !store.uid) return; store.db.doc(`data/users/${store.uid}/accounts`).get().then((s) => { const items = s.exists ? arr(obj(s.data()).items) : []; if (items.length) { try { localStorage.setItem(ACCTS_KEY, JSON.stringify(items)); } catch { /* ignore */ } requestRender(); } }).catch(() => {}); }
+function currentAccountName() { if (!SLOT) return obj(accountsList().find((a) => a.id === "")).name || "Main account"; return obj(accountsList().find((a) => a.id === SLOT)).name || "Other account"; }
+function accountsHtml() {
+  const l = accountsList(); const main = l.find((a) => a.id === "") || { id: "", name: "Main account" }; const others = l.filter((a) => a.id);
+  const row = (a) => `<div class="li"><div class="grow"><div class="t">${esc(a.name)}${(SLOT || "") === a.id ? ` <span class="pill W">In use</span>` : ""}</div><div class="s">${a.id ? "Its own matches, collection and decks" : "Your profile, posts and social features use this one"}</div></div>${(SLOT || "") === a.id ? "" : `<button class="btn sm" data-a="acctSwitch" data-id="${esc(a.id)}">Switch</button>`}${a.id && (SLOT || "") !== a.id ? `<button class="x" data-a="acctRemove" data-id="${esc(a.id)}" aria-label="Remove ${esc(a.name)}">${ICON.x}</button>` : ""}</div>`;
+  return `<section class="sec"><h2>MARVEL SNAP accounts</h2><p class="muted small">Play on more than one MARVEL SNAP account? Give each one its own matches, collection, decks and rank here.</p>
+    <div class="list">${[main, ...others].map(row).join("")}</div>
+    <div class="row nowrap"><input type="text" id="acct-name" placeholder="Name another account, like “Alt”" maxlength="30" style="flex:1;min-width:0"><button class="btn sm" data-a="acctAdd">Add</button></div>
+    ${SLOT ? `<p class="note">You're using “${esc(currentAccountName())}”. Posts, follows and your public profile come from your main account.</p>` : ""}</section>`;
+}
+
+/* ---------- Stream overlay ---------- */
+let ovTimer = null, ovLast = "";
+function overlayData() {
+  const t = todaySummary(), cl = climbNow();
+  const left = live.on ? Object.entries(live.my).filter(([, z]) => z === "deck").map(([k]) => card(k).name).slice(0, 12) : [];
+  return { handle: String(S.me.handle || "").slice(0, 40), rank: cl ? rankStr(cl.rank) : String(S.me.rank || ""), cubesIn: cl ? cl.cubes : null, today: { w: t.w, l: t.l, t: t.t, cubes: t.cubes, games: t.games },
+    live: live.on ? { deck: String(live.deckName || "").slice(0, 40), turn: num(live.turn), last: num(live.lastTurn), left, hand: Object.values(live.my).filter((z) => z === "hand").length, ms: !!live.mySnap, os: !!live.oppSnap, opp: String(live.oppName || "").slice(0, 40), seen: [...new Set(arr(live.opp).map((o) => card(o.key).name))].slice(0, 12) } : null, updated: Date.now() };
+}
+function overlayPush() {
+  if (!S.overlay || store.mode !== "cloud" || !store.uid || SLOT) return;
+  clearTimeout(ovTimer);
+  ovTimer = setTimeout(() => { const d = overlayData(); const sig = JSON.stringify({ ...d, updated: 0 }); if (sig === ovLast) return; ovLast = sig; store.db.doc("live/" + store.uid).set(d).catch(() => {}); }, 1500);
+}
+function overlayHtml(d, err) {
+  if (err) return `<div class="ov-card"><b>Overlay</b><span>${esc(err)}</span></div>`;
+  if (!d) return `<div class="ov-card"><span>Waiting for SNAP Stat…</span></div>`;
+  const t = obj(d.today), L = d.live;
+  return `<div class="ov-card"><div class="ov-row"><b>${esc(d.handle || "SNAP Stat")}</b>${d.rank ? `<span class="ov-pill">${/^inf/i.test(d.rank) ? "Infinite" : "Rank " + esc(d.rank)}</span>` : ""}</div>
+    <div class="ov-row"><span>Today</span><b>${num(t.w)}-${num(t.l)}${num(t.t) ? "-" + num(t.t) : ""}</b><b class="${num(t.cubes) >= 0 ? "pos" : "neg"}">${signed(num(t.cubes))} cubes</b></div>
+    ${L ? `<div class="ov-row"><span>${esc(L.deck)}</span><b>Turn ${num(L.turn)}/${num(L.last)}</b>${L.ms ? `<span class="ov-pill">Snapped</span>` : ""}${L.os ? `<span class="ov-pill">They snapped</span>` : ""}</div>
+      ${arr(L.left).length ? `<div class="ov-small">Still in deck (${arr(L.left).length}): ${esc(arr(L.left).join(", "))}</div>` : ""}${arr(L.seen).length ? `<div class="ov-small">${esc(L.opp || "Opponent")} played: ${esc(arr(L.seen).join(", "))}</div>` : ""}` : ""}</div>`;
+}
+let ovUnsub = null;
+function startOverlay(uid2, api) {
+  document.documentElement.classList.add("overlay"); const v = $("#view"); v.innerHTML = overlayHtml(null);
+  const db = api && api.db; if (!db || !uid2) { v.innerHTML = overlayHtml(null, "Open this from SNAP Stat › Profile › Stream overlay to get your link."); return; }
+  try { ovUnsub = db.doc("live/" + uid2).onSnapshot((s) => { v.innerHTML = overlayHtml(s.exists ? s.data() : null, s.exists ? "" : "Turn on the overlay in SNAP Stat, then play a match."); }, () => { v.innerHTML = overlayHtml(null, "The database isn't sharing the overlay yet. Publish the updated security rules."); }); } catch { v.innerHTML = overlayHtml(null, "Couldn't connect."); }
+}
+function overlayPanel() {
+  if (!window.SNAPSTAT_STANDALONE || store.mode !== "cloud" || SLOT) return "";
+  const url = `${APP_URL}#overlay=${store.uid}`;
+  return `<section class="sec"><h2>Stream overlay</h2><div class="panel stack small">
+    <label class="toggle-row check"><span>Share a live overlay for streaming (your rank, today's record and the live tracker)</span><input type="checkbox" data-ovchk="1" ${S.overlay ? "checked" : ""}></label>
+    ${S.overlay ? `<p>Add this link as a <b>Browser source</b> in OBS or Streamlabs (about 420 × 220). It updates as you track matches.</p><div class="row nowrap"><input type="text" readonly value="${esc(url)}" style="flex:1;min-width:0" aria-label="Overlay link"><button class="btn sm" data-a="ovCopy">${ICON.copy} Copy</button></div><span class="muted">Anyone with the link can see it while it's on. Turn it off to stop sharing.</span>` : `<span class="muted">Off. Nothing is shared.</span>`}</div></section>`;
+}
+
+/* ---------- Routes, actions, inputs ---------- */
+MORE.push("catchup");
+function specialRoute2(h) {
+  if (h.startsWith("replay=")) {
+    const r = replayFromLink(h.slice(7)); ui.tab = "play"; ui.more = null; render();
+    try { history.replaceState(null, "", "#play"); } catch { /* fine */ }
+    setTimeout(() => { if (r) { rp2 = { r: r.r, i: 0, title: r.title, own: false }; openSheet(replaySheet); } else toast("That replay link is broken."); }, 0); return true;
+  }
+  if (h.startsWith("overlay")) { window.__overlay = h.split("=")[1] || "me"; if (!window.SNAPSTAT_STANDALONE) setTimeout(() => startOverlay("", null), 0); return true; }
+  return false;
+}
+Object.assign(A, {
+  buildOpen: (el) => { buildKey = el.dataset.k; openSheet(buildSheet); },
+  buildSave: (el) => { const d = deckPoolForBuild().find((x) => [...x.c].sort().join(",") === buildKey); if (!d) return; const cards = el.dataset.swap ? d.c.map((k) => (S.owned[k] ? k : swapFor(k, d.c) || k)) : d.c; const nd = newDeck(d.name + (el.dataset.swap ? " (my version)" : ""), [...new Set(cards)]); closeSheet(); render(); openDeck(nd.id); toast("Deck saved"); },
+  catchUp: () => openSheet(catchUpSheet),
+  evDeckSave: (el) => { const keys = String(el.dataset.k).split(",").filter(Boolean); const d = newDeck(el.dataset.n || "Event deck", keys); closeSheet(); render(); openDeck(d.id); toast("Deck saved"); },
+  replayOpen: (el) => { const m = findMatchById(el.dataset.id); const r = replayOf(m); if (!r) return; rp2 = { r, i: 0, title: `${m.result === "W" ? "Win" : m.result === "L" ? "Loss" : "Tie"}${m.deckName ? " with " + m.deckName : ""}${m.oppName ? " vs " + m.oppName : ""}`, own: true, id: m.id }; openSheet(replaySheet); },
+  replayStep: (el) => { rp2.i = clamp(rp2.i + num(el.dataset.v), 0, rp2.r.turns.length - 1); refreshSheet(); },
+  replayShare: () => { const m = findMatchById(rp2.id); const url = replayLink(m); if (!url) return; if (navigator.share) navigator.share({ title: "MARVEL SNAP replay", url }).catch(() => {}); else copyText(url, "Replay link copied"); },
+  dhOpen: () => openSheet(draftHelpSheet),
+  dhAdd: (el) => openPicker(el.dataset.v),
+  dhTake: (el) => { if (dh.picks.length < 12) dh.picks.push(el.dataset.k); dh.offer = []; refreshSheet(); },
+  dhClear: () => { dh.offer = []; refreshSheet(); }, dhReset: () => { dh.picks = []; dh.offer = []; refreshSheet(); },
+  dhDrop: (el) => { dh.picks.splice(num(el.dataset.i), 1); refreshSheet(); },
+  dhSave: () => { const d = newDeck("Draft picks", dh.picks); closeSheet(); render(); openDeck(d.id); toast("Saved as a deck"); },
+  acctAdd: () => { const n = String(($("#acct-name") || {}).value || "").trim().slice(0, 30); if (!n) { toast("Give it a name"); return; } const l = accountsList(); if (!l.some((a) => a.id === "")) l.unshift({ id: "", name: "Main account" }); l.push({ id: "a" + uid(), name: n }); setAccounts(l.slice(0, 8)); render(); toast(`Added ${n}. Tap Switch to use it.`); },
+  acctSwitch: (el) => { try { if (el.dataset.id) localStorage.setItem("snapstat.slot", el.dataset.id); else localStorage.removeItem("snapstat.slot"); } catch { toast("This browser won't remember the switch."); return; } if (dirty) flushState(); if (dirtyWeeks.size) flushWeeks(); toast("Switching…"); setTimeout(() => location.reload(), 700); },
+  acctRemove: (el) => { const l = accountsList().filter((a) => a.id !== el.dataset.id); setAccounts(l); render(); toast("Removed from the list. Its data stays saved in case you add it back."); },
+  ovCopy: () => copyText(`${APP_URL}#overlay=${store.uid}`, "Overlay link copied"),
+});
+function findMatchById(id) { return allMatches().find((m) => m.id === id) || null; }
+function draftHelpPick(k) { if (picker.mode === "doffer") { if (!dh.offer.includes(k) && dh.offer.length < 4) dh.offer.push(k); } else if (!dh.picks.includes(k) && dh.picks.length < 12) dh.picks.push(k); openSheet(draftHelpSheet); }
+document.addEventListener("input", (e) => {
+  const t = e.target, d = t.dataset;
+  if (d.bind === "wallet.tokens") { const v = num(t.value); const l = arr(S.walletLog); const last = l[l.length - 1]; const today = localDate(Date.now()); if (last && localDate(last.t) === today) last.v = v; else l.push({ t: Date.now(), v }); S.walletLog = l.slice(-60); }
+});
+document.addEventListener("change", (e) => {
+  const t = e.target, d = t.dataset;
+  if (d.ovchk) { S.overlay = t.checked; save(); if (t.checked) { ovLast = ""; overlayPush(); } else if (store.mode === "cloud") store.db.doc("live/" + store.uid).delete().catch(() => {}); render(); return; }
+  if (d.bind === "tokenRate") setTimeout(render, 0);
+});
+/* The ids in a collection, read once (used when deleting an account's extra data). */
+function collIds(path) { return new Promise((res) => { let un = null, done = false; const t = setTimeout(() => { if (!done) { done = true; res([]); } }, 6000); try { un = store.db.collection(path).onSnapshot((qs) => { if (done) return; done = true; clearTimeout(t); res(qs.docs.map((d) => d.id)); if (typeof un === "function") setTimeout(un, 0); }, () => { if (!done) { done = true; clearTimeout(t); res([]); } }); } catch { done = true; clearTimeout(t); res([]); } }); }
+
+/* ---------- Bundle ratings (values from snap.fan) ---------- */
+function bundleVerdict(v) { return !v ? ["Not rated", "dim"] : v >= 300 ? ["Great value", "gold"] : v >= 150 ? ["Good value", "W"] : v >= 100 ? ["Fair", "dim"] : ["Poor value", "L"]; }
+function ratedBundles() {
+  if (!SCHED || !Array.isArray(SCHED.shops)) return [];
+  const today = localDate(Date.now());
+  return SCHED.shops.map((s, i) => ({ ...s, i })).filter((s) => s.source === "bundle" && (!s.end || s.end >= today) && (num(s.value) || num(s.goldValue))).sort((a, b) => num(b.value) - num(a.value) || num(b.goldValue) - num(a.goldValue));
+}
+function bundleRatingsHtml() {
+  const list = ratedBundles(); if (!list.length) return "";
+  const today = localDate(Date.now());
+  return `<section class="sec"><h2>Bundle ratings</h2><p class="muted small">What each bundle is worth in gold compared with its price, rated by snap.fan. 100% means you get what you pay for; the gold shop itself gives about 70 gold per $1.</p>
+    <div class="list">${list.slice(0, 15).map((s) => { const [v, cls] = bundleVerdict(num(s.value)); const soon = s.start && s.start > today; return `<button class="li" data-a="bundleOpen" data-i="${s.i}"><div class="grow" style="min-width:0"><div class="t">${esc(s.title)}${soon ? ` <span class="pill gold">Soon</span>` : ""}</div><div class="s">${s.price ? "$" + esc(s.price) : "Price not listed"}${num(s.goldValue) ? ` · about ${fmt(s.goldValue)} gold of stuff` : ""}${s.end ? ` · until ${esc(dateStr(s.end))}` : ""}</div></div><div class="stack" style="gap:2px;align-items:flex-end"><span class="pill ${cls}">${esc(v)}</span>${num(s.value) ? `<span class="small num">${num(s.value)}%</span>` : ""}</div></button>`; }).join("")}</div></section>`;
+}
+let bundleI = -1;
+function bundleSheet() {
+  const s = arr(SCHED && SCHED.shops)[bundleI]; if (!s) return sheetHead("Bundle not found");
+  const [v, cls] = bundleVerdict(num(s.value)); const perDollar = s.price && num(s.goldValue) ? Math.round(num(s.goldValue) / num(s.price)) : 0;
+  const want = new Set(S.variants.filter((x) => x.wish && !x.owned && x.cat).map((x) => x.cat));
+  return `${sheetHead(esc(s.title), `${s.price ? "$" + esc(s.price) : "Price not listed"}${s.end ? ` · until ${esc(dateStr(s.end))}` : ""}`)}
+    <div class="row"><span class="pill ${cls}">${esc(v)}</span>${num(s.value) ? `<span class="small">Bundle value ${num(s.value)}%</span>` : ""}${num(s.currencyValue) ? `<span class="small muted">currencies alone ${num(s.currencyValue)}%</span>` : ""}</div>
+    ${arr(s.breakdown).length ? `<div class="tbl-wrap"><table><thead><tr><th>What's inside</th><th class="n">Gold value</th></tr></thead><tbody>${arr(s.breakdown).map(([n, g]) => `<tr><td>${esc(n)}</td><td class="n">${fmt(g)}</td></tr>`).join("")}<tr><td><b>Total</b></td><td class="n"><b>${fmt(s.goldValue)}</b></td></tr></tbody></table></div>` : ""}
+    ${perDollar ? `<p class="small">That's about <b>${fmt(perDollar)} gold of value per $1</b>, versus about 70 when you buy gold directly.</p>` : ""}
+    ${arr(s.items).length ? `<span class="eyebrow">Cards and variants</span><div class="chiplist">${arr(s.items).map((it) => { const c = it.cardId ? cardByCode(cardCode(it.cardId)) : null; const w = it.cat && want.has(it.cat); const own = it.cat ? !!S.variants.find((x) => x.cat === it.cat && x.owned) : c && !it.variantId ? !!S.owned[c.key] : false; return `<span class="cchip ${own ? "" : "miss"}">${w ? "★ " : ""}${esc(c ? c.name : it.cardName || "")}${it.variantId ? ` <span class="muted">· ${esc(it.label)}</span>` : ""}${own ? ` <span class="muted">✓</span>` : ""}</span>`; }).join("")}</div>` : ""}
+    <p class="muted small">Ratings come from snap.fan and count cosmetics at their usual gold price. A bundle is only worth it if you want what's inside.</p>`;
+}
+Object.assign(A, { bundleOpen: (el) => { bundleI = num(el.dataset.i); openSheet(bundleSheet); } });
 /* ============ Standalone (Firebase) sign-in and storage ============ */
 const FB_CFG_KEY = "snapstat.firebaseConfig", FB_SKIP_KEY = "snapstat.skipSignIn";
 function parseFirebaseConfig(text) {
@@ -5389,6 +5827,7 @@ async function initFirebase(local, lm) {
     return;
   }
   store.fb = api;
+  if (window.__overlay) { store.ready = true; startOverlay(window.__overlay === "me" ? "" : window.__overlay, api); return; }
   let started = false;
   api.onAuth((user) => {
     if (user) {
@@ -5397,7 +5836,7 @@ async function initFirebase(local, lm) {
       store.db = api.db; store.uid = user.uid; store.mode = "cloud"; started = true;
       if (!S.me.name && store.user.name) S.me.name = store.user.name;
       store.assets = firebaseAssets;
-      subscribeCloud(local, lm); store.ready = true; render(); loadOwner();
+      subscribeCloud(local, lm); store.ready = true; render(); loadOwner(); loadAccounts();
     } else {
       if (started) { location.reload(); return; }
       store.mode = "local"; store.ready = true; render();

@@ -76,6 +76,12 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
+    // The optional stream overlay: whoever has the link can read it while it's on; only you write it.
+    match /live/{uid} {
+      allow read: if true;
+      allow write: if isOwner(uid);
+    }
+
     // Who owns the app. The first person to claim it gets it, and it can't be changed from the app.
     match /config/owner {
       allow read: if signedIn();
