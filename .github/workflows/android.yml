@@ -1,0 +1,73 @@
+# Builds the SNAP Stat Android app and puts it on the Releases page.
+# Download link: https://github.com/rhaddaddy/snap-stat/releases/latest/download/snap-stat.apk
+#
+# The app is signed with the key in the ANDROID_KEYSTORE secret (Settings › Secrets and variables › Actions),
+# so each new version installs over the last one. Without that secret it still builds, as a test,
+# but nothing is published.
+name: Android app
+
+on:
+  push:
+    branches: [main]
+    paths: ["android/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Signing key
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            echo "$KEYSTORE" | tr -d ' \r\n' | base64 -d > android/release.jks
+            echo "SIGNED=1" >> "$GITHUB_ENV"
+          else
+            echo "No ANDROID_KEYSTORE secret yet: building a test copy with a throwaway key."
+            keytool -genkeypair -v -keystore android/release.jks -storetype PKCS12 -alias snapstat \
+              -keyalg RSA -keysize 2048 -validity 10000 -storepass snapstat -keypass snapstat -dname "CN=SNAP Stat test"
+            echo "SIGNED=0" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 1.${{ github.run_number }}
+        run: gradle -p android assembleRelease --stacktrace --no-daemon
+
+      - name: Keep the build
+        uses: actions/upload-artifact@v4
+        with:
+          name: snap-stat-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 14
+
+      - name: Publish
+        if: env.SIGNED == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk snap-stat.apk
+          gh release delete android -y --cleanup-tag || true
+          gh release create android snap-stat.apk --latest --title "SNAP Stat for Android 1.${{ github.run_number }}" \
+            --notes "Download snap-stat.apk on your phone and open it to install or update. Built from ${GITHUB_SHA::7}."
