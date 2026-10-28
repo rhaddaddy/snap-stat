@@ -14,8 +14,8 @@ jobs:
       - run: |
           mkdir -p debug
           UA="Mozilla/5.0 (compatible; SNAP-Stat-card-updater/1.0)"
-          for p in sitemap.xml spotlight/ spotlights/ spotlight-caches/ caches/ seasons/october2026/ seasons/november2026/ news/; do
-            f=$(echo "$p" | tr '/' '_'); curl -sSL -A "$UA" -o "debug/$f.html" -w "$p %{http_code} %{size_download}\n" "https://snap.fan/$p" || true
+          for p in cards/spotlights/ "cards/spotlights/?page=2"; do
+            f=$(echo "$p" | tr '/?=' '___'); curl -sSL -A "$UA" -o "debug/$f.html" -w "$p %{http_code} %{size_download}\n" "https://snap.fan/$p" || true
           done | tee debug/codes.txt
           grep -oiE 'href="[^"]*spotlight[^"]*"' debug/*.html | sort -u | head -50 > debug/spot-links.txt || true
           git config user.name "github-actions[bot]"; git config user.email "41898699+github-actions[bot]@users.noreply.github.com"

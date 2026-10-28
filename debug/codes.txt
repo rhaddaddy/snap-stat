@@ -1,8 +1,0 @@
-sitemap.xml 200 179
-spotlight/ 404 21497
-spotlights/ 404 21499
-spotlight-caches/ 404 21511
-caches/ 404 21491
-seasons/october2026/ 404 9
-seasons/november2026/ 200 25785
-news/ 200 35644
