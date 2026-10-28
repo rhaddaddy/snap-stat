@@ -51,8 +51,24 @@ try:
     for m in re.finditer(r'href="/cosmetics/borders/([A-Za-z0-9_]+)/"[^>]*>(.*?)</a>', sf, re.S):
         nm = strip_tags(m.group(2))
         for b in borders:
-            if b["id"] == m.group(1) and nm and (b["name"] == b["id"] or not b["name"]): b["name"] = nm[:60]
+            if b["id"] == m.group(1) and nm and (b["name"] == b["id"] or not b["name"] or b["id"].startswith("Border")): b["name"] = nm[:60]
 except Exception as e: print("snap.fan names:", e)
+
+# Tidy names: "Faction_XMen" → "Faction · X Men", no "Border " in front, no source stuck on the end, and no two the same.
+def spaced(x): return re.sub(r"([a-z])([A-Z])", r"\1 \2", x).replace("_", " ").strip()
+for b in borders:
+    n = b["name"]
+    if n.startswith("Faction_"): n = "Faction · " + spaced(n[8:]).replace("XMen", "X-Men").replace(" Of ", " of ").replace(" The ", " the ")
+    if n == b["id"]: n = spaced(n)
+    n = re.sub(r"^Border ", "", n)
+    if b["source"] and n.endswith(" " + b["source"]) and n != b["source"]: n = n[: -len(b["source"]) - 1]
+    b["name"] = n.strip()
+fam = lambda n: n.split(" · ")[0]
+for b in borders:
+    same = [x for x in borders if x["name"] == b["name"]]
+    if len(same) > 1 or " · " not in b["name"] and re.match(r"^(Chromatic|Web|Fire|Neon|Cosmic|Distressed)[A-Z]", b["id"]):
+        suffix = spaced(re.sub(r"^(Chromatic|Web|Fire|Neon|Cosmic|Distressed|Metallic|Matte|Snowflakes)", "", b["id"]))
+        if suffix: b["name"] = fam(b["name"]) + " · " + suffix
 
 
 # ---------- 2. Laying a frame flat ----------
@@ -139,6 +155,16 @@ def flatten_anim(data):
     s0, t0 = bar_edges(frames[0], 0, *rows, int(W * .8), 1), bar_edges(frames[0], 1, *cols, int(H * .15), -1)
     if len(s0) < 20 or len(t0) < 20: return None
     ts = int(np.clip(np.median([t for _, _, t in s0]), 16, 70)); tt = int(np.clip(np.median([t for _, _, t in t0]), 16, 70))
+    # Only previews laid out like the usual one (the frame where it normally is, and clearly different from the art) are used.
+    side_at = np.median([i for _, i, _ in s0]) / W; top_at = np.median([i for _, i, _ in t0]) / H
+    f0 = line_fit([p for p, _, _ in s0], [i for _, i, _ in s0])
+    if not f0: return None
+    con = []
+    for y in range(rows[0], rows[1], 3):
+        x = int(round(f0[0] * y + f0[1]))
+        if x - 16 >= 0 and x + ts <= W: con.append(np.abs(frames[0][y, x - 16:x - 4].mean(0) - frames[0][y, x + 2:x + ts].mean(0)).sum())
+    if not (0.845 <= side_at <= 0.92 and 0.075 <= top_at <= 0.15 and con and np.median(con) >= 40):
+        print("  preview not usable:", f"side {side_at:.3f} top {top_at:.3f} contrast {np.median(con) if con else 0:.0f}"); return None
     out = []
     for a in frames:
         s, t = bar_edges(a, 0, *rows, int(W * .8), 1), bar_edges(a, 1, *cols, int(H * .15), -1)
@@ -188,7 +214,7 @@ for b in borders:
     bid = b["id"]; item = {"id": bid, "name": b["name"], "rarity": b["rarity"], "source": b["source"], "added": b["added"], "frame": "", "anim": "", "fx": "", "c": color_of(bid)}
     still_p, anim_p = f"{OUT_DIR}/{bid}.webp", f"{OUT_DIR}/{bid}.anim.webp"
     # moving version first
-    try: head = get(ANIM.format(bid), method="HEAD"); sig = "a:" + str(head.get("Content-Length") or head.get("content-length")) + ":" + str(head.get("Last-Modified") or head.get("ETag") or "")
+    try: head = get(ANIM.format(bid), method="HEAD"); sig = "a2:" + str(head.get("Content-Length") or head.get("content-length")) + ":" + str(head.get("Last-Modified") or head.get("ETag") or "")
     except Exception: head, sig = None, ""
     if head and prev_src.get(bid) == sig and os.path.exists(anim_p) and os.path.exists(still_p):
         item.update(frame=still_p, anim=anim_p); src_log[bid] = sig; report["kept"].append(bid); out.append(item); continue
@@ -210,7 +236,10 @@ for b in borders:
                     if os.path.exists(anim_p): os.remove(anim_p)
                     break
             except Exception: pass
-    if not done: report["drawn"].append(bid)
+    if not done:
+        report["drawn"].append(bid)
+        for f in (still_p, anim_p):
+            if os.path.exists(f): os.remove(f)
     if not item["anim"]: item["fx"] = effect(bid)
     out.append(item)
 
