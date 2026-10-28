@@ -2120,7 +2120,7 @@ async function gemProbe(key) {
       const r = await fetch(url, { ...init, signal: ctl.signal }); let txt = ""; try { txt = await r.text(); } catch { /* cut off */ }
       let j = {}; try { j = obj(JSON.parse(txt)); } catch { /* not JSON */ }
       const er = obj(j.error), why = String(arr(er.details).map((d) => obj(d).reason).find(Boolean) || er.status || "").slice(0, 60);
-      return { label, ok: r.ok, status: r.status, json: j, text: r.ok ? `worked in ${secs()}` : `Google said ${r.status}${why ? " " + why : ""} in ${secs()}` };
+      return { label, ok: r.ok, status: r.status, json: j, secs: (performance.now() - t0) / 1000, text: r.ok ? `worked in ${secs()}` : `Google said ${r.status}${why ? " " + why : ""} in ${secs()}` };
     } catch (e) { return { label, ok: false, status: 0, text: late ? `no answer after ${Math.round(wait / 1000)} s` : `couldn't connect (${secs()})` }; }
     finally { clearTimeout(tm); }
   };
@@ -2128,13 +2128,18 @@ async function gemProbe(key) {
     run("Reach Google, key in address", gemKeyUrl(`${GEM}/models?pageSize=1000`, key), {}, num(window.__aiWait) || 15e3),
     run("Reach Google, key in header", `${GEM}/models?pageSize=1000`, { headers: { "x-goog-api-key": key } }, num(window.__aiWait) || 15e3),
   ]);
-  const listed = lists.find((x) => x.ok); let model = arr(obj(aiState().gemini).models)[0] || "gemini-flash-latest";
-  if (listed) { const ids = arr(listed.json.models).filter((m) => arr(m.supportedGenerationMethods).includes("generateContent")).map((m) => String(m.name).replace(/^models\//, "")); const pick = AI_PICK.gemini(ids); if (pick.length) { model = pick[0]; setAiState("gemini", { models: pick, modelsAt: Date.now() }); } }
-  const url = `${GEM}/models/${encodeURIComponent(model)}:generateContent`;
-  const body = JSON.stringify({ contents: [{ role: "user", parts: [{ text: 'Reply with only this JSON: {"ok": true}' }] }] });
-  const asks = await Promise.all(["plain", "query", "header"].map((mode) =>
-    run(`Ask ${model}, ${mode === "plain" ? "simple request" : mode === "query" ? "key in address" : "usual way"}`, mode === "header" ? url : gemKeyUrl(url, key), gemInit(mode, { method: "POST", headers: { "content-type": "application/json" }, body }, key), num(window.__aiWait) || 30e3).then((r) => ({ ...r, mode }))));
-  return { steps: [...lists, ...asks], works: ["header", "query", "plain"].find((m) => asks.find((a) => a.mode === m && a.ok)) || "" };
+  const listed = lists.find((x) => x.ok), viaHeader = lists[1].ok;
+  let models = arr(obj(aiState().gemini).models); if (!models.length) models = AI_PICK.gemini([]);
+  if (listed) { const ids = arr(listed.json.models).filter((m) => arr(m.supportedGenerationMethods).includes("generateContent")).map((m) => String(m.name).replace(/^models\//, "")); const pick = AI_PICK.gemini(ids); if (pick.length) models = pick; }
+  const body = JSON.stringify({ contents: [{ role: "user", parts: [{ text: 'Reply with only this JSON: {"ok": true}' }] }], generationConfig: { responseMimeType: "application/json" } });
+  // Reached Google with the key in the header? Ask the usual way. If not, ask with the simplest request.
+  const mode = viaHeader ? "header" : listed ? "query" : "plain";
+  const asks = await Promise.all(models.slice(0, 4).map((model) => {
+    const url = `${GEM}/models/${encodeURIComponent(model)}:generateContent`;
+    return run(`Ask ${model}`, mode === "header" ? url : gemKeyUrl(url, key), gemInit(mode, { method: "POST", headers: { "content-type": "application/json" }, body }, key), num(window.__aiWait) || 30e3).then((r) => ({ ...r, model }));
+  }));
+  const won = asks.find((a) => a.ok); // the best model that answered (they are listed best first)
+  return { steps: [...lists, ...asks], works: won ? mode : "", model: won ? won.model : "", models };
 }
 /* Perplexity (and maybe Grok) don't accept calls straight from web pages; then the request goes through your relay. */
 async function viaRelay(p, direct, path, init) {
@@ -2149,9 +2154,11 @@ const verNum = (s) => (String(s).match(/\d+(?:[.-]\d+)*/) || ["0"])[0].split(/[.
 const verCmp = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; } return 0; };
 const newestFirst = (list) => [...list].sort(verCmp).reverse();
 const AI_PICK = {
+  // Several Flash models to fall back on, because Google's newest one is sometimes overloaded ("503 UNAVAILABLE") or slow.
   gemini: (ids) => {
     const flash = newestFirst(ids.filter((i) => /^gemini-\d+(\.\d+)?-flash$/.test(i))), lite = newestFirst(ids.filter((i) => /^gemini-\d+(\.\d+)?-flash-lite$/.test(i)));
-    return [ids.includes("gemini-flash-latest") || !flash.length ? "gemini-flash-latest" : flash[0], ids.includes("gemini-flash-lite-latest") ? "gemini-flash-lite-latest" : lite[0]].filter(Boolean);
+    const has = (m) => ids.includes(m) || !ids.length;
+    return [...new Set([flash[0], has("gemini-flash-latest") || !flash.length ? "gemini-flash-latest" : "", flash[1], has("gemini-flash-lite-latest") ? "gemini-flash-lite-latest" : "", lite[0], flash[2]].filter(Boolean))].slice(0, 5);
   },
   openai: (ids) => {
     const ok = ids.filter((i) => !/\d{4}-\d{2}-\d{2}|audio|realtime|tts|transcribe|search|image|embed|codex|instruct|moderation|nano|-pro|chat|oss|preview/.test(i));
@@ -2162,15 +2169,16 @@ const AI_PICK = {
     return [newestFirst(ok.filter((i) => /fast-non-reasoning$/.test(i)))[0] || newestFirst(ok.filter((i) => /fast/.test(i)))[0] || newestFirst(ok)[0] || "grok-4"];
   },
 };
+const AI_PICK_V = 2; // bump when the model choice changes, so saved lists are picked again
 async function aiModels(p, key, fresh) {
-  const st = obj(aiState()[p]); if (arr(st.models).length && !fresh && Date.now() - num(st.modelsAt) < 7 * DAY) return st.models;
+  const st = obj(aiState()[p]); if (arr(st.models).length && !fresh && st.pickV === AI_PICK_V && Date.now() - num(st.modelsAt) < 7 * DAY) return st.models;
   let ids = [];
   try {
     if (p === "gemini") ids = arr((await gemFetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000", {}, key)).models).filter((m) => arr(m.supportedGenerationMethods).includes("generateContent")).map((m) => String(m.name).replace(/^models\//, ""));
     else if (p === "openai") ids = arr((await aiFetch(p, "https://api.openai.com/v1/models", { headers: { authorization: "Bearer " + key } })).data).map((m) => String(m.id));
     else if (p === "xai") ids = arr((await viaRelay(p, "https://api.x.ai/v1/models", "/xai-models", { headers: { authorization: "Bearer " + key } })).data).map((m) => String(m.id));
   } catch (e) { if (e.status === 401 || e.status === 403 || e.reach || e.slow) throw e; }
-  const models = AI_PICK[p](ids); setAiState(p, { models, modelsAt: Date.now() }); return models;
+  const models = AI_PICK[p](ids); setAiState(p, { models, modelsAt: Date.now(), pickV: AI_PICK_V }); return models;
 }
 const oaContent = (text, opts) => (arr(opts.images).length ? [{ type: "text", text }, ...opts.images.map((im) => ({ type: "image_url", image_url: { url: `data:${im.media_type};base64,${im.data}` } }))] : text);
 const oaText = (j) => { const t = obj(obj(arr(j.choices)[0]).message).content; return typeof t === "string" ? t : arr(t).map((x) => x.text || "").join(""); };
@@ -2189,8 +2197,10 @@ const AI_CALL = {
         const j = await gemFetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(models[i])}:generateContent`, { method: "POST", signal: opts.signal, headers: { "content-type": "application/json" }, body }, key);
         return arr(obj(obj(arr(j.candidates)[0]).content).parts).map((x) => x.text || "").join("");
       } catch (e) {
+        if (e && e.name === "AbortError") throw e;
         if (e.status === 404 && !err) { err = e; models = await aiModels("gemini", key, true); i = -1; continue; }
-        if (e.status !== 429 || i === models.length - 1) throw e; // the lighter model has its own, bigger daily allowance
+        // Busy, overloaded, out of free uses or too slow: the next model has its own allowance and is often free
+        if (!(e.status === 429 || e.status >= 500 || e.slow) || i === models.length - 1) throw e;
         err = e;
       }
     }
@@ -3801,16 +3811,21 @@ const A = {
     const ask = () => aiJson('Return {"ok": true, "card": "the name of any MARVEL SNAP card"}', { only: p });
     const good = (r) => (r && r.ok ? { ok: true, msg: `${n} works. It picked ${r.card || "a card"}.` } : { ok: false, msg: `${n} answered, but not in the expected way. Try again.` });
     aiTests[p] = { busy: true }; toast(`Asking ${n}…`); refreshView();
-    aiWaitNow = 20e3;
-    try { aiTests[p] = good(await ask()); }
-    catch (e) {
-      aiTests[p] = { ok: false, msg: e.message || `${n} didn't answer.` };
-      if (p === "gemini") { // find out why, and switch to a way that works if there is one
-        const first = aiTests[p].msg; aiTests[p] = { busy: true, msg: `${first} Checking the connection (up to 45 seconds)…` }; render();
-        const pr = await gemProbe(aiKeyFor("gemini"));
-        if (pr.works) { setAiState("gemini", { mode: pr.works, until: 0, why: "", msg: "" }); try { const r = good(await ask()); aiTests[p] = { ...r, msg: r.ok ? `Fixed. ${r.msg}` : r.msg, steps: pr.steps }; } catch (e2) { aiTests[p] = { ok: false, msg: e2.message, steps: pr.steps }; } }
-        else aiTests[p] = { ok: false, msg: first, steps: pr.steps };
+    if (p === "gemini") {
+      // Check every way and model at once (about 45 seconds at most), then use whichever answers first.
+      aiTests[p] = { busy: true, msg: "Checking your key and Google's models. This can take up to 45 seconds…" }; render();
+      const pr = await gemProbe(aiKeyFor("gemini"));
+      const trouble = pr.steps.some((x) => !x.ok);
+      if (pr.works) {
+        setAiState("gemini", { mode: pr.works, models: [pr.model, ...pr.models.filter((m) => m !== pr.model)], modelsAt: Date.now(), pickV: AI_PICK_V, until: 0, why: "", msg: "" });
+        aiWaitNow = 30e3; try { aiTests[p] = { ...good(await ask()), steps: trouble ? pr.steps : [] }; } catch (e) { aiTests[p] = { ok: false, msg: e.message, steps: pr.steps }; }
+      } else {
+        const bad = pr.steps.find((x) => /^Ask/.test(x.label) && x.status) || pr.steps.find((x) => !x.ok);
+        aiTests[p] = { ok: false, msg: !pr.steps[0].ok && !pr.steps[1].ok ? `${n} turned down the key or can't be reached.` : `Your key works, but Google's AI models didn't answer just now${bad && bad.status ? ` (${bad.status})` : ""}. Try again in a few minutes.`, steps: pr.steps };
       }
+    } else {
+      aiWaitNow = 20e3;
+      try { aiTests[p] = good(await ask()); } catch (e) { aiTests[p] = { ok: false, msg: e.message || `${n} didn't answer.` }; }
     }
     aiWaitNow = 0; toast(aiTests[p].msg); render();
   },
