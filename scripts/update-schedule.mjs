@@ -122,8 +122,12 @@ for (let pageNo = 1; pageNo <= 6; pageNo++) {
     const start = (b.match(/data-start="([^"]+)"/) || [])[1] || "", end = (b.match(/data-end="([^"]+)"/) || [])[1] || "";
     const price = (b.match(/bundle-card__cost">\s*\$([\d.,]+)/) || [])[1] || "";
     const items = itemsFrom(b);
-    if (!name || !items.length || (end && Date.parse(end) < nowMs - 864e5)) continue;
-    shops.push({ source: "bundle", shop: "Bundle", title: name, start: start.slice(0, 10), end: end.slice(0, 10), endsAt: end, price: price ? Number(price.replace(/,/g, "")) : "", currency: "usd", items });
+    // snap.fan rates each bundle: its value (in gold) against its price, plus a breakdown of what's inside.
+    const pcts = Object.fromEntries([...b.matchAll(/bundle-card__cost-percent-label">\s*([^<]+?)\s*<\/span>\s*<span class="bundle-card__cost-percent-value[^"]*">\s*([\d,]+)\s*%/g)].map((m) => [strip(m[1]).toLowerCase(), Number(m[2].replace(/,/g, ""))]));
+    const breakdown = [...b.matchAll(/<td class="px-3 py-1\.5 text-snap-gray-100">([\s\S]*?)<\/td>\s*<td class="px-3 py-1\.5 text-right[^"]*">\s*([\d,]+)\s*<\/td>/g)].map((m) => [strip(m[1]).replace(/([a-z])([A-Z])/g, "$1 $2").slice(0, 60), Number(m[2].replace(/,/g, ""))]).slice(0, 15);
+    const goldValue = Number(((b.match(/Total Gold Value<\/td>\s*<td[^>]*>\s*([\d,]+)/) || [])[1] || "").replace(/,/g, "")) || 0;
+    if (!name || (!items.length && !goldValue) || (end && Date.parse(end) < nowMs - 864e5)) continue;
+    shops.push({ source: "bundle", shop: "Bundle", title: name, start: start.slice(0, 10), end: end.slice(0, 10), endsAt: end, price: price ? Number(price.replace(/,/g, "")) : "", currency: "usd", items, value: pcts["bundle value"] || 0, currencyValue: pcts["currency value"] || 0, goldValue, breakdown });
   }
 }
 for (const [id, e] of Object.entries(events)) {

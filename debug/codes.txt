@@ -1,4 +1,0 @@
-bundles 200 94892
-detail /bundles/previous/
-detail 200 80350
-snapcomplete 200 140328
