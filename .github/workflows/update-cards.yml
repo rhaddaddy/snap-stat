@@ -4,6 +4,7 @@
 #   balance-history.json  every cost, power and ability change (snap.fan)
 #   variant-details.json  each variant's name, artists, rarity, source and release date (snap.fan)
 #   albums.json           variant albums with their rewards, and card split finishes (snap.fan)
+#   packs.json            the Card Shop's Snap Packs: prices, dates and contents (snap.fan)
 name: Update card data
 
 on:
@@ -19,6 +20,7 @@ on:
       - "scripts/update-history.mjs"
       - "scripts/update-variants.mjs"
       - "scripts/update-albums.mjs"
+      - "scripts/update-packs.mjs"
 
 permissions:
   contents: write
@@ -50,12 +52,15 @@ jobs:
       - name: Download albums and split finishes
         run: node scripts/update-albums.mjs
         continue-on-error: true
+      - name: Download Snap Packs
+        run: node scripts/update-packs.mjs
+        continue-on-error: true
       - name: Save changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
           git add card-data.json card-data-sample.json
-          for f in schedule.json balance-history.json variant-details.json albums.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          for f in schedule.json balance-history.json variant-details.json albums.json packs.json; do if [ -f "$f" ]; then git add "$f"; fi; done
           if git diff --cached --quiet; then
             echo "Nothing new."
           else
