@@ -14,9 +14,10 @@ jobs:
       - run: |
           mkdir -p debug
           UA="Mozilla/5.0 (compatible; SNAP-Stat-card-updater/1.0)"
-          for p in cards/spotlights/ "cards/spotlights/?page=2"; do
+          for p in card-shop/ packs/ shop/ cards/packs/ news/marvel-snap-snap-packs-launch/; do
             f=$(echo "$p" | tr '/?=' '___'); curl -sSL -A "$UA" -o "debug/$f.html" -w "$p %{http_code} %{size_download}\n" "https://snap.fan/$p" || true
-          done | tee debug/codes.txt
+          done
+          curl -sSL -A "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36" -o debug/msz_packs.html -w "msz packs %{http_code} %{size_download}\n" https://marvelsnapzone.com/packs/ || true | tee debug/codes.txt
           grep -oiE 'href="[^"]*spotlight[^"]*"' debug/*.html | sort -u | head -50 > debug/spot-links.txt || true
           git config user.name "github-actions[bot]"; git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
           git add debug; git commit -m "Peek at spotlight pages" && git pull --rebase && git push
