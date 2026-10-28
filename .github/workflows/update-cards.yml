@@ -5,6 +5,7 @@
 #   variant-details.json  each variant's name, artists, rarity, source and release date (snap.fan)
 #   albums.json           variant albums with their rewards, and card split finishes (snap.fan)
 #   packs.json            the Card Shop's Snap Packs: prices, dates and contents (snap.fan)
+#   borders.json          every Custom Card border, with flat (and moving) frames in borders/ (Marvel Snap Zone, snap.fan)
 name: Update card data
 
 on:
@@ -21,6 +22,7 @@ on:
       - "scripts/update-variants.mjs"
       - "scripts/update-albums.mjs"
       - "scripts/update-packs.mjs"
+      - "scripts/update-borders.py"
 
 permissions:
   contents: write
@@ -55,12 +57,16 @@ jobs:
       - name: Download Snap Packs
         run: node scripts/update-packs.mjs
         continue-on-error: true
+      - name: Download Custom Card borders
+        run: pip install --quiet pillow numpy && python3 scripts/update-borders.py
+        continue-on-error: true
       - name: Save changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
           git add card-data.json card-data-sample.json
-          for f in schedule.json balance-history.json variant-details.json albums.json packs.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          for f in schedule.json balance-history.json variant-details.json albums.json packs.json borders.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          if [ -d borders ]; then git add -A borders; fi
           if git diff --cached --quiet; then
             echo "Nothing new."
           else
