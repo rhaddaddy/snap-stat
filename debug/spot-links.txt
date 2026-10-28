@@ -1,0 +1,4 @@
+debug/card-shop_.html:href="/cards/spotlights/"
+debug/news_marvel-snap-snap-packs-launch_.html:href="/cards/spotlights/"
+debug/packs_.html:href="/cards/spotlights/"
+debug/shop_.html:href="/cards/spotlights/"
