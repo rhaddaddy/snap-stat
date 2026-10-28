@@ -1226,15 +1226,15 @@ function inPeriod(ms, p) { return ms.filter((m) => m.ts >= p.from && m.ts <= p.t
 
 /* ============ Stats ============ */
 function statsFor(ms) {
-  const s = { games: ms.length, w: 0, l: 0, t: 0, cubes: 0, snaps: 0, snapW: 0, ret: 0, oppRet: 0, bots: 0, maxWin: 0 };
+  const s = { games: ms.length, w: 0, l: 0, t: 0, cubes: 0, cubeGames: 0, snaps: 0, snapW: 0, ret: 0, oppRet: 0, bots: 0, maxWin: 0 };
   for (const m of ms) {
     if (m.result === "W") s.w++; else if (m.result === "L") s.l++; else s.t++;
-    s.cubes += num(m.cubes);
+    s.cubes += num(m.cubes); if (!m.noCubes) s.cubeGames++;
     if (m.snapped) { s.snaps++; if (m.result === "W") s.snapW++; }
     if (m.retreated) s.ret++; if (m.oppRetreated) s.oppRet++; if (m.bot === "likely") s.bots++;
     s.maxWin = Math.max(s.maxWin, num(m.cubes));
   }
-  s.wr = pct(s.w, s.w + s.l); s.cpg = s.games ? Math.round((s.cubes / s.games) * 100) / 100 : 0; s.snapWr = pct(s.snapW, s.snaps);
+  s.wr = pct(s.w, s.w + s.l); s.cpg = s.cubeGames ? Math.round((s.cubes / s.cubeGames) * 100) / 100 : 0; // results from SnapVault have no cubes, so they're left out of cubes per game s.snapWr = pct(s.snapW, s.snaps);
   return s;
 }
 function slimStats(s) { return { games: s.games, w: s.w, l: s.l, t: s.t, wr: s.wr, cubes: s.cubes, cpg: s.cpg }; }
@@ -2642,7 +2642,7 @@ function pickerSheet() {
 function vLog() {
   const p = periodById(ui.period); const ms = inPeriod(allMatches(), p);
   return `<section class="sec"><div class="sec-h"><h2>Matches</h2><div class="row"><button class="btn sm" data-a="quickOpen">Quick log</button><button class="btn sm snap" data-a="matchNew">${ICON.plus} Log a match</button></div></div>${shotInput("match")}${periodChips()}${exampleNote(ms)}
-    ${ms.length ? `<div class="list">${ms.slice(0, 300).map((m) => `<button class="li" data-a="matchEdit" data-id="${esc(m.id)}"><span class="pill ${m.result}">${m.result}</span><div class="grow"><div class="t">${esc(m.deckName || "No deck")}${m.oppName ? ` <span class="muted">vs ${esc(m.oppName)}</span>` : ""}</div><div class="s">${esc(dateTimeStr(m.ts))} · ${esc(m.mode || "Ranked")}${m.tracked ? (replayOf(m) ? " · replay" : " · tracked") : ""}${m.snapped ? " · snapped" : ""}${m.retreated ? " · retreated" : ""}${m.bot === "likely" ? " · likely bot" : ""}</div></div>${cubes(signed(num(m.cubes)), num(m.cubes) >= 0 ? "pos" : "neg")}</button>`).join("")}</div>${ms.length > 300 ? `<p class="muted small">Showing the latest 300.</p>` : ""}`
+    ${ms.length ? `<div class="list">${ms.slice(0, 300).map((m) => `<button class="li" data-a="matchEdit" data-id="${esc(m.id)}"><span class="pill ${m.result}">${m.result}</span><div class="grow"><div class="t">${esc(m.deckName || "No deck")}${m.oppName ? ` <span class="muted">vs ${esc(m.oppName)}</span>` : ""}</div><div class="s">${esc(dateTimeStr(m.ts))} · ${esc(m.mode || "Ranked")}${m.tracked ? (replayOf(m) ? " · replay" : " · tracked") : ""}${m.svSync ? " · from SnapVault" : ""}${m.snapped ? " · snapped" : ""}${m.retreated ? " · retreated" : ""}${m.bot === "likely" ? " · likely bot" : ""}</div></div>${m.noCubes ? `<span class="muted small">no cubes</span>` : cubes(signed(num(m.cubes)), num(m.cubes) >= 0 ? "pos" : "neg")}</button>`).join("")}</div>${ms.length > 300 ? `<p class="muted small">Showing the latest 300.</p>` : ""}`
       : `<div class="empty"><strong>No matches in ${esc(p.label)}</strong><span>Log one now or pick a longer period.</span></div>`}</section>`;
 }
 let mf = null;
@@ -3471,7 +3471,7 @@ function vAccount() {
 }
 function privacyLink() { return window.SNAPSTAT_STANDALONE ? `<a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a>` : "Privacy: your data stays in your Claude account"; }
 /* ============ SnapVault import ============ */
-const sv = { text: "", res: null, err: "", owned: true, decks: true, showAll: false };
+const sv = { text: "", res: null, err: "", owned: true, decks: true, past: false, showAll: false };
 function ensureCodeCard(code) {
   const c = cardByCode(code); if (c) return c.key;
   const d = catCardByCode(code); // in the daily card list but not the app's own (event cards like Vampire America Chavez)
@@ -3486,7 +3486,7 @@ function parseSnapVault(text) {
   const decks = arr(j.decks).map((d) => {
     const vs = arr(d.variations).slice().sort((a, b) => num(a.version) - num(b.version)); const latest = vs[vs.length - 1] || {};
     const name = String(d.name || "SnapVault deck").trim().slice(0, 60);
-    return { name, codes: decodeCodes(latest.deckCode), w: vs.reduce((s, v) => s + num(v.wins), 0), l: vs.reduce((s, v) => s + num(v.losses), 0), lw: num(latest.wins), ll: num(latest.losses), versions: vs.length, created: d.createdAt, exists: S.decks.some((x) => x.sv === name) };
+    return { name, codes: decodeCodes(latest.deckCode), w: vs.reduce((s, v) => s + num(v.wins), 0), l: vs.reduce((s, v) => s + num(v.losses), 0), lw: num(latest.wins), ll: num(latest.losses), versions: vs.length, vers: vs.map((v) => ({ v: num(v.version), w: num(v.wins), l: num(v.losses), at: v.createdAt })), created: d.createdAt, exists: S.decks.some((x) => x.sv === name) };
   }).filter((d) => d.codes.length);
   if (!codes.length && !decks.length) return { err: "No cards or decks were found in that file." };
   const all = [...new Set([...codes, ...decks.flatMap((d) => d.codes)])];
@@ -3503,7 +3503,9 @@ function svSheet() {
       <div class="tiles"><div class="tile"><div class="k">Cards</div><div class="v">${fmt(r.codes.length)}</div><div class="small muted">${fmt(r.newOwned)} new to you</div></div><div class="tile"><div class="k">Decks</div><div class="v">${r.decks.length}</div><div class="small muted">${r.decks.filter((d) => d.exists).length} already here</div></div></div>
       ${r.unknown.length ? `<p class="small muted">${r.unknown.length} card${r.unknown.length > 1 ? "s aren't" : " isn't"} in the app's list yet. ${r.unknown.length > 1 ? "They'll" : "It'll"} come in as “Unknown card” so you can rename ${r.unknown.length > 1 ? "them" : "it"}.</p>` : ""}
       <label class="check"><input type="checkbox" data-svchk="owned" ${sv.owned ? "checked" : ""}> Mark these cards as owned</label>
-      <label class="check"><input type="checkbox" data-svchk="decks" ${sv.decks ? "checked" : ""}> Bring in decks with their SnapVault win–loss records</label></div>
+      <label class="check"><input type="checkbox" data-svchk="decks" ${sv.decks ? "checked" : ""}> Bring in decks with their SnapVault win–loss records</label>
+      ${!S.svCounts && sv.decks ? (() => { const w = r.decks.reduce((t, d) => t + d.w, 0), l = r.decks.reduce((t, d) => t + d.l, 0); return w + l ? `<label class="check"><input type="checkbox" data-svchk="past" ${sv.past ? "checked" : ""}> Also add the ${w}–${l} results SnapVault already has as matches (their dates aren't known)</label>` : ""; })() : ""}
+      <span class="small muted">${S.svCounts ? "New wins and losses since your last sync come in as matches." : "After this, each sync adds the new wins and losses since the last one as matches."}</span></div>
     ${sv.decks && r.decks.length ? `<div class="list">${shown.map((d) => `<div class="li"><div class="grow"><div class="t">${esc(d.name)}</div><div class="s">${d.codes.length} cards${d.versions > 1 ? ` · ${d.versions} versions` : ""}${d.w || d.l ? ` · ${d.w}-${d.l}` : ""}</div></div><span class="pill ${d.exists ? "dim" : "gold"}">${d.exists ? "Update" : "New"}</span></div>`).join("")}</div>${r.decks.length > shown.length ? `<button class="btn sm ghost" data-a="svShowAll">Show all ${r.decks.length} decks</button>` : ""}` : ""}
     <button class="btn snap block" data-a="svImport" ${!sv.owned && !sv.decks ? "disabled" : ""}>Import</button>`;
   }
@@ -3523,8 +3525,38 @@ function applySnapVault() {
     if (ex) { ex.cards = keys; ex.svRecord = rec; Object.keys(obj(ex.variants)).forEach((k) => { if (!keys.includes(k)) delete ex.variants[k]; }); updated++; }
     else { S.decks.push({ id: uid(), name: dk.name, cards: keys, status: "active", variants: {}, created: Date.parse(dk.created) || Date.now(), sv: dk.name, svRecord: rec }); made++; }
   });
+  const res = sv.decks ? svResults(r, sv.past) : { n: 0 };
   S.svImported = Date.now(); save();
-  return { owned, made, updated };
+  return { owned, made, updated, games: res.n, first: res.first };
+}
+/* SnapVault's export has no match list, only each deck version's win–loss total. So each sync compares those totals with
+   the last sync and adds the difference as matches: the deck and the result, without cubes, opponent or exact time. */
+function svResults(r, past) {
+  const first = !S.svCounts, base = obj(S.svCounts), next = { ...base };
+  const end = Date.parse(r.date || "") || Date.now(), from = num(S.svResultsAt);
+  const add = [];
+  r.decks.forEach((dk) => {
+    const deck = S.decks.find((x) => x.sv === dk.name);
+    arr(dk.vers).forEach((v) => {
+      const key = `${dk.created || dk.name}#${v.v}`, was = obj(base[key]);
+      next[key] = { w: v.w, l: v.l };
+      if (first && !past) return; // the first sync only sets the starting point
+      const dw = Math.max(0, v.w - num(was.w)), dl = Math.max(0, v.l - num(was.l));
+      if (dw || dl) add.push({ deck, name: dk.name, w: dw, l: dl, start: Math.max(from, Date.parse(v.at) || 0) });
+    });
+  });
+  let n = 0;
+  add.forEach((a) => {
+    const total = a.w + a.l, start = a.start && a.start < end ? a.start : end - total * 5 * 60e3;
+    for (let i = 0; i < total; i++) {
+      // Spread the wins and losses evenly between the last sync and this export, since their order isn't known
+      const res = Math.floor(((i + 1) * a.w) / total) > Math.floor((i * a.w) / total) ? "W" : "L";
+      putMatch({ id: uid(), ts: Math.round(start + ((end - start) * (i + 1)) / (total + 1)), result: res, cubes: 0, noCubes: true, mode: "Other", deckId: a.deck ? a.deck.id : "", deckName: a.deck ? a.deck.name : a.name, oppName: "", oppCards: [], snapped: false, oppSnapped: false, retreated: false, oppRetreated: false, turn: 6, bot: "unsure", notes: "From SnapVault. Only the deck and result are known.", svSync: true });
+      n++;
+    }
+  });
+  S.svCounts = next; S.svResultsAt = end;
+  return { n, first: first && !past };
 }
 
 /* One-step sync: pick the newest SnapVault export and it's imported right away (cards marked owned, decks added or updated). */
@@ -3538,16 +3570,16 @@ function svSyncPanel() {
     <div class="row"><a class="btn" href="https://www.snapvault.app/" target="_blank" rel="noopener">Open SnapVault ↗</a><label class="btn snap">Sync now<input type="file" accept=".json,application/json,text/plain" data-svquick="1" hidden></label></div>
     ${last && (lr.owned || lr.made || lr.updated) ? `<span class="muted small">Last sync: ${svSummary(lr)}</span>` : ""}</div></section>`;
 }
-function svSummary(r) { const p = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`; return [r.owned ? p(r.owned, "new card") : "", r.made ? p(r.made, "new deck") : "", r.updated ? p(r.updated, "deck") + " updated" : ""].filter(Boolean).join(", ") || "nothing new"; }
+function svSummary(r) { const p = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`; return [r.owned ? p(r.owned, "new card") : "", r.made ? p(r.made, "new deck") : "", r.updated ? p(r.updated, "deck") + " updated" : "", r.games ? p(r.games, "new result") : ""].filter(Boolean).join(", ") || "nothing new"; }
 function svQuickSync(text) {
   const r = parseSnapVault(text);
   if (r.err) { toast(r.err); return; }
   const at = Date.parse(r.date || ""), prev = Date.parse(S.svExportDate || "");
   if (at && prev && at < prev) { toast(`That export is from ${dateStr(localDate(at))}, older than your last sync. Export again in SnapVault to get the newest one.`); return; }
-  sv.res = r; sv.owned = true; sv.decks = true;
+  sv.res = r; sv.owned = true; sv.decks = true; sv.past = false;
   const out = applySnapVault();
   S.svLast = out; if (r.date) S.svExportDate = r.date; save(); render();
-  toast(`Synced with SnapVault: ${svSummary(out)}`);
+  toast(`Synced with SnapVault: ${svSummary(out)}${out.first ? ". From now on, new wins and losses come in as matches." : ""}`);
 }
 
 /* ============ Fill in missing card details with AI ============ */
@@ -3875,7 +3907,7 @@ const A = {
   svOpen: () => { sv.text = ""; sv.res = null; sv.err = ""; sv.showAll = false; openSheet(svSheet); },
   svParse: () => { sv.text = $("#sv-text").value; const r = parseSnapVault(sv.text); sv.err = r.err || ""; sv.res = r.err ? null : r; refreshSheet(); },
   svShowAll: () => { sv.showAll = true; refreshSheet(); },
-  svImport: () => { const r = applySnapVault(); S.svLast = r; if (sv.res && sv.res.date) S.svExportDate = sv.res.date; save(); closeSheet(); render(); toast(`Imported: ${r.owned} cards marked owned, ${r.made} new deck${r.made === 1 ? "" : "s"}, ${r.updated} updated`); },
+  svImport: () => { const r = applySnapVault(); S.svLast = r; if (sv.res && sv.res.date) S.svExportDate = sv.res.date; save(); closeSheet(); render(); toast(`Imported: ${r.owned} cards marked owned, ${r.made} new deck${r.made === 1 ? "" : "s"}, ${r.updated} updated${r.games ? `, ${r.games} result${r.games === 1 ? "" : "s"} added as matches` : ""}${r.first ? ". New wins and losses come in as matches from the next sync on." : ""}`); },
   aiFill: () => aiFillCards(),
   deckDup: () => { const d = deckEdit(); const n = newDeck(d.name + " copy", d.cards, d.status, { variants: { ...obj(d.variants) }, cover: d.cover }); render(); openDeck(n.id); toast("Deck duplicated"); },
   deckDelete: () => { const d = deckEdit(); if (!d.confirmDel) { d.confirmDel = true; refreshSheet(); return; } S.decks = S.decks.filter((x) => x.id !== d.id); if (S.me.featuredDeck === d.id) S.me.featuredDeck = ""; save(); closeSheet(); render(); toast("Deck deleted"); },
