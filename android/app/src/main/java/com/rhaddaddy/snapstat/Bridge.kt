@@ -168,8 +168,13 @@ class Bridge(private val act: MainActivity) {
         }
         val url = try { JSONObject(updateInfo()).optString("url") } catch (e: Exception) { "" }
         kotlin.concurrent.thread {
-            val err = try { Updater.install(ctx, url) { pct -> act.runOnUiThread { act.emit("update-progress", pct.toString()) } } } catch (e: Exception) { e.message ?: "The update didn't work." }
-            act.runOnUiThread { act.emit(if (err.isEmpty()) "update-installing" else "update-error", JSONObject.quote(err)) }
+            try {
+                val f = Updater.download(ctx, url) { pct -> act.runOnUiThread { act.emit("update-progress", pct.toString()) } }
+                act.runOnUiThread { act.installApk(f) }
+            } catch (e: Exception) {
+                TrackerLog.add("Update failed: ${e.message}")
+                act.runOnUiThread { act.emit("update-error", JSONObject.quote(e.message ?: "The update didn't work.")) }
+            }
         }
     }
 

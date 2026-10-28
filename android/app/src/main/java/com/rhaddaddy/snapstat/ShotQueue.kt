@@ -101,15 +101,24 @@ object ShotQueue {
     fun jpegBytes(bmp: Bitmap): ByteArray = ByteArrayOutputStream().also { bmp.compress(Bitmap.CompressFormat.JPEG, 85, it) }.toByteArray()
 }
 
-/** A short, readable log of what the app and the tracker saw, so tracking can be tuned from a copy of it. */
+/** A short, readable log of what the app and the tracker saw, so tracking can be tuned from a copy of it. Kept across restarts. */
 object TrackerLog {
     private val lines = ArrayDeque<String>()
-    private val fmt = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
+    private val fmt = java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.US)
+    private var file: File? = null
+
+    @Synchronized
+    fun attach(ctx: Context) {
+        if (file != null) return
+        val f = File(ctx.filesDir, "log.txt"); file = f
+        try { if (f.exists()) f.readLines().takeLast(200).forEach { lines.addLast(it) } } catch (_: Exception) {}
+    }
 
     @Synchronized
     fun add(line: String) {
         lines.addLast("${fmt.format(java.util.Date())} ${line.take(300)}")
-        while (lines.size > 120) lines.removeFirst()
+        while (lines.size > 200) lines.removeFirst()
+        try { file?.writeText(lines.joinToString("\n")) } catch (_: Exception) {}
     }
 
     @Synchronized

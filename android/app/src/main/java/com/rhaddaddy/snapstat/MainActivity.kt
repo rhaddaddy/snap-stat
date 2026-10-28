@@ -71,6 +71,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         TrackerService.channels(this)
+        TrackerLog.attach(applicationContext)
         bridge = Bridge(this)
 
         val root = FrameLayout(this).apply { setBackgroundColor(Color.parseColor("#0A0918")) }
@@ -237,6 +238,19 @@ class MainActivity : ComponentActivity() {
         thread {
             val n = Screenshots.scan(applicationContext)
             if (n > 0) runOnUiThread { emit("queue", ShotQueue.count(this).toString()) }
+        }
+    }
+
+    /** Opens Android's installer for a downloaded update, with a notification to tap as a backup. */
+    fun installApk(f: java.io.File) {
+        try { Updater.notifyReady(this, f) } catch (e: Exception) { TrackerLog.add("Update notification failed: ${e.message}") }
+        try {
+            startActivity(Updater.installIntent(this, f))
+            TrackerLog.add("Opened the installer")
+            emit("update-installing", JSONObject.quote(""))
+        } catch (e: Exception) {
+            TrackerLog.add("Couldn't open the installer: ${e.message}")
+            emit("update-error", JSONObject.quote("Android didn't open the installer. Tap the SNAP Stat update notification instead."))
         }
     }
 

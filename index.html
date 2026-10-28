@@ -6203,8 +6203,8 @@ function natEvent(type, data) {
   }
   if (type === "update") { nat.update = obj(data); refreshView(); return; }
   if (type === "update-progress") { nat.pct = num(data); refreshView(); return; }
-  if (type === "update-installing") { nat.pct = -1; toast("Installing the update. Confirm it if Android asks."); refreshView(); return; }
-  if (type === "update-error") { nat.pct = -1; toast(String(data || "The update didn't work.")); refreshView(); return; }
+  if (type === "update-installing") { nat.pct = -1; nat.tried = Date.now(); toast("Tap Update in Android's window to finish."); refreshView(); return; }
+  if (type === "update-error") { nat.pct = -1; nat.tried = Date.now(); toast(String(data || "The update didn't work.")); refreshView(); return; }
   natInfo();
   if (type === "queue" || type === "resume") natPull();
   if (ui.more === "account") refreshView();
@@ -6259,7 +6259,8 @@ function natUpdateBanner() {
   if (!natCan("updateInfo")) return `<section class="sec"><div class="panel row between nowrap"><div><b>Install the new Android app once</b><div class="small muted">After this one, app updates install with a tap.</div></div><button class="btn snap" data-a="natGetApk">Download</button></div></section>`;
   if (!natUpdateReady()) return "";
   const busy = nat.pct >= 0;
-  return `<section class="sec"><div class="panel row between nowrap"><div><b>Android app update ready</b><div class="small muted">Version 1.${esc(nat.update.latest)}${busy ? ` · downloading ${nat.pct}%` : ". Takes a few seconds."}</div></div><button class="btn snap" data-a="natUpdate" ${busy ? "disabled" : ""}>${busy ? "Updating…" : "Update"}</button></div></section>`;
+  return `<section class="sec"><div class="panel stack small"><div class="row between nowrap"><div><b>Android app update ready</b><div class="small muted">Version 1.${esc(nat.update.latest)}${busy ? ` · downloading ${nat.pct}%` : ". Takes a few seconds."}</div></div><button class="btn snap" data-a="natUpdate" ${busy ? "disabled" : ""}>${busy ? "Updating…" : "Update"}</button></div>
+    ${nat.tried ? `<span class="muted">Didn't update? <button class="btn sm ghost" data-a="natGetApk">Download it in Chrome</button> and open the file to install it.</span>` : ""}</div></section>`;
 }
 
 function androidPanel() {
@@ -6301,7 +6302,7 @@ Object.assign(A, {
     setTimeout(() => { natInfo(); refreshView(); }, 800);
   },
   natSnap: () => NATIVE.openSnap(),
-  natUpdate: () => { nat.pct = 0; refreshView(); NATIVE.installUpdate(); setTimeout(() => { if (nat.pct === 0) { nat.pct = -1; refreshView(); } }, 20000); },
+  natUpdate: () => { nat.pct = 0; refreshView(); NATIVE.installUpdate(); setTimeout(() => { if (nat.pct >= 0) { nat.pct = -1; nat.tried = Date.now(); refreshView(); } }, 25000); },
   natCheckUpdate: () => { toast("Checking…"); NATIVE.checkUpdate(); setTimeout(() => { if (!natUpdateReady()) toast("You have the newest app."); }, 4000); },
   natGetApk: () => NATIVE.openUrl(APK_URL),
   natPull: () => natPull(),

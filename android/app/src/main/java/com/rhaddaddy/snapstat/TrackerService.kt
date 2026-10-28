@@ -117,6 +117,7 @@ class TrackerService : Service() {
     }
 
     private fun begin(code: Int, data: Intent) {
+        TrackerLog.attach(applicationContext)
         rules = Rules.load(this)
         usage = Usage.Tracker(this)
         val mpm = getSystemService(MediaProjectionManager::class.java)
