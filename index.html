@@ -85,7 +85,7 @@ button { cursor: pointer; }
 .top > div:first-child { min-width: 0; flex: 1 1 auto; }
 .brand { display: flex; align-items: center; gap: 8px; font-family: var(--comic); font-size: 24px; letter-spacing: .04em; white-space: nowrap; line-height: 1; min-width: 0; }
 .brand > span { overflow: hidden; text-overflow: ellipsis; }
-.brand .ic { width: 26px; height: 26px; color: var(--cube); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--cube) 60%, transparent)); }
+.brand .ic { width: 28px; height: 28px; color: var(--cube); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--cube) 60%, transparent)); }
 .brand b { font-weight: 400; background: linear-gradient(180deg, var(--snap-a), var(--snap-b)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .sync { font-family: var(--ui); font-size: 11px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
 .me-chip { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px 4px 4px; max-width: 46%; min-width: 0; flex: 0 1 auto; }
@@ -398,7 +398,7 @@ html.overlay .wrap { padding: 8px !important; }
 <div class="wrap">
   <header class="top">
     <div>
-      <div class="brand"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 3.5 7.2v9.6L12 21.5l8.5-4.7V7.2z" fill="currentColor" opacity=".2"/><path d="M12 2.5 3.5 7.2v9.6L12 21.5l8.5-4.7V7.2zM3.5 7.2 12 12l8.5-4.8M12 12v9.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>SNAP <b>STAT</b></span></div>
+      <div class="brand"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="lgT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4628A0"/><stop offset="1" stop-color="#BE5AE6"/></linearGradient><linearGradient id="lgL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0C1446"/><stop offset="1" stop-color="#285ABE"/></linearGradient><linearGradient id="lgR" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1E0C46"/><stop offset="1" stop-color="#782896"/></linearGradient></defs><path d="M12 2.5 20.5 7.2 12 12 3.5 7.2z" fill="url(#lgT)"/><path d="M3.5 7.2 12 12v9.5l-8.5-4.7z" fill="url(#lgL)"/><path d="M12 12l8.5-4.8v9.6L12 21.5z" fill="url(#lgR)"/><g fill="#fff"><circle cx="9.6" cy="6.6" r=".45"/><circle cx="14.6" cy="7.9" r=".35"/><circle cx="6.4" cy="11.2" r=".5"/><circle cx="8.6" cy="16" r=".35"/><circle cx="16.6" cy="12.6" r=".45"/><circle cx="14.8" cy="17.4" r=".35"/></g><path d="M12 2.5 3.5 7.2v9.6L12 21.5l8.5-4.7V7.2zM3.5 7.2 12 12l8.5-4.8M12 12v9.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>SNAP <b>STAT</b></span></div>
       <div class="sync" id="sync">Loading…</div>
     </div>
     <button class="me-chip" id="mechip" data-a="go" data-to="account" aria-label="Your profile"></button>
