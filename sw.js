@@ -1,5 +1,5 @@
 // SNAP Stat's service worker. It lets the app open without a connection, and checks for things
-// to notify you about: a wishlist item on sale, an event starting, the season ending.
+// to notify you about: a wishlist item on sale, an event starting, the season ending, a daily goal or checklist.
 const VERSION = "snapstat-v1";
 const SHELL = ["./", "index.html", "firebase-config.js", "firebase-init.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
@@ -57,6 +57,9 @@ async function check() {
     }
   }
   if (st.prefs.events) for (const e of st.events || []) if (e.start === today) once(`event:${e.id}`, { title: "Starting today", body: e.name, url: st.app + "#events" });
+  // An evening nudge for daily goals that aren't done, and a reminder a couple of hours before the daily checklist resets.
+  if (st.prefs.goals !== false && now.getHours() >= 18) for (const g of st.goals || []) if (g.day === today && g.left > 0) once(`goal:${g.id}:${today}`, { title: "Today's goal", body: `${g.text}: ${g.left} to go.`, url: st.app + "#home" });
+  if (st.prefs.missions !== false && st.missions && st.missions.left > 0 && st.missions.resetAt > Date.now() && st.missions.resetAt - Date.now() < 3 * 3600e3) once(`missions:${st.missions.key}`, { title: "Daily checklist", body: `${st.missions.left} thing${st.missions.left > 1 ? "s" : ""} left before the game's day resets.`, url: st.app + "#home" });
   if (st.prefs.season && st.season && st.season.end === tomorrow) once(`season:${st.season.id}`, { title: "The season ends tomorrow", body: `${st.season.name}: finish your pass and climb while you can.`, url: st.app + "#seasons" });
 
   // Show up to five at a time. Each one is remembered only once it was actually shown.
