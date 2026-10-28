@@ -143,6 +143,16 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         emit("resume", bridge.info())
         scanScreenshots()
+        checkUpdate(false)
+    }
+
+    /** Looks for a newer version of the app on GitHub, at most every 6 hours unless asked. */
+    fun checkUpdate(now: Boolean) {
+        if (!now && System.currentTimeMillis() - Updater.lastCheck(this) < 6 * 3600_000L) return
+        thread {
+            val r = Updater.check(applicationContext)
+            runOnUiThread { emit("update", r.put("canInstall", Updater.canInstall(this)).toString()) }
+        }
     }
 
     override fun onDestroy() {

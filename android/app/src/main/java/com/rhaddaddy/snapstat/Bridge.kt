@@ -36,6 +36,7 @@ class Bridge(private val act: MainActivity) {
         .put("captured", TrackerService.captured)
         .put("queue", ShotQueue.count(ctx))
         .put("snap", isInstalled(ShotQueue.SNAP_PACKAGE))
+        .put("versionCode", Updater.current(ctx))
         .toString()
 
     private fun isInstalled(pkg: String): Boolean = try { ctx.packageManager.getPackageInfo(pkg, 0); true } catch (e: Exception) { false }
@@ -147,6 +148,31 @@ class Bridge(private val act: MainActivity) {
     @JavascriptInterface fun stopTracker() { TrackerService.stop(ctx) }
     @JavascriptInterface fun setRules(json: String): Boolean = Rules.save(ctx, json)
     @JavascriptInterface fun log(): String = TrackerLog.text()
+    // ---- Updates to the app itself ----
+    /** The last update check: {current, latest, url, name}. */
+    @JavascriptInterface fun updateInfo(): String {
+        val saved = ctx.getSharedPreferences("snapstat", 0).getString("update", null)
+        val j = try { if (saved != null) JSONObject(saved) else JSONObject() } catch (e: Exception) { JSONObject() }
+        return j.put("current", Updater.current(ctx)).put("canInstall", Updater.canInstall(ctx)).toString()
+    }
+
+    @JavascriptInterface fun checkUpdate() { act.checkUpdate(true) }
+
+    @JavascriptInterface fun installUpdate() {
+        if (!Updater.canInstall(ctx)) {
+            act.runOnUiThread {
+                toast("Allow SNAP Stat to install updates, then come back and tap Update again")
+                try { Updater.askInstallPermission(act) } catch (_: Exception) {}
+            }
+            return
+        }
+        val url = try { JSONObject(updateInfo()).optString("url") } catch (e: Exception) { "" }
+        kotlin.concurrent.thread {
+            val err = try { Updater.install(ctx, url) { pct -> act.runOnUiThread { act.emit("update-progress", pct.toString()) } } } catch (e: Exception) { e.message ?: "The update didn't work." }
+            act.runOnUiThread { act.emit(if (err.isEmpty()) "update-installing" else "update-error", JSONObject.quote(err)) }
+        }
+    }
+
     @JavascriptInterface fun openSnap() {
         act.runOnUiThread {
             val i = ctx.packageManager.getLaunchIntentForPackage(ShotQueue.SNAP_PACKAGE)

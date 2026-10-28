@@ -2478,7 +2478,7 @@ function vHome() {
   return `${seasonHero()}
   ${!S.me.onboarded ? `<div class="panel stack halftone"><h3>Create your profile</h3><p class="muted small">Add your in-game name, country and alliance so friends can follow your stats.</p><div><button class="btn snap" data-a="onboard">Get started</button></div></div>` : ""}
   <section class="sec">${wallet}</section>
-  ${catchUpBanner()}${sessionPanel()}${challengesHomeHtml()}${todayHtml()}
+  ${natUpdateBanner()}${catchUpBanner()}${sessionPanel()}${challengesHomeHtml()}${todayHtml()}
   ${svSyncPanel()}
   ${eventsStrip()}
   ${balanceHomePanel()}
@@ -6126,7 +6126,8 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
    Pictures the app collects wait in a queue on the phone until SNAP Stat reads them with your AI service. */
 const NATIVE = window.SnapStatNative || null;
 const APK_URL = "https://github.com/rhaddaddy/snap-stat/releases/latest/download/snap-stat.apk";
-const nat = { info: {}, log: "", logOpen: false, busy: false };
+const nat = { info: {}, log: "", logOpen: false, busy: false, update: {}, pct: -1 };
+const natCan = (fn) => !!(NATIVE && typeof NATIVE[fn] === "function");
 function natInfo() { if (!NATIVE) return {}; try { nat.info = obj(JSON.parse(NATIVE.info())); } catch { nat.info = {}; } return nat.info; }
 const b64ToBytes = (b64) => { const s = atob(b64); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
 const blobToB64 = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
@@ -6154,7 +6155,7 @@ if (NATIVE) {
     // Android's back button closes an open panel first
     back: () => { const sh = $("#sheet"); if (sh && !sh.hidden) { closeSheet(); return true; } return false; },
   };
-  const ready = () => { try { NATIVE.ready(); } catch { /* old app */ } natRules(); };
+  const ready = () => { try { NATIVE.ready(); } catch { /* old app */ } natRules(); if (natCan("updateInfo")) { try { nat.update = obj(JSON.parse(NATIVE.updateInfo())); } catch { /* none yet */ } } };
   if (document.readyState === "complete") setTimeout(ready, 0); else window.addEventListener("load", ready);
   document.addEventListener("toggle", (e) => { if (e.target && e.target.dataset && e.target.dataset.natlog) nat.logOpen = e.target.open; }, true);
 }
@@ -6165,6 +6166,10 @@ function natEvent(type, data) {
     else if (data && window.__snapSignInToken) window.__snapSignInToken(data).catch(() => toast("Sign-in didn't finish. Try again."));
     return;
   }
+  if (type === "update") { nat.update = obj(data); refreshView(); return; }
+  if (type === "update-progress") { nat.pct = num(data); refreshView(); return; }
+  if (type === "update-installing") { nat.pct = -1; toast("Installing the update. Confirm it if Android asks."); refreshView(); return; }
+  if (type === "update-error") { nat.pct = -1; toast(String(data || "The update didn't work.")); refreshView(); return; }
   natInfo();
   if (type === "queue" || type === "resume") natPull();
   if (ui.more === "account") refreshView();
@@ -6203,6 +6208,16 @@ async function natRules() {
   return false;
 }
 
+/* A newer Android app is on GitHub. (The rest of SNAP Stat comes from the website, so it's always up to date.) */
+const natUpdateReady = () => num(nat.update.latest) > num(nat.update.current) && !!nat.update.url;
+function natUpdateBanner() {
+  if (!NATIVE) return "";
+  if (!natCan("updateInfo")) return `<section class="sec"><div class="panel row between nowrap"><div><b>Install the new Android app once</b><div class="small muted">After this one, app updates install with a tap.</div></div><button class="btn snap" data-a="natGetApk">Download</button></div></section>`;
+  if (!natUpdateReady()) return "";
+  const busy = nat.pct >= 0;
+  return `<section class="sec"><div class="panel row between nowrap"><div><b>Android app update ready</b><div class="small muted">Version 1.${esc(nat.update.latest)}${busy ? ` · downloading ${nat.pct}%` : ". Takes a few seconds."}</div></div><button class="btn snap" data-a="natUpdate" ${busy ? "disabled" : ""}>${busy ? "Updating…" : "Update"}</button></div></section>`;
+}
+
 function androidPanel() {
   if (!NATIVE) {
     if (!window.SNAPSTAT_STANDALONE || !/Android/i.test(navigator.userAgent)) return "";
@@ -6212,7 +6227,7 @@ function androidPanel() {
       <span class="muted">Open the file once it downloads. If your phone asks, allow Chrome to install apps.</span></div></section>`;
   }
   const i = natInfo(), q = num(i.queue);
-  return `<section class="sec"><h2>Android app</h2>
+  return `<section class="sec"><h2>Android app</h2>${natUpdateBanner().replace(/^<section class="sec">|<\/section>$/g, "")}
     ${!aiOn() ? `<div class="panel small"><p class="note">Add your AI key in <b>AI features</b> below. The app keeps its own copy of your keys, so paste your Gemini key here once.</p></div>` : ""}
     <div class="panel stack small">
       <div class="row between"><b>Read new screenshots automatically</b>${i.autoShots ? `<button class="btn sm" data-a="natShots" data-v="0">Turn off</button>` : `<button class="btn sm snap" data-a="natShots" data-v="1">Turn on</button>`}</div>
@@ -6229,7 +6244,8 @@ function androidPanel() {
       <details data-natlog="1" ${nat.logOpen ? "open" : ""}><summary class="small">What the tracker saw</summary>
         <pre class="small" style="white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto;margin:8px 0">${esc(nat.log || "Tap Refresh to see it.")}</pre>
         <div class="row"><button class="btn sm" data-a="natLogRefresh">Refresh</button><button class="btn sm" data-a="natLogCopy">${ICON.copy} Copy for Claude</button></div></details>
-    </div></section>`;
+    </div>
+    <p class="muted small">App version ${esc(i.version || "?")}. ${natCan("checkUpdate") ? `<button class="btn sm ghost" data-a="natCheckUpdate">Check for an update</button>` : ""}</p></section>`;
 }
 
 Object.assign(A, {
@@ -6241,6 +6257,9 @@ Object.assign(A, {
     setTimeout(() => { natInfo(); refreshView(); }, 800);
   },
   natSnap: () => NATIVE.openSnap(),
+  natUpdate: () => { nat.pct = 0; refreshView(); NATIVE.installUpdate(); setTimeout(() => { if (nat.pct === 0) { nat.pct = -1; refreshView(); } }, 20000); },
+  natCheckUpdate: () => { toast("Checking…"); NATIVE.checkUpdate(); setTimeout(() => { if (!natUpdateReady()) toast("You have the newest app."); }, 4000); },
+  natGetApk: () => NATIVE.openUrl(APK_URL),
   natPull: () => natPull(),
   natLogRefresh: () => { nat.log = NATIVE.log(); nat.logOpen = true; render(); },
   natLogCopy: () => { nat.log = NATIVE.log(); copyText(nat.log || "(nothing yet)", "Copied. Paste it to Claude in your chat."); },
