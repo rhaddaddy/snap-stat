@@ -88,6 +88,29 @@ def build(side_tex, top_tex):
     return fr
 
 
+BNW, BNH, BNB, BNR = 600, 240, 15, 27  # banners are 5:2; the ring is 2.5% of the width and the outer corners are rounded 4.5%
+
+
+def build_banner(side_tex, top_tex):
+    """The frame for a banner: the same textures run round a rounded rectangle, so the inside corners are rounded like the outside."""
+    S = 2; W, H, B, Ro = BNW * S, BNH * S, BNB * S, BNR * S
+    top = np.asarray(top_tex.convert("RGBA").resize((W, B), Image.LANCZOS), dtype=np.float32)    # row 0 is the outer edge
+    side = np.asarray(side_tex.convert("RGBA").resize((B, H), Image.LANCZOS), dtype=np.float32)  # column 0 is the inner edge (a right-hand side)
+    ys, xs = np.mgrid[0:H, 0:W].astype(np.float32) + 0.5
+    dx = xs - np.clip(xs, Ro, W - Ro); dy = ys - np.clip(ys, Ro, H - Ro)
+    dist = np.sqrt(dx * dx + dy * dy)
+    depth = Ro - dist  # how far in from the outer edge, following the rounded corners
+    cover = np.clip(depth + 0.5, 0, 1) * np.clip(B - depth + 0.5, 0, 1) * (dist > 0)
+    v = np.clip(depth / B, 0, 1)
+    tr = np.clip(np.rint(v * (B - 1)), 0, B - 1).astype(int); tc = np.clip(xs.astype(int), 0, W - 1)
+    sr = np.clip(ys.astype(int), 0, H - 1); sc = np.clip(np.rint((1 - v) * (B - 1)), 0, B - 1).astype(int)
+    d2 = dx * dx + dy * dy + 1e-6; wt = (dy * dy / d2)[..., None]; ws = 1 - wt
+    px = top[tr, tc] * wt + side[sr, sc] * ws
+    px[..., 3] *= cover
+    im = Image.fromarray(np.clip(px, 0, 255).astype(np.uint8), "RGBA")
+    return im.resize((BNW, BNH), Image.LANCZOS)
+
+
 HW, HH, HR = 231, 200, 17  # a hexagon with flat top and bottom, like the game's profile pictures (width:height = 2:√3)
 
 
@@ -137,7 +160,7 @@ def flatten_tilted(im):
     for i, (y, x0, _) in enumerate(segs): tex.paste(im.crop((x0, y, x0 + bw, y + 1)), (0, i))
     side = tex.transpose(Image.FLIP_LEFT_RIGHT)  # inner edge on the left, like a right-hand side
     top = side.rotate(90, expand=True)
-    return build(side, top), build_hex(top)
+    return build(side, top), build_hex(top), build_banner(side, top)
 
 
 def line_fit(ys, xs):
@@ -207,7 +230,7 @@ def flatten_anim(data):
         ttex = Image.new("RGB", (cols[1] - cols[0], tt))
         for j, x in enumerate(range(*cols)):
             y = int(round(ft[0] * x + ft[1])); ttex.paste(img.crop((x, y - tt + 1, x + 1, y + 1)), (j, 0))
-        out.append((build(stex, ttex), build_hex(ttex)))
+        out.append((build(stex, ttex), build_hex(ttex), build_banner(stex, ttex)))
     return out if len(out) >= 12 else None
 
 
@@ -243,38 +266,41 @@ src_log, out, report = {}, [], {"anim": [], "still": [], "drawn": [], "kept": []
 for b in borders:
     bid = b["id"]; item = {"id": bid, "name": b["name"], "rarity": b["rarity"], "source": b["source"], "added": b["added"], "frame": "", "anim": "", "fx": "", "c": color_of(bid)}
     still_p, anim_p, hex_p, hexa_p = f"{OUT_DIR}/{bid}.webp", f"{OUT_DIR}/{bid}.anim.webp", f"{OUT_DIR}/{bid}.hex.webp", f"{OUT_DIR}/{bid}.hex.anim.webp"
-    item.update(hex="", hexAnim="")
+    bn_p, bna_p = f"{OUT_DIR}/{bid}.bn.webp", f"{OUT_DIR}/{bid}.bn.anim.webp"
+    item.update(hex="", hexAnim="", banner="", bannerAnim="")
     # moving version first
-    try: head = get(ANIM.format(bid), method="HEAD"); sig = "a3:" + str(head.get("Content-Length") or head.get("content-length")) + ":" + str(head.get("Last-Modified") or head.get("ETag") or "")
+    try: head = get(ANIM.format(bid), method="HEAD"); sig = "a4:" + str(head.get("Content-Length") or head.get("content-length")) + ":" + str(head.get("Last-Modified") or head.get("ETag") or "")
     except Exception: head, sig = None, ""
-    if head and prev_src.get(bid) == sig and all(os.path.exists(f) for f in (still_p, anim_p, hex_p, hexa_p)):
-        item.update(frame=still_p, anim=anim_p, hex=hex_p, hexAnim=hexa_p); src_log[bid] = sig; report["kept"].append(bid); out.append(item); continue
+    if head and prev_src.get(bid) == sig and all(os.path.exists(f) for f in (still_p, anim_p, hex_p, hexa_p, bn_p, bna_p)):
+        item.update(frame=still_p, anim=anim_p, hex=hex_p, hexAnim=hexa_p, banner=bn_p, bannerAnim=bna_p); src_log[bid] = sig; report["kept"].append(bid); out.append(item); continue
     done = False
     if head:
         try:
             frames = flatten_anim(get(ANIM.format(bid), True))
             if frames:
-                rect, hexes = [f for f, _ in frames], [h for _, h in frames]
+                rect, hexes, bns = [f for f, _, _ in frames], [h for _, h, _ in frames], [b_ for _, _, b_ in frames]
                 rect[0].save(still_p, "WEBP", quality=82, method=6)
                 rect[0].save(anim_p, "WEBP", save_all=True, append_images=rect[1:], duration=100, loop=0, quality=68, method=4)
                 hexes[0].save(hex_p, "WEBP", quality=82, method=6)
                 hexes[0].save(hexa_p, "WEBP", save_all=True, append_images=hexes[1:], duration=100, loop=0, quality=68, method=4)
-                item.update(frame=still_p, anim=anim_p, hex=hex_p, hexAnim=hexa_p); src_log[bid] = sig; report["anim"].append(bid); done = True
+                bns[0].save(bn_p, "WEBP", quality=82, method=6)
+                bns[0].save(bna_p, "WEBP", save_all=True, append_images=bns[1:], duration=100, loop=0, quality=66, method=4)
+                item.update(frame=still_p, anim=anim_p, hex=hex_p, hexAnim=hexa_p, banner=bn_p, bannerAnim=bna_p); src_log[bid] = sig; report["anim"].append(bid); done = True
         except Exception as e: print(bid, "animation failed:", e)
     if not done:
         for u in [b["img"], f"https://static.marvelsnap.pro/borders/{bid}.webp"]:
             try:
                 got = flatten_tilted(Image.open(io.BytesIO(get(u, True))))
                 if got is not None:
-                    got[0].save(still_p, "WEBP", quality=82, method=6); got[1].save(hex_p, "WEBP", quality=82, method=6)
-                    item.update(frame=still_p, hex=hex_p); done = True; report["still"].append(bid)
-                    for f in (anim_p, hexa_p):
+                    got[0].save(still_p, "WEBP", quality=82, method=6); got[1].save(hex_p, "WEBP", quality=82, method=6); got[2].save(bn_p, "WEBP", quality=82, method=6)
+                    item.update(frame=still_p, hex=hex_p, banner=bn_p); done = True; report["still"].append(bid)
+                    for f in (anim_p, hexa_p, bna_p):
                         if os.path.exists(f): os.remove(f)
                     break
             except Exception: pass
     if not done:
         report["drawn"].append(bid)
-        for f in (still_p, anim_p, hex_p, hexa_p):
+        for f in (still_p, anim_p, hex_p, hexa_p, bn_p, bna_p):
             if os.path.exists(f): os.remove(f)
     if not item["anim"]: item["fx"] = effect(bid)
     out.append(item)

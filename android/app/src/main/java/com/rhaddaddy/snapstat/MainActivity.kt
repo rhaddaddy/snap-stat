@@ -73,6 +73,7 @@ class MainActivity : ComponentActivity() {
         TrackerService.channels(this)
         TrackerLog.attach(applicationContext)
         Alerts.channel(this)
+        ResetClock.schedule(this); Widget.refresh(this)
         bridge = Bridge(this)
 
         val root = FrameLayout(this).apply { setBackgroundColor(Color.parseColor("#0A0918")) }

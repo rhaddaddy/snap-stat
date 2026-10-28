@@ -1,0 +1,13 @@
+{
+  "about": "Corrections to the schedule from snap.fan, checked by hand. update-schedule.mjs applies them every day. Dates are when the game's daily reset happens (12:00 PM Pacific, 11:00 AM in winter).",
+  "seasons": {
+    "s-2026-10": { "name": "Vampires vs. Zombies", "start": "2026-10-06", "passCard": "Vampire Killmonger", "superCard": "Zombie Blade", "link": "https://marvelsnap.com/new-season-vampires-vs-zombies/" }
+  },
+  "eventNames": { "High Stakes Tables": "Deadpool's Diner" },
+  "dropEvents": ["High Stakes Tables Custom"],
+  "events": {
+    "sf-highstakestables-oct26": { "end": "2026-11-03", "shopUntil": "2026-11-05", "desc": "Deadpool's Diner is back with its high-stakes tables, plus two new top tables (Candy Cauldron and D-Maxx). The shop stays open until November 5." },
+    "sf-teamup-weekendoct26": { "end": "2026-10-27" },
+    "sf-championarena-oct26": { "end": "2026-10-21" }
+  }
+}

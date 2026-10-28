@@ -183,6 +183,13 @@ class Bridge(private val act: MainActivity) {
     @JavascriptInterface fun setAlerts(json: String): Boolean = Alerts.save(ctx, json)
     @JavascriptInterface fun showAlert(title: String, body: String, tag: String, route: String): Boolean = Alerts.show(ctx, title.take(120), body.take(400), tag.take(120), if (route.startsWith("#")) route.take(40) else "#home")
     @JavascriptInterface fun canNotify(): Boolean = Alerts.canNotify(ctx)
+    // ---- Home-screen widget and the game's reset times ----
+    /** What the widget shows: {handle, rank, season: {name, endTs}, today: {day, games, w, l, t, cubes}, alert}. */
+    @JavascriptInterface fun setWidget(json: String): Boolean = Widget.save(ctx, json)
+    @JavascriptInterface fun widgetCount(): Int = Widget.count(ctx)
+    @JavascriptInterface fun pinWidget(): Boolean = Widget.requestPin(ctx)
+    /** Sets the alarm for the next reset or 8-hour refresh (used for the widget and the reset notifications). */
+    @JavascriptInterface fun resetAlarms(): Boolean { ResetClock.schedule(ctx); return true }
     @JavascriptInterface fun checkAlertsNow() { kotlin.concurrent.thread { try { Alerts.check(ctx) } catch (e: Exception) { TrackerLog.add("Alert check failed: ${e.message}") } } }
 
     @JavascriptInterface fun openSnap() {

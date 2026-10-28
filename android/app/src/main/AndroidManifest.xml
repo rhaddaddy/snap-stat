@@ -83,6 +83,34 @@
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
+        <!-- The home-screen widget -->
+        <receiver
+            android:name=".SnapWidget"
+            android:exported="false"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/snap_widget_info" />
+        </receiver>
+
+        <!-- The game's daily reset and 8-hour refreshes: updates the widget and sends the reset notifications -->
+        <receiver
+            android:name=".ResetAlarm"
+            android:exported="false" />
+
+        <!-- Sets the reset alarm again after the phone restarts or the app updates -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.files"

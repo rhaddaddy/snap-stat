@@ -52,6 +52,7 @@ object Alerts {
             val j = JSONObject(json)
             File(ctx.filesDir, STATE).writeText(j.toString())
             if (j.optJSONObject("prefs")?.optBoolean("on") == true) schedule(ctx) else cancel(ctx)
+            ResetClock.schedule(ctx)
             // Check right away, but not more than every 10 minutes (the web app saves this often)
             if (System.currentTimeMillis() - lastRun > 10 * 60_000L) {
                 lastRun = System.currentTimeMillis()

@@ -107,6 +107,36 @@ if (evPage) {
 }
 if (Object.keys(events).length < 5) { console.log("The event list looked wrong, so the previous events were kept."); Object.assign(events, prev.events || {}); }
 
+/* ---------- Filling gaps and fixing names ---------- */
+// snap.fan sometimes skips a season (October 2026 wasn't listed). Marvel Snap Zone's season list (art.json, from
+// update-art.py) and the season history (seed.json) fill in missing months, and schedule-overrides.json holds
+// corrections checked by hand. Seasons start at the daily reset on the first Tuesday of the month.
+{
+  const read = (f) => { try { return existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : null; } catch { return null; } };
+  const art = read("art.json"), seed = read("seed.json"), fix = read("schedule-overrides.json") || {};
+  const have = new Set(Object.keys(seasons));
+  const months = new Set([...Object.keys((art && art.seasons) || {}).map((k) => "s-" + k), ...Object.keys((seed && seed.seasons) || {})]);
+  const known = Object.keys(seasons).sort(), first = known[0] || "", last = known[known.length - 1] || "";
+  for (const id of months) {
+    if (have.has(id) || id < first || id > last || !/^s-\d{4}-\d{2}$/.test(id)) continue; // only gaps inside snap.fan's list
+    const [y, m] = id.slice(2).split("-").map(Number), sd = (seed && seed.seasons && seed.seasons[id]) || {}, a = (art && art.seasons && art.seasons[id.slice(2)]) || {};
+    const name = String(sd.name || a.title || "").trim(); if (!name) continue;
+    seasons[id] = { name, start: iso(firstTuesday(y, m - 1)), end: "", passLevels: 50, passCard: sd.passCard || "", superCard: sd.superCard || "", cards: sd.cards || [], variants: sd.variants || [], rewards: sd.rewards || [],
+      notes: "Dates are estimated: seasons start on the first Tuesday of the month.", link: a.link || "", by: "Marvel Snap Zone" };
+    console.log(`Added the missing season ${id}: ${name}`);
+  }
+  for (const [id, o] of Object.entries(fix.seasons || {})) if (seasons[id] || o.name) seasons[id] = { ...(seasons[id] || { passLevels: 50, cards: [], variants: [], rewards: [], notes: "" }), ...o };
+  // Each season ends the day before the next one starts.
+  const ids = Object.keys(seasons).sort();
+  ids.forEach((id, i) => { const next = seasons[ids[i + 1]]; if (next && next.start) seasons[id].end = iso(dayBefore(new Date(next.start + "T00:00:00Z"))); else if (!seasons[id].end) { const [y, m] = id.slice(2).split("-").map(Number); seasons[id].end = iso(dayBefore(firstTuesday(m === 12 ? y + 1 : y, m % 12))); } });
+  const renames = fix.eventNames || {}, drop = new Set((fix.dropEvents || []).map((n) => n.toLowerCase()));
+  for (const [id, e] of Object.entries(events)) {
+    if (drop.has(String(e.name).toLowerCase())) { delete events[id]; continue; }
+    if (renames[e.name]) e.name = renames[e.name];
+    if (fix.events && fix.events[id]) Object.assign(e, fix.events[id]);
+  }
+}
+
 /* ---------- What's for sale: bundles and event shops ---------- */
 const itemsFrom = (html) => [...html.matchAll(/<a href="\/cards\/([A-Za-z0-9]+)\/(?:([A-Za-z0-9_]+)\/)?"[\s\S]*?bundle-card__item-text">([^<]+)</g)]
   .map(([, cid, vid, label]) => { const isVar = !!vid && /_\d+$/.test(vid); return { cardId: cid, cardName: cardName(cid), variantId: isVar ? vid : "", cat: isVar ? varByOrder[vid] || "" : "", label: strip(label) }; });
