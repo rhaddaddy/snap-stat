@@ -1,0 +1,22 @@
+# Temporary: saves a few snap.fan pages so the spotlight reader can be written. Removed afterwards.
+name: Peek at spotlight pages
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/peek.yml"]
+permissions:
+  contents: write
+jobs:
+  peek:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p debug
+          UA="Mozilla/5.0 (compatible; SNAP-Stat-card-updater/1.0)"
+          for p in sitemap.xml spotlight/ spotlights/ spotlight-caches/ caches/ seasons/october2026/ seasons/november2026/ news/; do
+            f=$(echo "$p" | tr '/' '_'); curl -sSL -A "$UA" -o "debug/$f.html" -w "$p %{http_code} %{size_download}\n" "https://snap.fan/$p" || true
+          done | tee debug/codes.txt
+          grep -oiE 'href="[^"]*spotlight[^"]*"' debug/*.html | sort -u | head -50 > debug/spot-links.txt || true
+          git config user.name "github-actions[bot]"; git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
+          git add debug; git commit -m "Peek at spotlight pages" && git pull --rebase && git push
