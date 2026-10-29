@@ -6371,15 +6371,17 @@ function shotHash(s) { let h = 2166136261; for (let i = 0; i < s.length; i += 7)
 const modeNames = () => [...new Set([...MODES.filter((m) => !["Other", "Event", "Limited-time mode"].includes(m)), ...events().filter((e) => e.endTs > Date.now() - 30 * DAY && e.startTs < Date.now() + 7 * DAY).map((e) => String(e.name))])];
 const SCREEN_NAMES = { alliance: "alliance", event: "event pass", eventshop: "event shop", seasonpass: "season pass", shop: "shop (offers and bundles)", shopcurrency: "shop's Credits and Gold", shoptokens: "shop's Collector's Token", shopmedals: "Conquest medal shop", home: "home", albums: "variant albums", missions: "missions", card: "card upgrade", split: "card split result", collectionlevel: "Collection Level" };
 // What each screen's top bar shows, so its numbers aren't mixed up (an event's currencies aren't Credits).
-const TOP_BAR = "In MARVEL SNAP's top bar, the number at the top left (beside a coin) is Credits and the number at the top right (beside a gold bar) is Gold. On the home screen, the number with a small badge under the deck name (like +33,706) is the Collection Level, and the number beside SEASON PASS is the season pass level.";
+const TOP_BAR = "MARVEL SNAP's top bar shows two of the player's currencies. Top right, beside a gold bar in an orange box, is always Gold. Top left is Credits when its icon is a blue crystal shard in a blue box (the home screen and the shop's Offers tab), and Collector's Tokens when its icon is a purple token in a purple box (the shop's Cards tab). Put the top-left one in \"topLeft\" with its icon, and the top-right one in \"topRight\".";
+const HOME_TIPS = "On the home screen: the number in the green badge under the player's picture (like 33,706) is the Collection Level; the small number at the right end of the Season Pass bar is the season pass level; the big number in the circle beside PLAY is the rank, and the one under it (like 4/7) is cubes toward the next rank.";
+const NOT_YOURS = "Numbers inside offers, bundles, packs and price buttons (like 3,600, 500, 1,200 or 6,000) are things for sale, not the player's.";
 const SCREEN_TIPS = {
-  home: "Read it as \"numbers\". " + TOP_BAR + " Collector's Tokens aren't shown here.",
-  shop: "Read it as \"shop\". " + TOP_BAR,
-  shopcurrency: "Read it as \"shop\" (Credits and Gold offers, the Gold Pass and the free credits). " + TOP_BAR,
-  shoptokens: "Read it as \"shop\". On this tab (the Collector's Token shop) the number at the top left is Collector's Tokens, not Credits.",
+  home: "Read it as \"numbers\". " + TOP_BAR + " " + HOME_TIPS + " Collector's Tokens aren't shown on the home screen.",
+  shop: "Read it as \"shop\". " + TOP_BAR + " " + NOT_YOURS,
+  shopcurrency: "Read it as \"shop\" (Credits and Gold offers, the Gold Pass and the free credits). " + TOP_BAR + " " + NOT_YOURS + " A red \"Available In 5h 17m\" on the free credits is \"freeCreditsIn\"; \"329 DAYS LEFT\" is \"goldPassDays\", and a timer under the Gold Pass's gold (like 13h 17m) is \"goldPassClaimIn\".",
+  shoptokens: "Read it as \"shop\". This is the shop's Cards tab, so the number at the top left (purple box) is Collector's Tokens, not Credits. " + NOT_YOURS + " A CLAIMED! button under the free tokens means \"freeTokensClaimed\": true.",
   shopmedals: "Read it as \"shop\" (the Conquest medal shop). The number at the top is Conquest medals.",
   seasonpass: "Read it as \"numbers\": the season pass level and the points toward the next level (like 368/1,000). " + TOP_BAR,
-  collectionlevel: "Read it as \"numbers\": the Collection Level. " + TOP_BAR,
+  collectionlevel: "Read it as \"numbers\". The player's Collection Level is the big number in the green box at the bottom (like 33,706); the smaller numbers along the track are levels still to come, so don't use them. \"NEXT 3000 IN: 24\" at the top means the next Collector's Tokens reward (3,000) comes in 24 more levels: put those in \"clNextReward\" and \"clNextIn\". This screen has no Credits or Gold.",
   event: "Read it as \"event\". The numbers along the top of an event's screens are that event's own currencies (like Bubs), not Credits or Gold, so leave \"numbers\" out.",
   eventshop: "Read it as \"event\" (the event's shop). The numbers along the top are the event's own currencies, not Credits or Gold, so leave \"numbers\" out.",
   alliance: "Read it as \"alliance\". Leave \"numbers\" out.",
@@ -6391,8 +6393,8 @@ const SCREEN_TIPS = {
 // Which of your numbers each saved screen really shows. The rest are left alone, so a number in the same spot on
 // another screen (the Collector's Token tab's tokens, say, where the home screen has credits) can't land in the wrong place.
 const CG = ["credits", "gold"];
-const SCREEN_NUMS = { home: [...CG, "collectionLevel", "passLevel", "rank", "rankCubes"], shop: CG, shopcurrency: [...CG, "goldPassDays", "freeCreditsIn"], shoptokens: ["tokens", "gold", "freeTokensClaimed"], shopmedals: ["medals", "gold"],
-  seasonpass: [...CG, "passLevel", "passXp", "passXpNext"], collectionlevel: [...CG, "collectionLevel"], albums: CG, missions: CG, card: CG, split: CG, event: [], eventshop: [], alliance: [] };
+const SCREEN_NUMS = { home: [...CG, "collectionLevel", "passLevel", "rank", "rankCubes"], shop: CG, shopcurrency: [...CG, "goldPassDays", "goldPassClaimIn", "freeCreditsIn"], shoptokens: ["tokens", "gold", "freeTokensClaimed"], shopmedals: ["medals", "gold"],
+  seasonpass: [...CG, "passLevel", "passXp", "passXpNext"], collectionlevel: ["collectionLevel", "clNextReward", "clNextIn"], albums: CG, missions: CG, card: CG, split: CG, event: [], eventshop: [], alliance: [] };
 // The kinds each saved screen can be; anything else the reader says is set aside.
 const SCREEN_KINDS = { home: ["numbers"], shop: ["shop", "numbers", "variants"], shopcurrency: ["shop", "numbers"], shoptokens: ["shop", "numbers"], shopmedals: ["shop", "numbers"], seasonpass: ["numbers"], collectionlevel: ["numbers"], event: ["event"], eventshop: ["event", "shop"], alliance: ["alliance"], missions: ["missions"], albums: ["album"], card: ["card", "split", "variants"], split: ["split"] };
 const SHOT_PROMPT = (roster, hint) => `You are reading a screenshot from the mobile game MARVEL SNAP. Decide what screen it shows and pull out everything visible that's listed below.
@@ -6401,7 +6403,7 @@ Game modes and events: ${modeNames().join("; ")}
 ${/^screen:/.test(hint || "") ? `This picture was saved automatically while the player was on the game's ${SCREEN_NAMES[String(hint).slice(7)] || "menu"} screen. ${SCREEN_TIPS[String(hint).slice(7)] || ""}\n` : hint ? `Just before this, the player's screen mentioned "${String(hint).slice(0, 60)}". Use that for the game mode if the picture itself doesn't show the mode, except that a result with cubes won or lost is a Ranked match (or Conquest, with medals).\n` : ""}Reply as JSON:
 {"kind": "match" (end of a match, or the board during one) | "numbers" (home, profile, rank, shop, collection or season pass screens showing the player's numbers) | "deck" (a deck of cards) | "card" (one card's own screen: its upgrade level, boosters, splits, variants or Custom Card) | "collection" (the collection grid, with booster counts on the cards) | "split" (the result of an Infinity Split) | "variants" (one card's variants screen, showing which of its variants the player has) | "shop" (a shop screen: the Token Shop, Spotlight Caches, the shop's daily and special offers, a bundle or the Season Pass) | "event" (an event or limited-time mode's own pass, reward track or shop, like Deadpool's Diner's, with levels, XP, rewards, its currency and its collectibles) | "alliance" (any alliance screen: members, bounties, milestones or the alliance leaderboard) | "album" (the variant albums list, or one album with its variants) | "missions" (the daily or season missions list) | "other",
  "match": {"result": "W" | "L" | "T" | "" (from the player's side at the bottom), "cubes": cubes won or lost as a positive number (0 if not shown), "medals": Conquest medals won or lost as a positive number (0 if none), "retreated": true if the player retreated, "oppRetreated": true if the opponent retreated, "snapped": true if the player snapped, "oppSnapped": true if the opponent snapped, "mode": one of the game modes and events above, or the mode or event name shown, or "", "oppName": "", "locations": [{"name": "", "my": bottom player's power, "opp": top player's power}], "oppCards": ["card names on the top side"], "myCards": ["card names on the bottom side"], "turn": final turn number or null, "boosters": [{"card": "card name", "n": boosters this card earned, as shown on the results}]},
- "numbers": {"rank": rank number 1-99, or "Infinite", or null, "rankCubes": cubes toward the next rank or null, "collectionLevel": number or null, "credits": number or null, "gold": number or null, "tokens": Collector's Tokens number or null, "passLevel": season pass level or null, "passXp": points toward the next season pass level or null, "passXpNext": points that level needs in all or null, "rerollCoins": Split Reroll Coins or null, "wildBoosters": Wild Boosters or null, "medals": Conquest medals or null, "goldPassDays": days left on the Gold Pass if shown or null, "freeTokensClaimed": true if today's free Collector's Tokens show as claimed, false if they can be claimed, else null, "freeCreditsIn": "time until the shop's free credits can be claimed again, as shown, like 7h 22m, or empty"},
+ "numbers": {"topLeft": {"amount": the number at the top left of the top bar or null, "icon": "credits" (blue crystal, blue box) | "tokens" (purple token, purple box) | "other"}, "topRight": {"amount": the number at the top right or null, "icon": "gold" | "other"}, "rank": rank number 1-99, or "Infinite", or null, "rankCubes": cubes toward the next rank or null, "collectionLevel": the Collection Level (in a green badge) or null, "clNextReward": "the next big Collection Level reward if shown, like 3000 Collector's Tokens", "clNextIn": Collection Levels until it or null, "credits": Credits (blue crystal icon) or null, "gold": Gold (gold bar icon) or null, "tokens": Collector's Tokens (purple token icon) or null, "passLevel": season pass level or null, "passXp": points toward the next season pass level or null, "passXpNext": points that level needs in all or null, "rerollCoins": Split Reroll Coins or null, "wildBoosters": Wild Boosters or null, "medals": Conquest medals or null, "goldPassDays": days left on the Gold Pass if shown or null, "goldPassClaimIn": "time until the Gold Pass's daily gold can be claimed, as shown, or empty", "freeTokensClaimed": true if today's free Collector's Tokens show as claimed, false if they can be claimed, else null, "freeCreditsIn": "time until the shop's free credits can be claimed again, as shown, like 7h 22m, or empty"},
  "deck": {"name": "", "cards": ["card names"]},
  "card": {"card": "card name", "variant": "variant name if shown, else empty", "rarity": "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Ultra" | "Infinity" | "", "boosters": this card's boosters or null, "splits": number of Infinity Splits if shown or null, "finish": "split finish if shown", "flare": "split flare if shown", "border": "border name if shown", "masteryLevel": Character Mastery level or null},
  "collection": {"cards": [{"card": "card name", "boosters": the booster number on the card, "rarity": "upgrade level if you can tell, else empty"}]},
@@ -6412,17 +6414,35 @@ ${/^screen:/.test(hint || "") ? `This picture was saved automatically while the 
  "alliance": {"name": "alliance name", "tab": "members" | "bounties" | "milestones" | "leaderboard" | "other", "teamPoints": the alliance's points this week or null, "myPoints": the player's own points this week or null, "nextMilestone": {"points": points needed or null, "reward": ""}, "resetsIn": "time left in the week as shown, like 2d 5h", "dropsLeft": bounty drops left this week or null, "myNext": points the player's next personal milestone needs or null, "members": [{"name": "", "role": "Leader" | "Officer" | "Member" | "", "points": alliance points this week or null, "cubes": cubes, or points from cubes on the contributors list, or null, "bounties": bounties done, or points from bounties on the contributors list, or null, "score": total points or score or null, "collectionLevel": Collection Level or null, "rank": "rank as shown, like Infinite or 75, or empty"}], "memberCount": how many members it has or null, "bounties": [{"text": "what to do, as written", "rarity": "Common" | "Epic" | "Legendary" | "", "points": points it gives or null, "progress": done so far or null, "goal": how many it needs or null, "mine": true if the player has it active}], "board": [{"rank": number, "name": "alliance name", "points": null, "cubes": null, "bounties": null, "mine": true if it's the player's alliance}]}}
  "album": {"name": "the album's name if one album is open, else empty", "have": variants collected or null, "of": variants in it or null, "cards": [{"card": "card name of each variant shown", "variant": "the variant's name or style if shown", "artist": "artist if shown", "owned": true if the player has it, false if it's greyed out or locked}], "albums": [{"name": "", "have": number, "of": number}] for the albums list},
  "missions": {"tab": "daily" | "season" | "other", "refreshIn": "time until new missions, as shown, or empty", "items": [{"text": "the mission, as written", "progress": done so far or null, "goal": how many it needs or null, "reward": "what it gives, like 100 Season Pass XP", "done": true if it's complete or claimed}]},
-If the screen also shows the player's own Credits or Gold along the top, or their Collector's Tokens, Collection Level or season pass level, fill "numbers" too, whatever the kind. An event's screens show the event's own currencies along the top instead (like Bubs): those go in "event", never in "numbers".
+If the screen also shows the player's own currencies along the top, or their Collection Level or season pass level, fill "numbers" too, whatever the kind. ${TOP_BAR} ${NOT_YOURS} An event's screens show the event's own currencies along the top instead (like Bubs): those go in "event", never in "numbers".
 Leave out sections that don't apply. Never guess numbers you can't read.`;
 async function fileToShot(file) { const img = await imageForAI(file); return { img, hash: shotHash(img.data), time: num(file.lastModified) || Date.now(), url: URL.createObjectURL(file) }; }
 function shotsSheet() {
   const rows = shots.items.map((x, i) => `<div class="li" style="align-items:flex-start">${x.url ? `<img src="${x.url}" alt="" class="shot-thumb">` : ""}<div class="grow" style="min-width:0"><div class="t small">${esc(x.status || "Waiting…")}</div>${x.detail ? `<div class="s" style="white-space:normal">${esc(x.detail)}</div>` : ""}
     <div class="row" style="margin-top:4px">${x.matchId ? `<button class="btn sm" data-a="matchEdit" data-id="${esc(x.matchId)}">Check</button>` : ""}${x.deckId ? `<button class="btn sm" data-a="deckOpen" data-id="${esc(x.deckId)}">Open deck</button>` : ""}${x.cardKey ? `<button class="btn sm" data-a="cardOpen" data-k="${esc(x.cardKey)}">Open card</button>` : ""}${x.undo ? `<button class="btn sm ghost" data-a="shotUndo" data-i="${i}">Undo</button>` : ""}</div></div></div>`).join("");
   const done = shots.items.filter((x) => x.done).length;
-  return `${sheetHead("Screenshots", shots.busy ? `Reading ${Math.min(done + 1, shots.items.length)} of ${shots.items.length}…` : `${done} of ${shots.items.length} read`)}
+  return `${sheetHead("Screenshots", shots.busy || (typeof nat !== "undefined" && nat.busy) ? `Reading ${Math.min(done + 1, shots.items.length)} of ${shots.items.length}…` : `${done} of ${shots.items.length} read`)}
     ${!canReadShots() ? `<p class="note">Reading screenshots needs an AI key. Add one in Settings › AI, then share them again.</p>` : ""}
     <div class="list">${rows || `<div class="li muted small">No screenshots yet.</div>`}</div>
     <p class="muted small">Match screens are logged straight away. Screens with your rank, Collection Level or currencies update those numbers, card, collection and split screens update your boosters, upgrades and splits, a card's variants screen ticks the variants you own, and shop screens tell you about anything on your wishlist. Tap Check to fix anything the AI got wrong.</p>`;
+}
+// Free AI keys allow a few answers a minute, so screenshots are read a few seconds apart.
+let aiLastAt = 0, aiGapMs = 3500, shotRetryMs = 65e3;
+async function aiPace(gap = aiGapMs) { const w = aiLastAt + gap - Date.now(); if (w > 0) await new Promise((r) => setTimeout(r, w)); aiLastAt = Date.now(); }
+// The AI being busy or out of free answers for now, or no connection: worth trying again later.
+const aiBusyErr = (e) => !!e && (e.status === 429 || e.status >= 500 || /busy|limit|resting|none of your ai|timed? ?out|failed to fetch|network|load failed/i.test(String(e.message || "")));
+// Reads one screenshot, waiting and trying again (up to 3 times) when the AI is busy. "retry" means it's still unread.
+async function readShotItem(x) {
+  for (let tries = 0; ; tries++) {
+    try { await readOneShot(x); return "ok"; }
+    catch (e) {
+      if (!aiBusyErr(e)) { x.status = "Couldn't read this one"; x.detail = e && e.message ? e.message : ""; return "ok"; }
+      if (tries >= 2) { x.status = "The AI is busy, so this one waits"; x.detail = x.native ? "I'll read it next time you open SNAP Stat." : "Share it again in a few minutes."; return "retry"; }
+      x.status = "The AI is busy. Trying again in a minute…"; x.detail = ""; refreshSheet();
+      await new Promise((r) => setTimeout(r, shotRetryMs));
+      x.status = "Reading…"; refreshSheet();
+    }
+  }
 }
 async function readShots(files) {
   files = [...files].filter((f) => f && /^image\//.test(f.type || "image/")).slice(0, 20); if (!files.length) return;
@@ -6432,9 +6452,9 @@ async function readShots(files) {
   shots.busy = true;
   whenDataReady(async () => {
     for (const x of shots.items) {
-      if (x.done || !x.file) continue;
+      if (x.done || !x.file || x.native) continue;
       x.status = "Reading…"; refreshSheet();
-      try { await readOneShot(x); } catch (e) { x.status = "Couldn't read this one"; x.detail = e && e.message ? e.message : ""; }
+      await readShotItem(x);
       x.done = true; x.file = null; refreshSheet();
     }
     shots.busy = false; refreshSheet(); render();
@@ -6446,6 +6466,7 @@ async function readOneShot(x) {
   let hint = x.file && x.file.snapHint ? String(x.file.snapHint) : "";
   // Before Android 1.13 the tracker could carry an event's name from its hub over to a ranked match, so its game mode guess can't be trusted.
   if (hint && !/^screen:/.test(hint) && NATIVE && verCmp(String(natInfo().version || "0"), "1.13") < 0) hint = "";
+  await aiPace();
   const r = obj(await store.sample.json(SHOT_PROMPT(cardRoster(), hint), { images: [s.img], modelTier: "default" }));
   S.shotSeen = [...seen, s.hash].slice(-200);
   let kind = String(r.kind || "");
@@ -6456,7 +6477,11 @@ async function readOneShot(x) {
   }
   // Keep only the numbers this screen really shows (event and alliance screens: none of them are yours)
   const keep = /^screen:/.test(hint) ? SCREEN_NUMS[hint.slice(7)] : null;
-  if (keep && r.numbers) r.numbers = Object.fromEntries(Object.entries(obj(r.numbers)).filter(([k]) => keep.includes(k)));
+  if (r.numbers) {
+    const raw = obj(r.numbers);
+    if (keep) r.numbers = Object.fromEntries(Object.entries(raw).filter(([k]) => keep.includes(k)));
+    r.numbers = sortTopBar(obj(r.numbers), raw, hint, await topLeftColour(x.file).catch(() => ""));
+  }
   x.hint = hint;
   if (kind === "match") return applyShotMatch(x, obj(r.match), s.time, hint);
   if (kind === "card") return applyShotCard(x, obj(r.card));
@@ -6471,6 +6496,57 @@ async function readOneShot(x) {
   if (kind === "album") { await applyShotAlbum(x, obj(r.album), s.time, s.img); return alsoNumbers(x, r.numbers, s.time); }
   if (kind === "missions") { applyShotMissions(x, obj(r.missions), s.time); return alsoNumbers(x, r.numbers, s.time); }
   x.status = "Nothing to log in this one"; save();
+}
+/* ---------- Telling Credits, Collector's Tokens, Gold and Collection Level apart ---------- */
+// The top-left box is blue for Credits (home, the shop's Offers tab) and purple for Collector's Tokens (the shop's Cards tab).
+// Its colour is checked on the picture itself, so it doesn't depend on the AI telling the icons apart.
+async function topLeftColour(file) {
+  if (!file || typeof createImageBitmap !== "function") return "";
+  const bmp = await createImageBitmap(file); const W = bmp.width, H = bmp.height;
+  if (!W || H < W * 1.3) { bmp.close && bmp.close(); return ""; }  // only tall phone screenshots
+  const c = document.createElement("canvas"); c.width = 90; c.height = 30; const g = c.getContext("2d", { willReadFrequently: true });
+  g.drawImage(bmp, W * 0.02, W * 0.12, W * 0.36, W * 0.085, 0, 0, 90, 30); bmp.close && bmp.close();
+  const d = g.getImageData(0, 0, 90, 30).data; let sat = 0, blue = 0, purple = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i] / 255, gg = d[i + 1] / 255, b = d[i + 2] / 255, mx = Math.max(r, gg, b), mn = Math.min(r, gg, b);
+    if (mx < 0.35 || mx === 0 || (mx - mn) / mx < 0.45) continue;
+    sat++; const dd = mx - mn; let h = mx === r ? ((gg - b) / dd) % 6 : mx === gg ? (b - r) / dd + 2 : (r - gg) / dd + 4; h = (h * 60 + 360) % 360;
+    if (h >= 185 && h <= 235) blue++; else if (h >= 250 && h <= 300) purple++;
+  }
+  if (sat < 300) return "";
+  return blue / sat >= 0.75 ? "credits" : purple / sat >= 0.6 ? "tokens" : "";
+}
+// What the top-left number is on each saved screen (the medal shop and event screens have their own currencies there)
+const LEFT_BY_SCREEN = { home: "credits", shop: "credits", shopcurrency: "credits", seasonpass: "credits", shoptokens: "tokens" };
+const NO_TOP_BAR = ["event", "eventshop", "alliance", "shopmedals", "collectionlevel"];
+function sortTopBar(n, raw, hint, colour) {
+  const h = /^screen:/.test(hint || "") ? hint.slice(7) : "", tl = obj(raw.topLeft), tr = obj(raw.topRight);
+  const amt = (v) => { const z = Number(String(v ?? "").replace(/[,\s]/g, "")); return String(v ?? "").trim() !== "" && Number.isFinite(z) && z >= 0 ? Math.round(z) : null; };
+  const out = { ...n }; delete out.topLeft; delete out.topRight;
+  const sure = new Set();
+  if (!NO_TOP_BAR.includes(h) || (colour && h !== "shopmedals" && !["event", "eventshop", "alliance"].includes(h))) {
+    const ai = tl.icon === "credits" || tl.icon === "tokens" ? tl.icon : "";
+    // The colour wins on the shop and home screens (a mislabelled shop tab is caught); elsewhere the colour and the AI must agree
+    const left = LEFT_BY_SCREEN[h] ? colour || LEFT_BY_SCREEN[h] : !h ? colour || ai : colour && ai && colour === ai ? colour : "";
+    const v = amt(tl.amount);
+    if (left && v !== null) {
+      const other = left === "credits" ? "tokens" : "credits";
+      out[left] = v; sure.add(left);
+      if (amt(out[other]) === v) delete out[other];  // the same number can't be both
+    }
+    if (!NO_TOP_BAR.includes(h) || colour) { const g = amt(tr.amount); if (g !== null && tr.icon !== "other") { out.gold = g; sure.add("gold"); } }
+  }
+  // The same number in two places: keep the one the top bar settled, drop the rest
+  const keys = ["credits", "tokens", "gold", "collectionLevel"], seen = {};
+  for (const k of keys) { const v = amt(out[k]); if (v === null || v === 0) continue; (seen[v] = seen[v] || []).push(k); }
+  for (const ks of Object.values(seen)) if (ks.length > 1) for (const k of ks) if (!sure.has(k)) delete out[k];
+  // A number that's another of your numbers as saved (and that one isn't on this screen) is probably that one, misplaced
+  const saved = { credits: num(S.wallet.credits), tokens: num(S.wallet.tokens), gold: num(S.wallet.gold), collectionLevel: num(S.me.colLevel) };
+  for (const k of keys) {
+    const v = amt(out[k]); if (v === null || v === 0 || sure.has(k) || saved[k] === v) continue;
+    if (keys.some((o) => o !== k && saved[o] === v && amt(out[o]) === null)) delete out[k];
+  }
+  return out;
 }
 function applyShotMatch(x, mm, time, hint) {
   const res = ["W", "L", "T"].includes(mm.result) ? mm.result : mm.retreated ? "L" : mm.oppRetreated ? "W" : "";
@@ -6496,12 +6572,12 @@ function applyShotMatch(x, mm, time, hint) {
 }
 // A shop, event or alliance screen that also shows your currencies along the top: those update too.
 function alsoNumbers(x, n, time) {
-  n = obj(n); if (!["credits", "gold", "tokens", "collectionLevel", "passLevel", "passXp", "medals", "goldPassDays"].some((k) => n[k] !== null && n[k] !== undefined && Number.isFinite(Number(n[k]))) && typeof n.freeTokensClaimed !== "boolean" && !n.freeCreditsIn) return;
-  const y = {}; applyShotNumbers(y, { credits: n.credits, gold: n.gold, tokens: n.tokens, collectionLevel: n.collectionLevel, passLevel: n.passLevel, passXp: n.passXp, passXpNext: n.passXpNext, medals: n.medals, goldPassDays: n.goldPassDays, freeTokensClaimed: n.freeTokensClaimed, freeCreditsIn: n.freeCreditsIn }, time);
+  n = obj(n); if (!["credits", "gold", "tokens", "collectionLevel", "passLevel", "passXp", "medals", "goldPassDays", "clNextIn"].some((k) => n[k] !== null && n[k] !== undefined && Number.isFinite(Number(n[k]))) && typeof n.freeTokensClaimed !== "boolean" && !n.freeCreditsIn && !n.goldPassClaimIn) return;
+  const y = { hint: x.hint }; applyShotNumbers(y, { credits: n.credits, gold: n.gold, tokens: n.tokens, collectionLevel: n.collectionLevel, passLevel: n.passLevel, passXp: n.passXp, passXpNext: n.passXpNext, medals: n.medals, goldPassDays: n.goldPassDays, goldPassClaimIn: n.goldPassClaimIn, clNextReward: n.clNextReward, clNextIn: n.clNextIn, freeTokensClaimed: n.freeTokensClaimed, freeCreditsIn: n.freeCreditsIn }, time);
   if (y.detail) x.detail = [x.detail, y.detail].filter(Boolean).join(" · ");
 }
 function applyShotNumbers(x, n, time) {
-  const before = { wallet: { ...S.wallet }, col: S.me.colLevel, rank: S.me.rank, peak: S.me.peak, climb: clone(obj(S.climb)), passes: clone(obj(S.passes)), goldPass: clone(S.goldPass || null), freeTokens: clone(S.freeTokens || null), freeCredits: clone(S.freeCredits || null) };
+  const before = { wallet: { ...S.wallet }, col: S.me.colLevel, rank: S.me.rank, peak: S.me.peak, climb: clone(obj(S.climb)), passes: clone(obj(S.passes)), goldPass: clone(S.goldPass || null), freeTokens: clone(S.freeTokens || null), freeCredits: clone(S.freeCredits || null), clNext: clone(S.clNext || null) };
   const done = [];
   if (n.rerollCoins !== undefined) n.rerolls = n.rerollCoins; if (n.wildBoosters !== undefined) n.wild = n.wildBoosters;
   // A 0 for credits, gold or tokens is nearly always a number the AI couldn't see, unless it came from the screen that shows it
@@ -6520,7 +6596,9 @@ function applyShotNumbers(x, n, time) {
   if (cs && Number(n.passXpNext) > 0 && Number(n.passXp) >= 0) { const p = (S.passes[cs.id] = obj(S.passes[cs.id])); p.xp = Math.round(Number(n.passXp)); p.xpNext = Math.round(Number(n.passXpNext)); p.xpAt = time || Date.now(); done.push(`${fmt(p.xp)}/${fmt(p.xpNext)} toward the next pass level`); }
   // Daily things the shop shows: Gold Pass days left, today's free Collector's Tokens, and when the free credits come back
   const t = time || Date.now();
-  if (Number(n.goldPassDays) > 0 && Number(n.goldPassDays) < 2000) { S.goldPass = { days: Math.round(Number(n.goldPassDays)), at: t }; done.push(`Gold Pass ${S.goldPass.days} days left`); }
+  if (Number(n.goldPassDays) > 0 && Number(n.goldPassDays) < 2000) { S.goldPass = { ...obj(S.goldPass), days: Math.round(Number(n.goldPassDays)), at: t }; done.push(`Gold Pass ${S.goldPass.days} days left`); }
+  const gc = parseLeft(n.goldPassClaimIn); if (gc > 0 && gc <= DAY && obj(S.goldPass).days) { S.goldPass.claimAt = t + gc; done.push(`Gold Pass gold in ${String(n.goldPassClaimIn).slice(0, 12)}`); }
+  if (Number(n.clNextIn) > 0 && Number(n.clNextIn) < 5000 && n.clNextReward) { S.clNext = { reward: String(n.clNextReward).slice(0, 40), left: Math.round(Number(n.clNextIn)), cl: num(S.me.colLevel), at: t }; done.push(`next: ${S.clNext.reward} in ${S.clNext.left} levels`); }
   if (n.freeTokensClaimed === true) { S.freeTokens = { claimed: gameDay(t), at: t }; done.push("free tokens claimed"); }
   else if (n.freeTokensClaimed === false && obj(S.freeTokens).claimed !== gameDay(t)) { S.freeTokens = { claimed: "", at: t }; done.push("free tokens ready"); }
   const fc = parseLeft(n.freeCreditsIn); if (fc > 0 && fc <= 8 * 3600e3) { S.freeCredits = { nextAt: t + fc, at: t }; done.push(`free credits in ${String(n.freeCreditsIn).slice(0, 12)}`); }
@@ -6548,7 +6626,7 @@ function shotUndo(i) {
   }
   if (u.type === "prog") undoProg(u);
   if (u.type === "deck") S.decks = S.decks.filter((d) => d.id !== u.id);
-  if (u.type === "numbers") { S.wallet = u.before.wallet; S.me.colLevel = u.before.col; S.me.rank = u.before.rank; S.me.peak = u.before.peak; S.climb = u.before.climb; S.passes = u.before.passes; if ("goldPass" in u.before) { S.goldPass = u.before.goldPass; S.freeTokens = u.before.freeTokens; S.freeCredits = u.before.freeCredits; } }
+  if (u.type === "numbers") { S.wallet = u.before.wallet; S.me.colLevel = u.before.col; S.me.rank = u.before.rank; S.me.peak = u.before.peak; S.climb = u.before.climb; S.passes = u.before.passes; if ("goldPass" in u.before) { S.goldPass = u.before.goldPass; S.freeTokens = u.before.freeTokens; S.freeCredits = u.before.freeCredits; } if ("clNext" in u.before) S.clNext = u.before.clNext; }
   x.undo = null; x.matchId = ""; x.deckId = ""; x.status = "Undone"; x.detail = ""; save(); refreshSheet(); render();
 }
 
@@ -6731,21 +6809,26 @@ function natPull() {
   if (!num(NATIVE.queueCount())) return;
   if (!canReadShots()) { if (ui.tab === "settings") refreshView(); return; }
   nat.busy = true;
+  // One at a time: a picture leaves the phone's queue only once it's been read, so one the AI was too busy for
+  // (free keys allow a few answers a minute) stays for next time instead of being lost.
   setTimeout(async () => {
+    let again = 800, opened = false;
     try {
-      const pics = [];
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 300; i++) {
         const s = NATIVE.next(); if (!s) break;
         let it; try { it = JSON.parse(s); } catch { break; }
-        NATIVE.done(it.id);
         const f = new File([b64ToBytes(it.b64 || "")], it.name || "shot.jpg", { type: it.type || "image/jpeg", lastModified: num(it.time) || Date.now() });
-        if (it.hint) f.snapHint = String(it.hint); // the game mode the tracker saw before the match
-        if (/json/.test(f.type)) { try { svQuickSync(await f.text()); } catch { toast("Couldn't read that SnapVault file."); } }
-        else pics.push(f);
+        if (it.hint) f.snapHint = String(it.hint); // the screen it was saved on, or the game mode the tracker saw before the match
+        if (/json/.test(f.type)) { NATIVE.done(it.id); try { svQuickSync(await f.text()); } catch { toast("Couldn't read that SnapVault file."); } continue; }
+        const x = { file: f, status: "Reading…", native: it.id }; shots.items.push(x);
+        if (!opened) { opened = true; openSheet(shotsSheet); } else refreshSheet();
+        const res = await readShotItem(x);
+        x.done = true; x.file = null; refreshSheet();
+        if (res === "retry") { again = 0; break; }  // leave it in the queue; it's read next time SNAP Stat opens
+        NATIVE.done(it.id);
       }
-      if (pics.length) readShots(pics);
-    } finally { nat.busy = false; }
-    natInfo(); if (num(nat.info.queue)) setTimeout(natPull, 800);
+    } finally { nat.busy = false; render(); }
+    natInfo(); if (again && num(nat.info.queue)) setTimeout(natPull, again);
   }, 0);
 }
 
@@ -8204,6 +8287,12 @@ if (location.hash === "#webshop") setTimeout(() => { history.replaceState(null, 
 
 /* ---------- Your numbers ---------- */
 function totalBoosters() { return Object.entries(obj(S.prog)).reduce((t, [k, p]) => t + (S.owned[k] && p && p.b !== null && p.b !== undefined ? num(p.b) : 0), 0); }
+// The next big Collection Level reward the game showed, counted down as your Collection Level goes up
+function clNextText() {
+  const c = obj(S.clNext); if (!c.left || !c.reward) return "";
+  const left = c.left - Math.max(0, num(S.me.colLevel) - num(c.cl));
+  return left > 0 ? `${esc(c.reward.replace(/collector'?s tokens?/i, "tokens").replace(/\d{4,}/g, (d) => fmt(Number(d))))} in ${fmt(left)} level${left === 1 ? "" : "s"}` : "";
+}
 function numbersHtml() {
   const w = S.wallet, cs = currentSeason();
   const seasonCubes = cs ? statsFor(inPeriod(realMatches(), { from: cs.startTs, to: cs.endTs })).cubes : 0;
@@ -8212,7 +8301,7 @@ function numbersHtml() {
   const tb = totalBoosters(), at = num(S.walletAt);
   return `<section class="sec"><div class="sec-h"><h2>Your numbers</h2>${shotInput("numbers")}</div>
     <div class="wallet nums">${tile("Credits", fmt(w.credits), "home/shops")}${tile("Gold", fmt(w.gold), "home/shops")}${tile("Collector's Tokens", fmt(w.tokens), "home/shops")}
-      ${tile("Collection Lvl", S.me.colLevel ? fmt(S.me.colLevel) : "—", "profile")}${tile("Card boosters", tb ? fmt(tb) : "—", "cards/progress", tb ? "on cards you've noted" : "")}${tile("Wild Boosters", fmt(w.wild), "home/shops")}
+      ${tile("Collection Lvl", S.me.colLevel ? fmt(S.me.colLevel) : "—", "profile", clNextText())}${tile("Card boosters", tb ? fmt(tb) : "—", "cards/progress", tb ? "on cards you've noted" : "")}${tile("Wild Boosters", fmt(w.wild), "home/shops")}
       ${tile("Split Reroll Coins", fmt(w.rerolls), "home/shops")}${tile("Cubes this season", signed(seasonCubes), "home/stats", c ? `rank ${esc(String(c.rank >= 100 ? "Infinite" : c.rank))}${c.rank < 100 ? ` · ${num(c.cubes)} toward next` : ""}` : "")}${w.medals ? tile("Conquest medals", fmt(w.medals), "home/shops") : ""}</div>
     ${freebiesHtml()}
     <p class="muted small">${at ? `From your screenshots, last updated ${ago(at) === "now" ? "just now" : esc(ago(at)) + " ago"}. ` : ""}Screenshots of the shop, your collection, a card or the season pass update these. With the Android tracker on, they're picked up while you play. Tap a number to type it in yourself.</p></section>`;
@@ -8660,7 +8749,8 @@ function freebiesHtml() {
   const fc = obj(S.freeCredits);
   if (fc.nextAt) out.push(fc.nextAt > now ? `<span class="pill dim">Free credits in <span data-cd="${fc.nextAt}">${esc(countdown(fc.nextAt))}</span></span>` : `<span class="pill gold">Free credits ready</span>`);
   const gp = obj(S.goldPass);
-  if (gp.days) { const left = Math.max(0, gp.days - Math.floor((now - num(gp.at)) / DAY)); out.push(`<span class="pill ${left <= 3 ? "gold" : "dim"}">Gold Pass: ${left} day${left === 1 ? "" : "s"} left</span>`); }
+  if (gp.days) { const left = Math.max(0, gp.days - Math.floor((now - num(gp.at)) / DAY)); out.push(`<span class="pill ${left <= 3 ? "gold" : "dim"}">Gold Pass: ${left} day${left === 1 ? "" : "s"} left</span>`);
+    if (gp.claimAt && left > 0) out.push(gp.claimAt > now ? `<span class="pill dim">Gold Pass gold in <span data-cd="${gp.claimAt}">${esc(countdown(gp.claimAt))}</span></span>` : `<span class="pill gold">Gold Pass gold ready</span>`); }
   const list = out.filter(Boolean);
   return list.length ? `<div class="chiplist">${list.join("")}</div>` : "";
 }
