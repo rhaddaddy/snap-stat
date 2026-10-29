@@ -34,7 +34,9 @@ object Screenshots {
 
     private fun looksLikeSnap(name: String): Boolean {
         val n = name.lowercase()
-        return n.contains("marvel snap") || n.contains("marvel_snap") || n.contains("marvelsnap") || n.contains("nvsgames")
+        // Samsung names a screenshot after the app's label, and MARVEL SNAP's is just "SNAP": Screenshot_20261028_224037_SNAP.jpg
+        return n.contains("marvel snap") || n.contains("marvel_snap") || n.contains("marvelsnap") || n.contains("nvsgames") ||
+            Regex("_snap\\.(jpe?g|png|webp)$").containsMatchIn(n)
     }
 
     /** Returns how many screenshots were queued. Runs on a background thread. */

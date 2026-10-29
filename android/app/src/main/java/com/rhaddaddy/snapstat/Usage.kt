@@ -23,6 +23,12 @@ object Usage {
     private fun isStart(type: Int) = type == 1
     private fun isStop(type: Int) = type == 2 || type == 23
 
+    /** The system bars and the screenshot toolbar, which come to the front for a moment over the app in use. */
+    fun isOverlay(pkg: String?): Boolean {
+        val p = pkg ?: return true
+        return p == "com.android.systemui" || p.contains("smartcapture") || p.contains("screenshot") || p.contains("screencapture")
+    }
+
     /** The app in front at time [at] (milliseconds), or null if it can't be told. */
     fun foregroundAt(ctx: Context, at: Long): String? {
         if (!hasAccess(ctx)) return null
@@ -33,7 +39,8 @@ object Usage {
         while (events.hasNextEvent()) {
             events.getNextEvent(e)
             if (e.timeStamp > at + 1500) break
-            if (isStart(e.eventType)) front = e.packageName
+            // The screenshot toolbar and the system bars come to the front for a moment; they aren't the app in use
+            if (isStart(e.eventType) && !isOverlay(e.packageName)) front = e.packageName
             else if (isStop(e.eventType) && e.packageName == front && e.timeStamp < at - 1500) front = null
         }
         return front
@@ -53,7 +60,8 @@ object Usage {
             val e = UsageEvents.Event()
             while (events.hasNextEvent()) {
                 events.getNextEvent(e)
-                if (isStart(e.eventType)) front = e.packageName
+                // The screenshot toolbar and the system bars come to the front for a moment; they aren't the app in use
+                if (isStart(e.eventType) && !isOverlay(e.packageName)) front = e.packageName
                 else if (isStop(e.eventType) && e.packageName == front) front = null
             }
             since = now
