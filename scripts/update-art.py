@@ -99,26 +99,30 @@ def look(im):
     stand_in = flat > 0.86 and band < 0.3 or float(x.std()) < 6
     return {"detail": round(edges + float(x.std()) / 500, 4), "standIn": bool(stand_in)}
 
-def paint_out_text(m_im, f_im):
-    """Marvel Snap Zone's picture with the stand-in's text painted out, or None if it doesn't have that text."""
-    W, H = m_im.size
-    f8 = np.asarray(f_im.convert("RGB").resize((W, H), Image.LANCZOS)); k = max(15, (W // 14) | 1)
-    r = np.abs(f8.astype(np.float32) - cv2.medianBlur(f8, k).astype(np.float32)).mean(2)  # the text, against the stand-in's plain background
-    mask = (r >= 14).astype(np.uint8)
-    mask[: int(H * .09)] = 0; mask[int(H * .91):] = 0; mask[:, : int(W * .11)] = 0; mask[:, int(W * .89):] = 0  # leave the frame alone
-    if mask.sum() < 50: return None
-    ys, xs = np.nonzero(mask)
-    if (ys.max() - ys.min()) > H * 0.25: return None  # more than a line of text: not a text stand-in
-    near = cv2.dilate(mask, np.ones((max(3, W // 40),) * 2, np.uint8))
-    m = np.asarray(m_im.convert("RGB"), dtype=np.float32)
-    hsv = cv2.cvtColor(m.astype(np.uint8), cv2.COLOR_RGB2HSV)
-    texty = (m.mean(2) > 165) & (hsv[..., 1] < 70)
-    hit = float((texty & (near > 0)).sum()) / max(1, int(near.sum()))
-    if hit < 0.08: return None
-    fix = cv2.dilate((texty & (near > 0)).astype(np.uint8) * 255, np.ones((max(3, W // 80),) * 2, np.uint8))
-    out = cv2.inpaint(cv2.cvtColor(m.astype(np.uint8), cv2.COLOR_RGB2BGR), fix, max(3, W // 100), cv2.INPAINT_TELEA)
-    im = Image.fromarray(cv2.cvtColor(out, cv2.COLOR_BGR2RGB)).convert("RGBA"); im.putalpha(m_im.split()[3]); return im
+def text_line(im):
+    """A line of white text across a card back (the game's stand-in label showing through the art), if there is one."""
+    W, H = 348, 480
+    rgb = np.asarray(im.convert("RGB").resize((W, H), Image.LANCZOS))
+    lum = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY); sat = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)[..., 1]
+    th = cv2.morphologyEx(lum, cv2.MORPH_TOPHAT, cv2.getStructuringElement(cv2.MORPH_RECT, (13, 13)))  # thin bright strokes
+    cand = ((th > 60) & (sat < 80) & (lum > 140)).astype(np.uint8)
+    cand[: int(H * .1)] = 0; cand[int(H * .9):] = 0; cand[:, : int(W * .1)] = 0; cand[:, int(W * .9):] = 0
+    bh = int(H * .045); rows = cand.sum(1).astype(float)
+    y0 = int(np.argmax(np.convolve(rows, np.ones(bh), "valid")))
+    d = lambda a, b: rows[max(0, a):max(0, b)].sum() / max(1, (b - a) * W)
+    dens = d(y0, y0 + bh); around = max(d(y0 - bh, y0 - bh // 3), d(y0 + bh + bh // 3, y0 + 2 * bh))
+    n = sum(1 for st in cv2.connectedComponentsWithStats(cand[y0:y0 + bh], 8)[2][1:] if st[4] >= 4)
+    band = np.zeros_like(cand); band[max(0, y0 - 3):y0 + bh + 3] = 1
+    return {"y": y0 / H, "dens": float(dens), "iso": float(dens / (around + 1e-3)), "n": n, "mask": cand * band}
 
+def paint_out(im, t):
+    W, H = im.size
+    m = cv2.resize(t["mask"] * 255, (W, H), interpolation=cv2.INTER_NEAREST)
+    m = cv2.dilate(m, np.ones((max(5, W // 70),) * 2, np.uint8))
+    out = cv2.inpaint(cv2.cvtColor(np.asarray(im.convert("RGB")), cv2.COLOR_RGB2BGR), m, max(5, W // 100), cv2.INPAINT_TELEA)
+    o = Image.fromarray(cv2.cvtColor(out, cv2.COLOR_BGR2RGB)).convert("RGBA"); o.putalpha(im.split()[3]); return o
+
+CHECK_V = 2  # bump to check every card back again
 if have_cv and backs:
     os.makedirs("cardbacks", exist_ok=True)
     try: checked = json.load(open("cardbacks/checked.json"))
@@ -137,19 +141,25 @@ if have_cv and backs:
         old = checked.get(cid) or {}
         # Check again when snap.fan's picture changes, every week for ones that weren't fine, and once a month for the rest.
         age = (datetime.now(timezone.utc).timestamp() - float(old.get("at", 0))) / 86400
-        if old and old.get("sf") == f_url and (age < 7 or old.get("use") == "msz" and age < 30):
+        if old and old.get("v") == CHECK_V and old.get("sf") == f_url and (age < 7 or old.get("use") == "msz" and age < 30):
             use = old.get("use")
         else:
             m_im, f_im = card_crop(get_bytes(m_url)), card_crop(get_bytes(f_url)) if f_url else None
             mq, fq = (look(m_im) if m_im else None), (look(f_im) if f_im else None)
-            use = "none"
-            if mq and not mq["standIn"] and not (fq and not fq["standIn"] and fq["detail"] > mq["detail"] * 1.5): use = "msz"
-            elif fq and not fq["standIn"]: use = "sf"
-            if use == "msz" and f_im is not None and fq and fq["standIn"]:
-                fixed = paint_out_text(m_im, f_im)
-                if fixed is not None: fixed.save(f"cardbacks/{cid}.webp", "WEBP", quality=84, method=6); use = "fixed"
+            use, f_good = "none", bool(fq and not fq["standIn"])
+            if mq and not mq["standIn"]:
+                mt = text_line(m_im)
+                ft = text_line(f_im) if f_im is not None and fq and fq["standIn"] else None
+                same_spot = bool(ft and ft["dens"] >= 0.05 and abs(ft["y"] - mt["y"]) < 0.06)  # snap.fan's stand-in has its label right there
+                stray = mt["dens"] >= 0.08 and mt["n"] >= 8 and (mt["iso"] >= 5 or same_spot)
+                if stray and f_good: use = "sf"
+                elif stray and (same_spot or (fq and fq["standIn"])):  # snap.fan only has a stand-in: it's one of the moving ones
+                    paint_out(m_im, mt).save(f"cardbacks/{cid}.webp", "WEBP", quality=84, method=6); use = "fixed"
+                elif f_good and fq["detail"] > mq["detail"] * 1.5: use = "sf"
+                else: use = "msz"
+            elif f_good: use = "sf"
             if use != "fixed" and os.path.exists(f"cardbacks/{cid}.webp"): os.remove(f"cardbacks/{cid}.webp")
-            checked[cid] = {"use": use, "sf": f_url, "at": datetime.now(timezone.utc).timestamp(), "m": mq, "f": fq}
+            checked[cid] = {"v": CHECK_V, "use": use, "sf": f_url, "at": datetime.now(timezone.utc).timestamp(), "m": mq, "f": fq}
         tally[use] = tally.get(use, 0) + 1
         b["img"] = m_url if use == "msz" else f_url if use == "sf" else f"cardbacks/{cid}.webp" if use == "fixed" else ""
         if use == "none": b["noArt"] = True
