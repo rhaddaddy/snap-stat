@@ -200,6 +200,11 @@ class MainActivity : ComponentActivity() {
             if (r.startsWith("#")) emit("route", JSONObject.quote(r))
             intent.removeExtra("route")
         }
+        // The widget's Track & play button
+        if (intent.getBooleanExtra("trackPlay", false)) {
+            intent.removeExtra("trackPlay")
+            window.decorView.postDelayed({ trackAndPlay() }, 600)
+        }
         val data = intent.data
         if (intent.action == Intent.ACTION_VIEW && data?.scheme == "snapstat" && data.host == "signin") {
             val token = data.getQueryParameter("token") ?: intent.getStringExtra("token") ?: ""

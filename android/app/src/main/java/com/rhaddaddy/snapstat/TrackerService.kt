@@ -81,8 +81,7 @@ class TrackerService : Service() {
     private var width = 0
     private var height = 0
     // Other screens: when each kind was last saved, what it said then, and how many checks in a row it's been on screen
-    private val screenAt = HashMap<String, Long>()
-    private val screenText = HashMap<String, String>()
+    private val screenLog = HashMap<String, ArrayDeque<Pair<Long, String>>>()
     private var screenKind = ""
     private var screenHits = 0
     private var shotsSaved = 0
@@ -141,7 +140,7 @@ class TrackerService : Service() {
         reader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
         display = mp.createVirtualDisplay("SNAP Stat tracker", width, height, m.densityDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, reader!!.surface, null, handler)
         recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-        running = true
+        running = true; Widget.refresh(this)
         TrackerLog.add("Tracking started (${width}x$height, every ${rules.intervalMs} ms)")
         onState?.invoke()
         handler?.postDelayed(::tick, rules.intervalMs)
@@ -206,19 +205,27 @@ class TrackerService : Service() {
         }
     }
 
-    /** An alliance, event pass, shop or other screen from [Rules.screens]: saved when it stays up for a moment and has changed since last time. */
+    /**
+     * An alliance, event pass, shop or other screen from [Rules.screens]: saved when it stays up for a moment and shows
+     * something new. Scrolling a list or switching tabs counts as new, so each page gets saved, up to [Screen.maxPer]
+     * pictures of that kind per [Screen.cooldownMin] minutes and no closer together than [Screen.minGapSec] seconds.
+     */
     private fun saveScreen(flat: String, bmp: Bitmap) {
         val s = rules.screenIn(flat)
         if (s == null) { screenKind = ""; screenHits = 0; return }
         screenHits = if (s.kind == screenKind) screenHits + 1 else 1
         screenKind = s.kind
+        if (screenHits < s.frames) return
         val now = System.currentTimeMillis()
-        if (screenHits < s.frames || now - (screenAt[s.kind] ?: 0L) < s.cooldownMin * 60_000L) return
-        if (similarity(flat, screenText[s.kind] ?: "") > 0.85) return  // nothing new on it
-        screenAt[s.kind] = now; screenText[s.kind] = flat; screenHits = 0
+        val log = screenLog.getOrPut(s.kind) { ArrayDeque() }
+        while (log.isNotEmpty() && now - log.first().first > s.cooldownMin * 60_000L) log.removeFirst()
+        if (log.isNotEmpty() && now - log.last().first < s.minGapSec * 1000L) return
+        if (log.size >= s.maxPer) return
+        if (log.any { similarity(flat, it.second) > s.same }) return  // that page was saved already
+        log.addLast(now to flat); screenHits = 0
         if (ShotQueue.addBitmap(this, bmp, now, "tracker", "screen:" + s.kind)) {
             shotsSaved++
-            TrackerLog.add("Saved the ${s.kind} screen")
+            TrackerLog.add("Saved the ${s.kind} screen (${log.size} of up to ${s.maxPer})")
             getSystemService(NotificationManager::class.java).notify(ID_RUN, runningNote())
             onQueued?.invoke()
         }
@@ -243,7 +250,7 @@ class TrackerService : Service() {
     }
 
     override fun onDestroy() {
-        running = false
+        running = false; Widget.refresh(this)
         handler?.removeCallbacksAndMessages(null)
         try { display?.release() } catch (_: Exception) {}
         try { reader?.close() } catch (_: Exception) {}

@@ -155,6 +155,36 @@ a.btn { color: var(--fg); text-decoration: none; }
 .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
 .chips::-webkit-scrollbar { display: none; }
 .chips.flow { flex-wrap: wrap; overflow: visible; }
+/* Emotes */
+.emo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+.emo-tile { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.emo-pick { position: relative; aspect-ratio: 1; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); padding: 6px; display: grid; place-items: center; }
+.emo-tile.own .emo-pick { border-color: var(--win, #4ade80); box-shadow: 0 0 0 1px var(--win, #4ade80) inset; }
+.emo-tile:not(.own) .emo-img { opacity: .62; filter: saturate(.7); }
+.emo-pick .emo-img { width: 100%; height: 100%; object-fit: contain; }
+.emo-tick { position: absolute; top: 4px; right: 6px; font-weight: 800; color: var(--win, #4ade80); }
+.emo-info { display: flex; align-items: flex-start; gap: 2px; }
+.emo-n { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.emo-info .star { flex: none; padding: 0 2px; }
+.emo-d { font-size: 11px; color: var(--muted); }
+.emo-txt { display: inline-block; background: #fff; color: #1a1236; border-radius: 12px; padding: 4px 9px; font-weight: 800; font-size: 12px; line-height: 1.2; max-width: 100%; text-align: center; }
+.emo-txt.xs { font-size: 10px; padding: 2px 6px; }
+.emo-img.xs { width: 22px; height: 22px; object-fit: contain; }
+.emo-img.md { width: 64px; height: 64px; object-fit: contain; }
+.emo-bar { display: flex; flex-wrap: wrap; gap: 6px; }
+.emo-bar.sm { margin-left: 24px; }
+.emo-chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 3px 9px 3px 4px; font-size: 12px; font-weight: 700; }
+.emo-chip.on { border-color: var(--snap-text, #ffd23f); background: rgba(255, 210, 63, .12); }
+.emo-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; }
+.emo-opt { display: flex; flex-direction: column; align-items: center; gap: 3px; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 6px 4px; font-size: 11px; line-height: 1.15; min-width: 0; }
+.emo-opt span { overflow-wrap: anywhere; text-align: center; }
+.emo-opt.on { border-color: var(--snap-text, #ffd23f); background: rgba(255, 210, 63, .14); }
+.emo-sticker .emo-img.md { width: 72px; height: 72px; }
+.cmt-w { display: flex; flex-direction: column; gap: 4px; }
+.cmt { align-items: flex-start; }
+.cmt-emo { margin-left: auto; flex: none; }
+.cmt-emo button { background: none; border: 0; color: var(--muted); padding: 2px; display: inline-flex; }
+.cmt-emo.big button { padding: 6px; }
 .chips.flow .chip { white-space: normal; text-align: left; }
 .chip.on, .chip[aria-pressed="true"].ttl { border-color: var(--ok, #4ade80); }
 .chip:disabled { opacity: .55; }
@@ -2678,8 +2708,21 @@ function clockHtml() {
 /* ---------- The Android home-screen widget ---------- */
 function widgetState() {
   const cs = currentSeason(), alerts = wishAlerts().length;
-  return { handle: S.me.handle || "", rank: String(S.me.rank || "").slice(0, 10), season: cs ? { name: cs.name, endTs: Number.isFinite(cs.endTs) ? cs.endTs : 0 } : null,
-    today: todaySummary(), alert: alerts ? `${alerts} wishlist item${alerts > 1 ? "s" : ""} on sale` : "" };
+  const rec = cs ? statsFor(inPeriod(realMatches(), { from: cs.startTs, to: cs.endTs })) : null;
+  const pass = cs ? obj(S.passes[cs.id]) : {};
+  // The event that's on now, with your pass progress
+  const ev = (() => { try { const e = events().find((x) => timeState(x) === "live" && (obj(S.eventProg[x.id]).level || num(x.passLevels) || /diner|pass/i.test(x.name))) || events().find((x) => timeState(x) === "live"); if (!e) return null;
+    const pr = obj(S.eventProg[e.id]); return { name: String(e.name).slice(0, 40), endTs: Number.isFinite(e.endTs) ? e.endTs + 1 : 0, level: num(pr.level), left: pr.xpNext ? Math.max(0, num(pr.xpNext) - num(pr.xp)) : 0, xpName: String(pr.xpName || "").slice(0, 16), cur: obj(pr.cur).name ? { name: String(pr.cur.name).slice(0, 16), amount: num(pr.cur.amount) } : null }; } catch { return null; } })();
+  const D = obj(S.allianceData), c = typeof climbNow === "function" ? climbNow() : null;
+  let missionsLeft = -1; try { const mi = missionState(); if (obj(S.missions).items) missionsLeft = mi.left; } catch { /* none */ }
+  return { handle: S.me.handle || "", rank: String(S.me.rank || "").slice(0, 10), season: cs ? { name: cs.name, endTs: Number.isFinite(cs.endTs) ? cs.endTs : 0, pass: num(pass.level), passOf: num(cs.passLevels) || 50,
+      rec: rec && rec.games ? { games: rec.games, w: rec.w, l: rec.l, cubes: rec.cubes, wr: Math.round((rec.w / Math.max(1, rec.w + rec.l)) * 100) } : null } : null,
+    climb: c ? { rank: num(c.rank), cubes: num(c.cubes) } : null,
+    today: todaySummary(), missionsLeft, event: ev,
+    wallet: { credits: num(S.wallet.credits), gold: num(S.wallet.gold), tokens: num(S.wallet.tokens), wild: num(S.wallet.wild), cl: num(S.me.colLevel) },
+    webshop: { claimed: String(obj(S.webshop).claimed || "") },
+    alliance: keyOf(S.me.alliance) ? { name: String(S.me.alliance).slice(0, 30), points: num(obj(D.my).points) || num(S.alliance.points), bounties: arr(D.mine).length } : null,
+    alert: alerts ? `${alerts} wishlist item${alerts > 1 ? "s" : ""} on sale` : "" };
 }
 let _widgetSig = "";
 function pushWidget() {
@@ -3199,13 +3242,13 @@ function variantSheet() {
 }
 function vCosmetics() {
   const kind = ui.cosKind || "cardback";
-  const inCat = kind === "title" && titleCatalog().length ? new Set(titleCatalog().map(keyOf)) : null;
-  const list = S.cosmetics.filter((c) => c.kind === kind && !(inCat && inCat.has(keyOf(c.name))));
+  const inCat = kind === "title" && titleCatalog().length ? new Set(titleCatalog().map(keyOf)) : kind === "emote" && emoteCatalog().length ? new Set(emoteCatalog().map((e) => keyOf(e.name))) : null;
+  const list = S.cosmetics.filter((c) => c.kind === kind && !(inCat && (inCat.has(keyOf(c.name)) || (kind === "emote" && c.ref && emoteById(c.ref)))));
   const plural = { cardback: "Card backs", avatar: "Avatars", title: "Titles", emote: "Emotes" };
   return `<section class="sec"><div class="chips">${Object.entries(plural).map(([k, l]) => `<button class="chip" data-a="cosKind" data-v="${k}" aria-pressed="${kind === k}">${l} <span class="muted num">${S.cosmetics.filter((c) => c.kind === k && c.owned).length}</span></button>`).join("")}</div>
     ${kind === "avatar" ? `<p class="muted small">Avatars are the profile pictures you set in the game.</p>` : ""}
     ${kind === "cardback" && cardBacks().length ? `${cardBackGallery()}${list.some((c) => !c.ref) ? `<h3>Others you added</h3>` : ""}` : ""}
-    ${inCat ? `${titleGallery()}${list.length ? `<h3>Others you added</h3>` : ""}` : ""}
+    ${inCat ? `${kind === "emote" ? emoteGallery() : titleGallery()}${list.length ? `<h3>Others you added</h3>` : ""}` : ""}
     ${(kind === "cardback" && cardBacks().length ? list.filter((c) => !c.ref).length : list.length) ? `<div class="list">${list.filter((c) => !(kind === "cardback" && c.ref && cardBacks().length)).map((c) => `<div class="li"><div class="grow"><div class="t">${esc(c.name)}</div><div class="s">${esc(c.source || (c.owned ? "Owned" : "Missing"))}</div></div>
       <label class="check small"><input type="checkbox" data-coschk="owned" data-id="${esc(c.id)}" ${c.owned ? "checked" : ""}> Own</label><label class="check small"><input type="checkbox" data-coschk="wish" data-id="${esc(c.id)}" ${c.wish ? "checked" : ""}> Want</label>
       <button class="x" data-a="cosDel" data-id="${esc(c.id)}" aria-label="Remove">${ICON.x}</button></div>`).join("")}</div>`
@@ -3495,10 +3538,11 @@ function postHtml(p) {
   const open = ui.openComments[r.k];
   return `<article class="post"><div class="post-h"><button data-a="profileOpen" data-id="${esc(p.author)}" style="background:none;border:0;padding:0">${avatarHtml(pr.avatar, handleOf(p.author), p.author)}</button><div class="who"><b>${esc(handleOf(p.author))}</b><span class="muted small">${pr.country ? flag(pr.country) + " " : ""}${pr.alliance ? esc(pr.alliance) + " · " : ""}${esc(ago(num(p.ts)))}</span></div>${p.alliance ? `<span class="pill gold">Alliance</span>` : ""}${POST_LABEL[p.type] ? `<span class="pill dim">${POST_LABEL[p.type]}</span>` : ""}</div>
     ${p.text ? `<div class="body">${esc(p.text)}</div>` : ""}${att}
-    <div class="acts"><button class="${r.mine === 1 ? "on" : ""}" data-a="react" data-v="1" data-k="${esc(r.k)}" aria-pressed="${r.mine === 1}" aria-label="Like">${ICON.up}${r.likes || ""}</button><button class="down ${r.mine === -1 ? "on" : ""}" data-a="react" data-v="-1" data-k="${esc(r.k)}" aria-pressed="${r.mine === -1}" aria-label="Dislike">${ICON.down}${r.dislikes || ""}</button><button data-a="toggleComments" data-k="${esc(r.k)}">${ICON.talk}${r.comments.length || ""}</button>
+    <div class="acts"><button class="${r.mine === 1 ? "on" : ""}" data-a="react" data-v="1" data-k="${esc(r.k)}" aria-pressed="${r.mine === 1}" aria-label="Like">${ICON.up}${r.likes || ""}</button><button class="down ${r.mine === -1 ? "on" : ""}" data-a="react" data-v="-1" data-k="${esc(r.k)}" aria-pressed="${r.mine === -1}" aria-label="Dislike">${ICON.down}${r.dislikes || ""}</button><button data-a="toggleComments" data-k="${esc(r.k)}">${ICON.talk}${r.comments.length || ""}</button>${emoBtn(r.k, "react", "React with an emote")}
     ${p.author === store.uid ? `<button data-a="postDelete" data-id="${esc(p.id)}" style="margin-left:auto">Delete</button>` : store.mode === "cloud" ? `<button data-a="reportOpen" data-k="${esc(p.author)}" data-id="${esc(p.id)}" style="margin-left:auto">Report</button>` : ""}</div>
-    ${open ? `<div class="stack">${r.comments.map((c) => `<div class="cmt"><b>${esc(handleOf(c.who))}</b><span style="overflow-wrap:anywhere">${esc(c.text)}</span></div>`).join("")}
-      <div class="row nowrap"><input type="text" id="cm-${esc(r.k.replace(/[^a-zA-Z0-9]/g, ""))}" placeholder="Add a comment" aria-label="Add a comment"><button class="btn sm" data-a="comment" data-k="${esc(r.k)}">Send</button></div></div>` : ""}</article>`;
+    ${emoteBar(r.k)}
+    ${open ? `<div class="stack">${r.comments.map((c) => { const ck = "c:" + String(c.id || ""); return `<div class="cmt-w"><div class="cmt"><b>${esc(handleOf(c.who))}</b>${commentBody(c)}${c.id ? `<span class="cmt-emo">${emoBtn(ck, "react", "React to this comment")}</span>` : ""}</div>${c.id ? emoteBar(ck, true) : ""}</div>`; }).join("")}
+      <div class="row nowrap"><input type="text" id="cm-${esc(r.k.replace(/[^a-zA-Z0-9]/g, ""))}" placeholder="Add a comment" aria-label="Add a comment"><span class="cmt-emo big">${emoBtn(r.k, "comment", "Send an emote")}</span><button class="btn sm" data-a="comment" data-k="${esc(r.k)}">Send</button></div></div>` : ""}</article>`;
 }
 function followBtn(id) {
   const st = followState(id); const priv = shared.profiles[id] && shared.profiles[id].visibility === "private";
@@ -4042,7 +4086,7 @@ function addPost(type, payload, text, extra = {}) {
   return true;
 }
 let reactWriting = Promise.resolve();
-function myReactions() { const r = obj(shared.reactions[store.uid]); return { likes: { ...obj(r.likes) }, dislikes: { ...obj(r.dislikes) }, comments: [...arr(r.comments)] }; }
+function myReactions() { const r = obj(shared.reactions[store.uid]); return { likes: { ...obj(r.likes) }, dislikes: { ...obj(r.dislikes) }, comments: [...arr(r.comments)], emotes: { ...obj(r.emotes) } }; }
 function writeReactions(r) { shared.reactions[store.uid] = r; reactWriting = reactWriting.then(() => store.db.doc("reactions/" + store.uid).set(clone(r))).catch((e) => handleDbErr(e, "save that")); }
 let sharedWriting = Promise.resolve();
 function writeShared(path, body, what) { sharedWriting = sharedWriting.then(() => store.db.doc(path).set(clone(body))).catch((e) => handleDbErr(e, what)); }
@@ -6991,6 +7035,19 @@ const CARD_ART_BOX = [0.2, 0.12, 0.8, 0.8];
 const FACE_BOX = [0.185, 0.07, 0.815, 0.7];
 // Profile pictures are hexagons with flat tops, like in the game (width:height = 2:√3).
 const HEX_AR = 2 / Math.sqrt(3);
+/* Where each face portrait sits inside the card's full art (faces.json, built daily by scripts/update-faces.py: the game's
+   portrait is a crop of the art). Using the art there shows the same face the game frames, centred, without the card's
+   name printed across the bottom. { "SpiderMan_05": [left, top, right, bottom, artWidth/artHeight] } */
+const FACES = makeDataFile("faces.json", "snapstat-faces-v1", (j) => j && j.faces && typeof j.faces === "object");
+function faceSpot(artId) {
+  const f = FACES.data && FACES.data.faces && FACES.data.faces[artId];
+  if (!Array.isArray(f) || f.length < 4 || !f.slice(0, 4).every(Number.isFinite)) return null;
+  const [x0, y0, x1, y1] = f, ar = Number(f[4]) > 0.3 && Number(f[4]) < 3 ? Number(f[4]) : 1, bw = x1 - x0, bh = y1 - y0;
+  if (bw <= 0.03 || bh <= 0.03 || bw > 1.6) return null;
+  // Show a little more than the portrait does, centred on the face (a bit above the middle of the portrait).
+  const z = clamp(1 / (bw * 1.0) * (ar >= HEX_AR ? HEX_AR / ar : 1), 1, 6);
+  return { x: clamp(x0 + bw / 2, 0, 1), y: clamp(y0 + bh * 0.46, 0, 1), z: Math.round(z * 100) / 100, ar };
+}
 
 /* ---------- Border list ---------- */
 let BDL = null, bdVer = 0;
@@ -7075,6 +7132,8 @@ function lookSources(l) {
     const c = card(l.card), cv = l.cat ? _catVars.get(l.cat) : null;
     const def = c.catId, suf = cv ? "_" + pad2(cv.order) : "";
     if (def && !(l.cat && !cv) && !l.var) {
+      const fs = l.src === "face" ? faceSpot(def + suf) : null;
+      if (fs) out.push({ u: `${LK_HOST}art/${def}${suf}.webp`, ar: fs.ar, face: true, x: fs.x, y: fs.y, z: fs.z });
       if (l.src === "face") out.push({ u: `${LK_HOST}avatars/${def}${suf}_avatar.webp`, ar: AV_AR, box: FACE_BOX, face: true, x: 0.5, y: 0.5 });
       out.push({ u: `${LK_HOST}art/${def}${suf}.webp`, ar: 1, ...(l.src === "face" || l.which === "avatar" ? { x: 0.5, y: 0.3, z: 2.3 } : {}) });
     }
@@ -7209,7 +7268,7 @@ function lookEditStep(what) {
   const movable = !lk.img && (lk.which === "avatar" ? true : lk.fit === "fill");
   const cv = lk.cat ? _catVars.get(lk.cat) : null;
   const seg = (key, v, l) => `<button class="chip" data-a="lkSet" data-f="${key}" data-v="${v}" aria-pressed="${lk[key] === v}">${l}</button>`;
-  const z = Number(lk.z) || (lk.which === "avatar" && lk.src !== "face" ? 2.3 : 1);
+  const z = Number(lk.z) || (() => { const s = lookSources({ card: lk.card, cat: lk.cat, var: lk.var, src: lk.src, u: lk.u, which: lk.which })[0]; return (s && s.z) || 1; })();
   return `${sheetHead(`Your ${what}`, lk.img ? "Your own picture" : esc(card(lk.card).name + (cv ? " · " + cv.name : lk.var ? "" : " · Base card")))}
     ${lk.img ? "" : `<button class="btn sm" data-a="lkBack" data-v="${lk.card ? "variant" : "card"}">‹ ${lk.card ? "Other variants" : "Pick a card"}</button>`}
     <div class="lk-sticky">
@@ -8168,14 +8227,22 @@ function applyShotAlliance(x, a, time) {
   }
   const bounties = arr(a.bounties).map((b) => ({ text: String(obj(b).text || "").trim().slice(0, 90), rarity: String(obj(b).rarity || "").slice(0, 12), points: n(obj(b).points), progress: n(obj(b).progress), goal: n(obj(b).goal), mine: !!obj(b).mine })).filter((b) => b.text);
   if (bounties.length) {
+    // Pages of the same list (saved a few seconds apart while scrolling) add up; a new visit starts the list again.
+    const fresh = Math.abs(time - num(D.bountiesAt)) > 30 * 60e3;
     const old = new Map(arr(D.bounties).map((b) => [keyOf(b.text) + (b.rarity || ""), b]));
-    D.bounties = bounties.map((b) => ({ ...(old.get(keyOf(b.text) + (b.rarity || "")) || {}), ...b })).slice(0, 30); D.bountiesAt = time;
+    const merged = bounties.map((b) => ({ ...(old.get(keyOf(b.text) + (b.rarity || "")) || {}), ...b }));
+    if (!fresh) { const seen = new Set(merged.map((b) => keyOf(b.text) + (b.rarity || ""))); for (const [k, b] of old) if (!seen.has(k)) merged.push(b); }
+    D.bounties = merged.slice(0, 30); D.bountiesAt = Math.max(time, num(D.bountiesAt));
     const mineNow = bounties.filter((b) => b.mine).map((b) => keyOf(b.text));
     if (mineNow.length) D.mine = [...new Set(mineNow)].slice(0, 3);
     done.push(`${bounties.length} bount${bounties.length === 1 ? "y" : "ies"}`);
   }
   const board = arr(a.board).map((r) => ({ rank: n(obj(r).rank), name: String(obj(r).name || "").slice(0, 40), points: n(obj(r).points), cubes: n(obj(r).cubes), bounties: n(obj(r).bounties), mine: !!obj(r).mine })).filter((r) => r.name);
-  if (board.length) { D.board = board.slice(0, 50); D.boardAt = time; done.push(`leaderboard (${board.length})`); }
+  if (board.length) {
+    const fresh = Math.abs(time - num(D.boardAt)) > 30 * 60e3, by = new Map((fresh ? [] : arr(D.board)).map((r) => [keyOf(r.name), r]));
+    for (const r of board) by.set(keyOf(r.name), { ...(by.get(keyOf(r.name)) || {}), ...r });
+    D.board = [...by.values()].sort((a, b) => num(a.rank || 999) - num(b.rank || 999)).slice(0, 60); D.boardAt = Math.max(time, num(D.boardAt)); done.push(`leaderboard (${board.length})`);
+  }
   if (!done.length) { x.status = "An alliance screen, but nothing I could read"; return; }
   D.at = time; x.status = "Alliance updated"; x.detail = done.join(" · "); x.undo = { type: "alliance", before }; save();
 }
@@ -8317,6 +8384,120 @@ Object.assign(A, {
     c.owned = !c.owned; save(); render();
   },
 });
+/* ============ Emotes: every one in the game, which you have, and emote reactions on posts and comments ============
+   The list comes from art.json (built daily from Marvel Snap Zone and snap.fan). Text emotes are the ones everyone starts with. */
+let _emoSrc = null, _emoList = [], _emoById = new Map();
+function emoteCatalog() {
+  const src = ART.data && ART.data.emotes;
+  if (src !== _emoSrc) {
+    _emoSrc = src;
+    _emoList = arr(src).filter((e) => e && /^[A-Za-z0-9_]+$/.test(String(e.id || "")) && String(e.name || "").length <= 80)
+      .map((e) => ({ id: String(e.id), name: String(e.name || e.id), kind: ["text", "anim", "image"].includes(e.kind) ? e.kind : "image", img: safeUrl(e.img), sf: safeUrl(e.sf), texts: arr(e.texts).map(String).slice(0, 2), added: String(e.added || ""), src: String(e.src || "") }));
+    _emoById = new Map(_emoList.map((e) => [e.id, e]));
+  }
+  return _emoList;
+}
+const emoteById = (id) => (emoteCatalog(), _emoById.get(String(id || ""))) || null;
+const emoteCos = (e) => S.cosmetics.find((c) => c.kind === "emote" && (c.ref === e.id || keyOf(c.name) === keyOf(e.name)));
+const emoteOwned = (e) => e.kind === "text" || !!(emoteCos(e) || {}).owned;
+const emoteWanted = (e) => !!(emoteCos(e) || {}).wish;
+function emoteSet(e, field, val) {
+  let c = emoteCos(e);
+  if (!c) { c = { id: uid(), kind: "emote", name: e.name, source: e.added ? "Update " + e.added : "", owned: false, wish: false, ref: e.id }; S.cosmetics.push(c); }
+  c.ref = e.id; c[field] = val; if (field === "owned" && val) c.wish = false;
+}
+// The emote's picture (snap.fan's first, since it loads everywhere), or a speech bubble for the text ones.
+function emotePic(e, cls = "") {
+  if (!e) return "";
+  if (e.kind === "text") return `<span class="emo-txt ${cls}">${esc(e.texts[0] || e.name)}</span>`;
+  const a = e.sf || e.img, b = e.sf && e.img ? e.img : "";
+  if (!a || !showArt()) return `<span class="emo-txt ${cls}">${esc(e.name)}</span>`;
+  return `<img class="emo-img ${cls}" src="${esc(a)}" alt="${esc(e.name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"${b ? ` data-alt="${esc(b)}" onerror="emoFail(this)"` : ""}>`;
+}
+function emoFail(img) { const b = img.dataset.alt; if (b) { img.dataset.alt = ""; img.src = b; } }
+
+/* ---------- Collection › Cosmetics › Emotes ---------- */
+function emoteGallery() {
+  const all = emoteCatalog(); if (!all.length) return "";
+  const q = keyOf(ui.emoQ), f = ui.emoF || "all", k = ui.emoK || "", n = ui.emoN || 48;
+  const list = all.filter((e) => (!k || e.kind === k) && (!q || keyOf(e.name).includes(q) || keyOf(e.id).includes(q) || e.texts.some((t) => keyOf(t).includes(q)))
+    && (f === "all" || (f === "own" ? emoteOwned(e) : f === "want" ? emoteWanted(e) : !emoteOwned(e))));
+  const own = all.filter(emoteOwned).length;
+  const chip = (a, v, cur, l) => `<button class="chip" data-a="${a}" data-v="${v}" aria-pressed="${cur === v}">${l}</button>`;
+  return `<div class="panel stack"><div class="row between"><b>Every emote</b><span class="muted small num">${own} of ${all.length} collected</span></div>
+    <input type="search" id="emo-q" data-ui="emoQ" value="${esc(ui.emoQ || "")}" placeholder="Search emotes" autocomplete="off">
+    <div class="chips">${chip("emoF", "all", f, "All")}${chip("emoF", "own", f, "Collected")}${chip("emoF", "missing", f, "Not yet")}${chip("emoF", "want", f, "Wishlist")}</div>
+    <div class="chips">${chip("emoK", "", k, "Every kind")}${chip("emoK", "image", k, "Pictures")}${chip("emoK", "anim", k, "Moving")}${chip("emoK", "text", k, "Text")}</div>
+    ${list.length ? `<div class="emo-grid">${list.slice(0, n).map((e) => { const o = emoteOwned(e), w = emoteWanted(e); return `<div class="emo-tile ${o ? "own" : ""}">
+        <button class="emo-pick" data-a="emoOwn" data-v="${esc(e.id)}" aria-pressed="${o}" ${e.kind === "text" ? "disabled" : ""} aria-label="${esc(e.name)}${o ? ", collected" : ""}">${emotePic(e)}${o ? `<span class="emo-tick">✓</span>` : ""}</button>
+        <div class="emo-info"><span class="emo-n">${esc(e.kind === "text" ? (e.texts[1] ? e.texts.join(" / ") : e.name) : e.name)}</span>${e.kind !== "text" ? `<button class="star" data-a="emoWish" data-v="${esc(e.id)}" aria-pressed="${w}" aria-label="Wishlist">${HEART}</button>` : ""}</div>
+        <span class="emo-d">${e.kind === "text" ? "Everyone has it" : esc([e.kind === "anim" ? "Moving" : "", e.src, e.added && (/^\d/.test(e.added) ? "Update " + e.added : e.added)].filter(Boolean).join(" · "))}</span></div>`; }).join("")}</div>` : `<p class="muted small">No emotes match.</p>`}
+    ${list.length > n ? `<div><button class="btn sm" data-a="emoMore">Show more (${list.length - n} more)</button></div>` : ""}
+    <p class="muted small">Tap each emote you have to tick it, and ♡ the ones you want. In the game they're in your Collection › Emotes. You can react to posts and comments in Social with any emote.</p></div>`;
+}
+
+/* ---------- Emote reactions ---------- */
+// Everyone's emote reactions for one post or comment: [{ e, n, mine }], most used first.
+function emoteCounts(k) {
+  const c = new Map(); let mine = "";
+  for (const [who, r] of Object.entries(shared.reactions)) {
+    const id = obj(obj(r).emotes)[k]; if (!id || !emoteById(id)) continue;
+    c.set(id, (c.get(id) || 0) + 1); if (who === store.uid) mine = id;
+  }
+  return [...c.entries()].sort((a, b) => b[1] - a[1]).map(([id, n]) => ({ e: emoteById(id), n, mine: id === mine }));
+}
+function emoteBar(k, small) {
+  const list = emoteCounts(k); if (!list.length) return "";
+  return `<div class="emo-bar ${small ? "sm" : ""}">${list.slice(0, 8).map((x) => `<button class="emo-chip ${x.mine ? "on" : ""}" data-a="emoReact" data-k="${esc(k)}" data-v="${esc(x.e.id)}" aria-pressed="${x.mine}" aria-label="${esc(x.e.name)}, ${x.n}">${emotePic(x.e, "xs")}<span class="num">${x.n}</span></button>`).join("")}</div>`;
+}
+const EMO_ICON = `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 14.5c1.8 2 5.2 2 7 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="10" r="1.2" fill="currentColor"/><circle cx="15" cy="10" r="1.2" fill="currentColor"/></svg>`;
+const emoBtn = (k, mode, label) => `<button data-a="emoPick" data-k="${esc(k)}" data-mode="${mode}" aria-label="${label}">${EMO_ICON}</button>`;
+// A comment that is an emote shows the emote; others show their words.
+const commentBody = (c) => { const e = c.emote ? emoteById(c.emote) : null; return e ? `<span class="emo-sticker">${emotePic(e, "md")}</span>` : `<span style="overflow-wrap:anywhere">${esc(c.text)}</span>`; };
+
+let emo = { k: "", mode: "react", q: "" };
+function emoteSheet() {
+  const all = emoteCatalog();
+  if (!all.length) return `${sheetHead("Emotes")}<p class="muted">The emote list hasn't loaded yet. Try again in a moment.</p>`;
+  const q = keyOf(emo.q), fit = (e) => !q || keyOf(e.name).includes(q) || e.texts.some((t) => keyOf(t).includes(q));
+  const mine = emo.mode === "react" ? obj(obj(shared.reactions[store.uid]).emotes)[emo.k] : "";
+  const own = all.filter((e) => emoteOwned(e) && fit(e)), rest = all.filter((e) => !emoteOwned(e) && fit(e));
+  const tile = (e) => `<button class="emo-opt ${mine === e.id ? "on" : ""}" data-a="emoChoose" data-v="${esc(e.id)}" aria-label="${esc(e.name)}">${emotePic(e, "md")}<span>${esc(e.kind === "text" ? "" : e.name)}</span></button>`;
+  return `${sheetHead(emo.mode === "comment" ? "Send an emote" : "React with an emote", emo.mode === "comment" ? "It's posted as your comment." : mine ? "Tap yours again to take it back." : "")}
+    <input type="search" id="emo-sq" data-emoq="1" value="${esc(emo.q)}" placeholder="Search emotes" autocomplete="off">
+    ${own.length ? `<span class="eyebrow">Your emotes</span><div class="emo-opts">${own.slice(0, 80).map(tile).join("")}</div>` : ""}
+    ${rest.length ? `<span class="eyebrow">${own.length ? "More emotes" : "Emotes"}</span><div class="emo-opts">${rest.slice(0, ui.emoSheetN || 60).map(tile).join("")}</div>${rest.length > (ui.emoSheetN || 60) ? `<button class="btn sm" data-a="emoSheetMore">Show more</button>` : ""}` : ""}
+    ${!own.length || own.every((e) => e.kind === "text") ? `<p class="muted small">Tick the emotes you have in Collection › Cosmetics › Emotes and they show up first here.</p>` : ""}`;
+}
+
+document.addEventListener("input", (e) => { const t = e.target; if (t && t.dataset && t.dataset.emoq) { emo.q = t.value; const pos = t.selectionStart; refreshSheet(); const n = $("#emo-sq"); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch { /* fine */ } } } });
+Object.assign(A, {
+  emoF: (el) => { ui.emoF = el.dataset.v; ui.emoN = 48; render(); },
+  emoK: (el) => { ui.emoK = el.dataset.v; ui.emoN = 48; render(); },
+  emoMore: () => { ui.emoN = (ui.emoN || 48) + 96; render(); },
+  emoOwn: (el) => { const e = emoteById(el.dataset.v); if (!e || e.kind === "text") return; emoteSet(e, "owned", !emoteOwned(e)); save(); render(); },
+  emoWish: (el) => { const e = emoteById(el.dataset.v); if (!e) return; emoteSet(e, "wish", !emoteWanted(e)); save(); render(); },
+  emoPick: (el) => {
+    if (store.mode !== "cloud") { toast("Sign in to react."); return; }
+    if (el.dataset.mode === "comment" && !S.me.handle.trim()) { toast("Add your in-game name first."); return; }
+    emo = { k: el.dataset.k, mode: el.dataset.mode === "comment" ? "comment" : "react", q: "" }; ui.emoSheetN = 60; openSheet(emoteSheet);
+  },
+  emoSheetMore: () => { ui.emoSheetN = (ui.emoSheetN || 60) + 120; refreshSheet(); },
+  emoChoose: (el) => {
+    const e = emoteById(el.dataset.v); if (!e || !emo.k) return;
+    const r = myReactions();
+    if (emo.mode === "comment") r.comments = [...r.comments, { id: uid(), k: emo.k, text: "", emote: e.id, ts: Date.now() }].slice(-200);
+    else { const cur = r.emotes[emo.k]; if (cur === e.id) delete r.emotes[emo.k]; else r.emotes[emo.k] = e.id; }
+    writeReactions(r); closeSheet(); render();
+  },
+  // Tapping an emote under a post adds yours (or takes it back if it's already yours)
+  emoReact: (el) => {
+    if (store.mode !== "cloud") { toast("Sign in to react."); return; }
+    const e = emoteById(el.dataset.v), k = el.dataset.k; if (!e || !k) return;
+    const r = myReactions(); if (r.emotes[k] === e.id) delete r.emotes[k]; else r.emotes[k] = e.id;
+    writeReactions(r); render(); if (sheetFn) refreshSheet();
+  },
+});
 /* ============ Standalone (Firebase) sign-in and storage ============ */
 const FB_CFG_KEY = "snapstat.firebaseConfig", FB_SKIP_KEY = "snapstat.skipSignIn";
 function parseFirebaseConfig(text) {
@@ -8412,7 +8593,7 @@ initCaps();
 loadCardData();
 loadSchedule();
 loadHistory();
-loadVariantDetails(); loadBorders(); PROMOS.load(); ART.load();
+loadVariantDetails(); loadBorders(); PROMOS.load(); ART.load(); FACES.load();
 if (NATIVE) whenDataReady(() => setTimeout(pushWidget, 2000));
 loadAlbums();
 loadPacks();

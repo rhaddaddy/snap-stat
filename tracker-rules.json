@@ -1,8 +1,8 @@
 {
-  "v": 4,
-  "about": "How the SNAP Stat Android app's match tracker spots the end of a match. A frame counts when its words include every word of one 'end' group and none of the 'not' words, on 'frames' checks in a row. 'modes' are words that tell which game mode or event the player is in; the last one seen is passed along with the match, except on screens with a 'modeNot' word (the home screen lists every event that's on, so it doesn't count). 'screens' are other screens worth saving while you play (your alliance, event passes and shops, the season pass, the shop, the home screen): each kind is saved when its words stay on screen for its 'frames' checks (2 if not given), at most once per 'cooldownMin' minutes, and only if it changed. Words are matched in lowercase without accents. Tuned from the tracker log of October 28, 2026.",
-  "intervalMs": 1500,
-  "scale": 0.6,
+  "v": 5,
+  "about": "How the SNAP Stat Android app's match tracker spots the end of a match. A frame counts when its words include every word of one 'end' group and none of the 'not' words, on 'frames' checks in a row. 'modes' are words that tell which game mode or event the player is in; the last one seen is passed along with the match, except on screens with a 'modeNot' word (the home screen lists every event that's on, so it doesn't count). 'screens' are other screens worth saving while you play (your alliance, event passes and shops, the season pass, the shop, the home screen): each kind is saved when its words stay on screen for its 'frames' checks (2 if not given). Every new page of it counts (scrolling a list, another tab): up to 'maxPer' pictures per 'cooldownMin' minutes, at least 'minGapSec' seconds apart, skipping pages whose words match one already saved by more than 'same'. Words are matched in lowercase without accents. Tuned from the tracker log of October 28, 2026.",
+  "intervalMs": 1200,
+  "scale": 0.7,
   "frames": 2,
   "cooldownSec": 45,
   "onlyInSnap": true,
@@ -94,7 +94,10 @@
         "matchmaking",
         "end turn"
       ],
-      "cooldownMin": 15
+      "cooldownMin": 30,
+      "maxPer": 14,
+      "minGapSec": 3,
+      "same": 0.8
     },
     {
       "kind": "event",
@@ -116,7 +119,10 @@
         "season pass"
       ],
       "cooldownMin": 20,
-      "frames": 1
+      "frames": 1,
+      "maxPer": 4,
+      "minGapSec": 3,
+      "same": 0.85
     },
     {
       "kind": "eventshop",
@@ -130,6 +136,19 @@
           "sold"
         ],
         [
+          "diner",
+          "sold"
+        ],
+        [
+          "diner",
+          "new avatar"
+        ],
+        [
+          "diner",
+          "variant",
+          "emote"
+        ],
+        [
           "event shop"
         ]
       ],
@@ -139,7 +158,10 @@
         "matchmaking",
         "end turn"
       ],
-      "cooldownMin": 30
+      "cooldownMin": 30,
+      "maxPer": 5,
+      "minGapSec": 3,
+      "same": 0.8
     },
     {
       "kind": "seasonpass",
@@ -162,7 +184,10 @@
         "featured location",
         "missions"
       ],
-      "cooldownMin": 60
+      "cooldownMin": 60,
+      "maxPer": 4,
+      "minGapSec": 3,
+      "same": 0.85
     },
     {
       "kind": "shop",
@@ -203,7 +228,10 @@
         "matchmaking",
         "end turn"
       ],
-      "cooldownMin": 60
+      "cooldownMin": 60,
+      "maxPer": 6,
+      "minGapSec": 3,
+      "same": 0.8
     },
     {
       "kind": "home",
@@ -224,7 +252,10 @@
         "matchmaking",
         "end turn"
       ],
-      "cooldownMin": 90
+      "cooldownMin": 90,
+      "maxPer": 1,
+      "minGapSec": 5,
+      "same": 0.85
     }
   ],
   "modeNot": [

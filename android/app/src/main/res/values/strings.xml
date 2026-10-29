@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">SNAP Stat</string>
-    <string name="widget_description">Your rank, today\'s games, the season and a countdown to MARVEL SNAP\'s daily reset</string>
+    <string name="widget_description">Your rank, today\'s games, the resets, the season, the event, the web shop, your currencies and your alliance. Make it bigger to see everything.</string>
     <string name="widget_rank">RANK</string>
     <string name="widget_today">TODAY</string>
     <string name="widget_reset">DAILY RESET IN</string>
+    <string name="widget_play">▶ Track &amp; play</string>
+    <string name="widget_webshop">Web shop</string>
 </resources>

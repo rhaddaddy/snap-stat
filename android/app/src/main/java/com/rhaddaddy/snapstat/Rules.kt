@@ -8,7 +8,13 @@ import org.json.JSONObject
 fun plainText(text: String): String = java.text.Normalizer.normalize(text.lowercase(), java.text.Normalizer.Form.NFD).replace(Regex("\\p{Mn}+"), "")
 
 /** Another screen worth saving while you play (your alliance, an event pass, a shop…), and how to spot it. It has to be up for [frames] checks in a row. */
-data class Screen(val kind: String, val groups: List<List<String>>, val not: List<String>, val cooldownMin: Int, val frames: Int = 2) {
+data class Screen(val kind: String, val groups: List<List<String>>, val not: List<String>, val cooldownMin: Int, val frames: Int = 2,
+                  /** Up to this many different pictures of it per [cooldownMin] minutes (each page of a list, each tab)… */
+                  val maxPer: Int = 1,
+                  /** …at least this many seconds apart… */
+                  val minGapSec: Int = 4,
+                  /** …and a page counts as already saved when this much of its text matches one that was. */
+                  val same: Double = 0.85) {
     fun matches(t: String): Boolean = not.none { it.isNotBlank() && t.contains(it) } && groups.any { g -> g.isNotEmpty() && g.all { t.contains(it) } }
 }
 
@@ -93,7 +99,8 @@ data class Rules(
                         val kind = s.optString("kind").replace(Regex("[^A-Za-z0-9_-]"), "").take(24)
                         val any = s.optJSONArray("any")
                         val groups = if (any == null) emptyList() else (0 until any.length()).map { k -> val g = any.opt(k); if (g is JSONArray) words(g) else listOf(plainText(g.toString()).trim()) }.filter { it.isNotEmpty() }
-                        if (kind.isEmpty() || groups.isEmpty()) null else Screen(kind, groups, words(s.optJSONArray("not")), s.optInt("cooldownMin", 20).coerceIn(2, 24 * 60), s.optInt("frames", 2).coerceIn(1, 5))
+                        if (kind.isEmpty() || groups.isEmpty()) null else Screen(kind, groups, words(s.optJSONArray("not")), s.optInt("cooldownMin", 20).coerceIn(2, 24 * 60), s.optInt("frames", 2).coerceIn(1, 5),
+                            s.optInt("maxPer", 1).coerceIn(1, 40), s.optInt("minGapSec", 4).coerceIn(1, 600), s.optDouble("same", 0.85).coerceIn(0.3, 0.99))
                     } } ?: d.screens,
                     modeNot = if (j.has("modeNot")) words(j.optJSONArray("modeNot")) else d.modeNot,
                 )

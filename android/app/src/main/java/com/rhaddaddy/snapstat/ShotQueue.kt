@@ -17,7 +17,7 @@ import kotlin.math.max
  */
 object ShotQueue {
     const val SNAP_PACKAGE = "com.nvsgames.snap"
-    private const val MAX_ITEMS = 60
+    private const val MAX_ITEMS = 150
     private const val MAX_SIDE = 1600
 
     private fun dir(ctx: Context): File = File(ctx.filesDir, "queue").apply { mkdirs() }
