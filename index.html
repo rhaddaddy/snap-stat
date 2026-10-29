@@ -637,7 +637,7 @@ tr.me td { font-weight: 800; color: var(--cube); }
 </style>
 
 <style>html, body { margin: 0; } :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); } img { max-width: 100%; }</style>
-<script>window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
+<script>window.SNAPSTAT_BUILD = "595f364160f4"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
 <script src="firebase-config.js"></script>
 <script type="module" src="firebase-init.js"></script>
 </head>
@@ -1849,7 +1849,7 @@ function keepFocus(fn) {
 let sheetFn = null;
 function openSheet(fn) { sheetFn = fn; $("#sheet").hidden = false; refreshSheet(); const first = $("#sheetBody [data-autofocus]"); if (first) first.focus(); }
 function refreshSheet() { if (!sheetFn) return; keepFocus(() => { $("#sheetBody").innerHTML = sheetFn(); }); }
-function closeSheet() { sheetFn = null; $("#sheet").hidden = true; $("#sheetBody").innerHTML = ""; if (typeof nat !== "undefined" && nat.popWait) setTimeout(() => { if (typeof updatePopup === "function") updatePopup(); }, 400); }
+function closeSheet() { sheetFn = null; $("#sheet").hidden = true; $("#sheetBody").innerHTML = ""; if (typeof nat !== "undefined" && nat.popWait) setTimeout(() => { if (typeof updatePopup === "function") updatePopup(); }, 400); if (typeof webUp !== "undefined" && webUp.ready) setTimeout(() => applyWebUpdate(), 600); }
 function sheetHead(title, sub) { return `<div class="sheet-h"><div style="min-width:0"><h2>${title}</h2>${sub ? `<div class="muted small">${sub}</div>` : ""}</div><button class="x" data-a="close" aria-label="Close">${ICON.x}</button></div>`; }
 async function copyText(t, done = "Copied") {
   try { await navigator.clipboard.writeText(t); toast(done); }
@@ -6903,7 +6903,7 @@ function natEvent(type, data) {
   if (type === "update-installing") { nat.pct = -1; nat.tried = Date.now(); toast("Tap Update in Android's window to finish."); refreshView(); return; }
   if (type === "update-error") { nat.pct = -1; nat.tried = Date.now(); toast(String(data || "The update didn't work.")); refreshView(); return; }
   natInfo();
-  if (type === "resume") { _widgetSig = ""; setTimeout(pushWidget, 800); nat.popped = 0; natCheckSoon(false); setTimeout(updatePopup, 1500); }
+  if (type === "resume") { _widgetSig = ""; setTimeout(pushWidget, 800); nat.popped = 0; natCheckSoon(false); setTimeout(updatePopup, 1500); if (typeof cameBack === "function") cameBack(); }
   if ((type === "perm" || type === "resume") && notifyPrefs().on) { saveNotifyState(); if (type === "perm" && natCan("checkAlertsNow") && natCan("canNotify") && NATIVE.canNotify()) NATIVE.checkAlertsNow(); }
   if (type === "queue" || type === "resume") natPull();
   if (ui.tab === "settings") refreshView();
@@ -6935,7 +6935,7 @@ function natPull() {
         if (res === "retry") { again = 0; break; }  // leave it in the queue; it's read next time SNAP Stat opens
         NATIVE.done(it.id);
       }
-    } finally { nat.busy = false; render(); }
+    } finally { nat.busy = false; render(); if (typeof applyWebUpdate === "function") setTimeout(applyWebUpdate, 300); }
     natInfo(); if (again && num(nat.info.queue)) setTimeout(natPull, again);
   }, 0);
 }
@@ -9493,6 +9493,63 @@ function turnShotsPanel() {
   const on = S.turnShots !== false;
   return `<div class="row between small"><span>Save the board each turn for a play-by-play <span class="muted">(about 6 more AI reads a match)</span></span><button class="btn sm ${on ? "snap" : "ghost"}" data-a="natTurnShots" data-v="${on ? "0" : "1"}" aria-pressed="${on}">${on ? "On" : "Off"}</button></div>`;
 }
+/* ============ Keeping the web app itself up to date ============
+   The Android app (and an installed web app) can stay open in the background for days, so the page you see can be
+   older than the website. Each time you come back to SNAP Stat it checks version.json, and when a newer version
+   is out it loads it, as long as you're not in the middle of something (a panel open, typing, screenshots being
+   read). If you are, it waits until that's done. */
+const BUILD = String(window.SNAPSTAT_BUILD || "");
+const webUp = { at: 0, busy: false, ready: "", backAt: 0 };
+const WEBUP_KEY = "snapstat.webUp";
+let webUpdateMs = 60e3; // how long after coming back an update may still load (tests shorten it)
+
+async function checkWebUpdate(force) {
+  if (!BUILD || webUp.busy || !/^https?:$/.test(location.protocol)) return;
+  if (!force && Date.now() - webUp.at < 30e3) { applyWebUpdate(); return; }
+  webUp.busy = true; webUp.at = Date.now();
+  try {
+    const r = await fetch("version.json", { cache: "no-store" });
+    if (r.ok) { const b = String(obj(await r.json()).build || ""); webUp.ready = b && b !== BUILD ? b : ""; }
+  } catch { /* offline: try again next time */ } finally { webUp.busy = false; }
+  applyWebUpdate();
+}
+function webUpdateSafe() {
+  const el = document.activeElement;
+  if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return false;
+  if (typeof sheetFn !== "undefined" && sheetFn) return false;
+  if (typeof filePicking === "function" && filePicking()) return false;
+  if (typeof nat !== "undefined" && (nat.busy || nat.pct >= 0)) return false;
+  if (typeof shotBusy !== "undefined" && shotBusy) return false;
+  return true;
+}
+async function applyWebUpdate() {
+  const b = webUp.ready; if (!b || webUp.loading) return;
+  // Only right after you come back to the app, so it never reloads under your finger
+  if (Date.now() - webUp.backAt > webUpdateMs) return;
+  if (!webUpdateSafe()) return;
+  // Tried this one a moment ago and still got the old page: leave it for next time
+  let last = {}; try { last = JSON.parse(sessionStorage.getItem(WEBUP_KEY) || "{}"); } catch { /* none */ }
+  if (last.b === b && Date.now() - num(last.at) < 10 * 60e3) return;
+  webUp.loading = true;
+  try {
+    // Fetch the new page first, so the reload gets it rather than a copy the phone saved earlier
+    const page = location.href.split("#")[0];
+    const html = await (await fetch(page, { cache: "reload" })).text();
+    if (!html.includes(`SNAPSTAT_BUILD = "${b}"`)) return;
+    if (!webUpdateSafe()) return;
+    try { sessionStorage.setItem(WEBUP_KEY, JSON.stringify({ b, at: Date.now() })); } catch { /* fine */ }
+    if (dirty) await flushState();
+    if (dirtyWeeks.size) await flushWeeks();
+    location.reload();
+  } catch { /* offline */ } finally { webUp.loading = false; }
+}
+function cameBack() { webUp.backAt = Date.now(); checkWebUpdate(false); }
+document.addEventListener("visibilitychange", () => { if (!document.hidden) cameBack(); });
+window.addEventListener("focus", () => { if (Date.now() - webUp.backAt > 5e3) cameBack(); });
+// Opening the app counts as coming back too
+webUp.backAt = Date.now(); setTimeout(() => checkWebUpdate(true), 4000);
+// Just updated: say so once
+try { const last = JSON.parse(sessionStorage.getItem(WEBUP_KEY) || "{}"); if (last.b && last.b === BUILD) { sessionStorage.removeItem(WEBUP_KEY); setTimeout(() => toast("SNAP Stat updated to the newest version"), 1200); } } catch { /* fine */ }
 /* ============ Standalone (Firebase) sign-in and storage ============ */
 const FB_CFG_KEY = "snapstat.firebaseConfig", FB_SKIP_KEY = "snapstat.skipSignIn";
 function parseFirebaseConfig(text) {
