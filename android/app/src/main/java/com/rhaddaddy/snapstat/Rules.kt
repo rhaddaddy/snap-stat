@@ -45,6 +45,8 @@ data class Rules(
     val modeNot: List<String> = emptyList(),
     /** Screens that mean the player left a mode (the home screen), so the last mode seen no longer applies. */
     val modeReset: List<String> = emptyList(),
+    /** Save a picture of the board each time you end a turn, for the match's play-by-play. */
+    val turnShots: Boolean = false,
 ) {
     fun resetsMode(text: String): Boolean { val t = plainText(text); return modeReset.any { it.isNotBlank() && t.contains(it) } }
 
@@ -92,6 +94,7 @@ data class Rules(
                     frames = j.optInt("frames", d.frames).coerceIn(1, 5),
                     cooldownSec = j.optInt("cooldownSec", d.cooldownSec).coerceIn(5, 600),
                     onlyInSnap = j.optBoolean("onlyInSnap", d.onlyInSnap),
+                    turnShots = j.optBoolean("turnShots", d.turnShots),
                     end = if (endA == null) d.end else (0 until endA.length()).map { i ->
                         val g = endA.opt(i)
                         if (g is JSONArray) words(g) else listOf(plainText(g.toString()).trim())

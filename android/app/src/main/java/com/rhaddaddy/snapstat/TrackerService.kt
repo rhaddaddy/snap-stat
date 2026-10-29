@@ -97,6 +97,12 @@ class TrackerService : Service() {
     private var botMaxWait = 0L
     private var botTold = false
     private var matchSeenAt = 0L
+    // The play-by-play: one picture of the board each time you end a turn, all tagged with this match's session
+    private var session = 0L
+    private var lastTurnNo = 0
+    private var turnShots = 0
+    private var vsText = ""
+    private val turnNo = Regex("(\\d)\\s*/\\s*[6-8]")
     private val playing = Regex("playing\\.{1,3}")
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -201,14 +207,18 @@ class TrackerService : Service() {
             if (!match) rules.modeIn(flat)?.let { if (it != lastMode) TrackerLog.add("Mode: $it"); lastMode = it; lastModeAt = System.currentTimeMillis() }
             // Note the screen's words whenever they change, for tuning the rules
             if (flat.isNotEmpty() && similarity(flat, lastText) < 0.6) { TrackerLog.add("${if (match) "END" else "saw"}: $flat"); lastText = flat }
-            if (!match) watchTurns(flat.lowercase())
+            if (!match) watchTurns(flat.lowercase(), bmp)
             hits = if (match) hits + 1 else 0
             if (!match) saveScreen(flat, bmp)
             if (hits >= rules.frames) {
                 hits = 0
                 cooldownUntil = System.currentTimeMillis() + rules.cooldownSec * 1000L
                 val hint = if (System.currentTimeMillis() - lastModeAt < 20 * 60_000L) lastMode else ""
-                val meta = if (botFast + botSlow > 0) org.json.JSONObject().put("bot", org.json.JSONObject().put("fast", botFast).put("slow", botSlow).put("maxWait", (botMaxWait / 1000).toInt()).put("told", botTold)).toString() else ""
+                val note = org.json.JSONObject()
+                if (botFast + botSlow > 0) note.put("bot", org.json.JSONObject().put("fast", botFast).put("slow", botSlow).put("maxWait", (botMaxWait / 1000).toInt()).put("told", botTold))
+                if (session > 0) note.put("session", session.toString())
+                if (vsText.isNotBlank()) note.put("vs", vsText)
+                val meta = if (note.length() > 0) note.toString() else ""
                 resetTurns()
                 if (ShotQueue.addBitmap(this, bmp, System.currentTimeMillis(), "tracker", hint, meta)) {
                     captured++
@@ -248,10 +258,12 @@ class TrackerService : Service() {
         }
     }
 
-    private fun resetTurns() { turnState = ""; turnStart = 0L; waitStart = 0L; yourTime = 0L; botFast = 0; botSlow = 0; botMaxWait = 0L; botTold = false }
+    private fun resetTurns() { turnState = ""; turnStart = 0L; waitStart = 0L; yourTime = 0L; botFast = 0; botSlow = 0; botMaxWait = 0L; botTold = false; session = 0L; lastTurnNo = 0; turnShots = 0; vsText = "" }
 
-    private fun watchTurns(t: String) {
+    private fun watchTurns(t: String, bmp: Bitmap) {
         val now = System.currentTimeMillis()
+        // The matchmaking screen names your opponent and their title ("VS OKKI FINGARO Professor X's Barber")
+        if (t.contains(" vs ") && (t.contains("waiting for") || t.contains("connecting"))) vsText = t.substringAfter(" vs ").take(60)
         if (t.contains("searching for") || (matchSeenAt > 0 && now - matchSeenAt > 3 * 60_000L)) { if (botFast + botSlow > 0 || t.contains("searching for")) resetTurns(); matchSeenAt = 0L }
         val inMatch = t.contains("retreat") || t.contains("end turn") || playing.containsMatchIn(t)
         if (!inMatch) return
@@ -270,6 +282,14 @@ class TrackerService : Service() {
         } else {
             yourTime = if (turnStart > 0) now - turnStart else 0L
             waitStart = now
+            // You just ended a turn: the board now shows all your cards so far, so keep a picture of it
+            if (rules.turnShots && turnShots < 9) {
+                if (session == 0L) session = now
+                val n = turnNo.find(t)?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it in 1..8 && it > lastTurnNo } ?: (lastTurnNo + 1)
+                lastTurnNo = n; turnShots++
+                val meta = org.json.JSONObject().put("session", session.toString()).put("turn", n).toString()
+                if (ShotQueue.addBitmap(this, bmp, now, "tracker", "turn:$n", meta)) TrackerLog.add("Saved turn $n's board")
+            }
         }
         turnState = state
         if (!botTold && botFast >= 4 && botSlow == 0) { botTold = true; notifyBot() }

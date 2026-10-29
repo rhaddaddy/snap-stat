@@ -303,7 +303,7 @@ a.li { color: inherit; text-decoration: none; }
 .cmini .cpic.has-img .c, .cmini .cpic.has-img .p.base { display: none; }
 .cmini .cpic.has-img .p.now { top: auto; bottom: 3px; right: 3px; box-shadow: 0 0 0 2px var(--surface); }
 .cmini .nm { font-size: 11px; line-height: 1.15; font-weight: 700; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
-.cchip.cmini.xs { width: 50px; padding: 2px; gap: 2px; } .cmini.xs .nm { font-size: 9.5px; } .cmini.xs .cpic .c, .cmini.xs .cpic .p { width: 16px; min-width: 16px; height: 16px; font-size: 10px; }
+.cchip.cmini.xs { width: 58px; padding: 2px; gap: 2px; } .cmini.xs .nm { font-size: 9.5px; hyphens: auto; word-break: normal; overflow-wrap: anywhere; } .cmini.xs .cpic .c, .cmini.xs .cpic .p { width: 16px; min-width: 16px; height: 16px; font-size: 10px; }
 .loc .side { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; }
 details.chap { display: block; padding: 12px 14px; } details.chap > summary { list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 8px; cursor: pointer; }
 details.chap > summary::-webkit-details-marker { display: none; }
@@ -1839,7 +1839,7 @@ function keepFocus(fn) {
 let sheetFn = null;
 function openSheet(fn) { sheetFn = fn; $("#sheet").hidden = false; refreshSheet(); const first = $("#sheetBody [data-autofocus]"); if (first) first.focus(); }
 function refreshSheet() { if (!sheetFn) return; keepFocus(() => { $("#sheetBody").innerHTML = sheetFn(); }); }
-function closeSheet() { sheetFn = null; $("#sheet").hidden = true; $("#sheetBody").innerHTML = ""; }
+function closeSheet() { sheetFn = null; $("#sheet").hidden = true; $("#sheetBody").innerHTML = ""; if (typeof nat !== "undefined" && nat.popWait) setTimeout(() => { if (typeof updatePopup === "function") updatePopup(); }, 400); }
 function sheetHead(title, sub) { return `<div class="sheet-h"><div style="min-width:0"><h2>${title}</h2>${sub ? `<div class="muted small">${sub}</div>` : ""}</div><button class="x" data-a="close" aria-label="Close">${ICON.x}</button></div>`; }
 async function copyText(t, done = "Copied") {
   try { await navigator.clipboard.writeText(t); toast(done); }
@@ -3035,7 +3035,7 @@ function pickerSheet() {
 function vLog() {
   const p = periodById(ui.period); const ms = inPeriod(allMatches(), p);
   return `<section class="sec"><div class="sec-h"><h2>Matches</h2><div class="row"><button class="btn sm" data-a="quickOpen">Quick log</button><button class="btn sm snap" data-a="matchNew">${ICON.plus} Log a match</button></div></div>${shotInput("match")}${periodChips()}${exampleNote(ms)}
-    ${ms.length ? `<div class="list">${ms.slice(0, 300).map((m) => `<button class="li" data-a="matchEdit" data-id="${esc(m.id)}"><span class="pill ${m.result}">${m.result}</span><div class="grow"><div class="t">${esc(m.deckName || "No deck")}${m.oppName ? ` <span class="muted">vs ${esc(m.oppName)}</span>` : ""}</div><div class="s">${esc(dateTimeStr(m.ts))} · ${esc(m.mode || "Ranked")}${m.tracked ? (replayOf(m) ? " · replay" : " · tracked") : ""}${m.svSync ? " · from SnapVault" : ""}${m.snapped ? " · snapped" : ""}${m.retreated ? " · retreated" : ""}${m.bot === "likely" ? " · likely bot" : ""}</div></div>${m.noCubes ? `<span class="muted small">no cubes</span>` : cubes(signed(num(m.cubes)), num(m.cubes) >= 0 ? "pos" : "neg")}</button>`).join("")}</div>${ms.length > 300 ? `<p class="muted small">Showing the latest 300.</p>` : ""}`
+    ${ms.length ? `<div class="list">${ms.slice(0, 300).map((m) => `<button class="li" data-a="matchEdit" data-id="${esc(m.id)}"><span class="pill ${m.result}">${m.result}</span><div class="grow"><div class="t">${esc(m.deckName || "No deck")}${m.oppName ? ` <span class="muted">vs ${esc(m.oppName)}</span>` : ""}</div><div class="s">${esc(dateTimeStr(m.ts))} · ${esc(m.mode || "Ranked")}${m.tracked ? (replayOf(m) ? " · replay" : " · tracked") : ""}${arr(m.turns).length ? " · play-by-play" : ""}${m.eventGain ? ` · +${fmt(m.eventGain.amount)} ${esc(m.eventGain.name)}` : ""}${m.svSync ? " · from SnapVault" : ""}${m.snapped ? " · snapped" : ""}${m.retreated ? " · retreated" : ""}${m.bot === "likely" ? " · likely bot" : ""}</div></div>${m.noCubes ? `<span class="muted small">no cubes</span>` : cubes(signed(num(m.cubes)), num(m.cubes) >= 0 ? "pos" : "neg")}</button>`).join("")}</div>${ms.length > 300 ? `<p class="muted small">Showing the latest 300.</p>` : ""}`
       : `<div class="empty"><strong>No matches in ${esc(p.label)}</strong><span>Log one now or pick a longer period.</span></div>`}</section>`;
 }
 let mf = null;
@@ -3064,6 +3064,9 @@ function matchSheet() {
   <div class="grid2"><label class="check"><input type="checkbox" data-mfchk="snapped" ${mf.snapped ? "checked" : ""}> You snapped</label><label class="check"><input type="checkbox" data-mfchk="oppSnapped" ${mf.oppSnapped ? "checked" : ""}> They snapped</label>
   ${mf.snapped ? `<label class="f">You snapped on turn<input type="number" id="mf-st" data-mf="snapTurn" value="${esc(mf.snapTurn || "")}" min="1" max="7" placeholder="Optional"></label><span></span>` : ""}
   <label class="check"><input type="checkbox" data-mfchk="retreated" ${mf.retreated ? "checked" : ""}> You retreated</label><label class="check"><input type="checkbox" data-mfchk="oppRetreated" ${mf.oppRetreated ? "checked" : ""}> They retreated</label></div>
+  ${playByPlayHtml(mf)}
+  ${mf.botWhy ? `<p class="small muted">Bot check: ${esc(BOT_TXT[mf.bot] || "Not sure")}, because they ${esc(mf.botWhy)}.</p>` : ""}
+  ${mf.eventGain ? `<p class="small">+${fmt(mf.eventGain.amount)} ${esc(mf.eventGain.name)} from this match</p>` : ""}
   <label class="f">Opponent was<select id="mf-bot" data-mf="bot">${Object.entries(BOT_TXT).map(([k, v]) => `<option value="${k}" ${mf.bot === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
   <label class="f">Notes<textarea id="mf-notes" data-mf="notes">${esc(mf.notes)}</textarea></label>
   <div class="row"><button class="btn snap" data-a="mfSave">Save match</button>${!mf.isNew && replayOf(mf) ? `<button class="btn" data-a="replayOpen" data-id="${esc(mf.id)}">Watch replay</button>` : ""}${mf.isNew ? "" : `<button class="btn danger" data-a="mfDelete">${mf.confirmDel ? "Tap again to delete" : "Delete"}</button>`}</div>`;
@@ -6448,8 +6451,8 @@ const SCREEN_TIPS = {
   shopmedals: "Read it as \"shop\" (the Conquest medal shop). The number at the top is Conquest medals.",
   seasonpass: "Read it as \"pass\": the season pass level, the points toward the next level (like 368/1,000), whether the player has the Premium pass (premium rewards without locks) and every level's rewards you can see on the track (the top row is free, the row with locks or the PREMIUM label is premium). " + TOP_BAR,
   collectionlevel: "Read it as \"numbers\". The player's Collection Level is the big number in the green box at the bottom (like 33,706); the smaller numbers along the track are levels still to come, so don't use them. \"NEXT 3000 IN: 24\" at the top means the next Collector's Tokens reward (3,000) comes in 24 more levels: put those in \"clNextReward\" and \"clNextIn\". This screen has no Credits or Gold.",
-  event: "Read it as \"event\". The numbers along the top of an event's screens are that event's own currencies (like Bubs), not Credits or Gold, so leave \"numbers\" out.",
-  eventshop: "Read it as \"event\" (the event's shop). The numbers along the top are the event's own currencies, not Credits or Gold, so leave \"numbers\" out.",
+  event: "Read it as \"event\". The numbers along the top of an event's screens are that event's own currencies, not Credits or Gold, so leave \"numbers\" out. Write amounts in full (21.2K is 21200). In Deadpool\'s Diner the top bar has two currencies: Nachos (the shop\'s currency, with an N or nacho icon, like 560; the Diner shop\'s prices are in Nachos) and Bubs (earned by playing Diner matches, like 21.2K). Gold is at the top right and isn\'t an event currency.",
+  eventshop: "Read it as \"event\" (the event's shop). The numbers along the top are the event's own currencies, not Credits or Gold, so leave \"numbers\" out. Put each item for sale in \"shop\" with its price, and SOLD! ones as sold. Write amounts in full (21.2K is 21200). In Deadpool\'s Diner the top bar has two currencies: Nachos (the shop\'s currency, with an N or nacho icon, like 560; the Diner shop\'s prices are in Nachos) and Bubs (earned by playing Diner matches, like 21.2K). Gold is at the top right and isn\'t an event currency.",
   alliance: "Read it as \"alliance\". Leave \"numbers\" out. ACTIVE BOUNTIES lists the bounties being worked on, each with its rarity (LEGENDARY, EPIC…), points and progress (like 10/70); PERSONAL 8/100 is the player's points toward their next milestone and ALLIANCE 8/4,000 the alliance's.",
   missions: "Read it as \"missions\". This screen scrolls: today's missions (\"Missions refill in 2h 10m\"), then the WEEKLY CHALLENGE (like 6/6 Missions, with HARD: missions and its points track), then the season's chapters (like VAMPIRES VS. ZOMBIES: CHAPTER 4, Insatiable Immortal), each COMPLETE or with its missions and their progress, and \"UNLOCKS IN 13H 29M\" on ones still locked. Read whichever parts you can see.",
   albums: "Read it as \"album\". An open album shows its variants (greyed out when missing) and its reward track (like 3/12, 6/12 with a reward each).",
@@ -6468,7 +6471,7 @@ Valid card names (name cost/power): ${roster}
 Game modes and events: ${modeNames().join("; ")}
 ${/^screen:/.test(hint || "") ? `This picture was saved automatically while the player was on the game's ${SCREEN_NAMES[String(hint).slice(7)] || "menu"} screen. ${SCREEN_TIPS[String(hint).slice(7)] || ""}\n` : hint ? `Just before this, the player's screen mentioned "${String(hint).slice(0, 60)}". Use that for the game mode if the picture itself doesn't show the mode, except that a result with cubes won or lost is a Ranked match (or Conquest, with medals).\n` : ""}Reply as JSON:
 {"kind": "match" (end of a match, or the board during one) | "numbers" (home, profile, rank, shop, collection or season pass screens showing the player's numbers) | "deck" (a deck of cards) | "card" (one card's own screen: its upgrade level, boosters, splits, variants or Custom Card) | "collection" (the collection grid, with booster counts on the cards) | "split" (the result of an Infinity Split) | "variants" (one card's variants screen, showing which of its variants the player has) | "shop" (a shop screen: the Token Shop, Spotlight Caches, the shop's daily and special offers, a bundle or the Season Pass) | "event" (an event or limited-time mode's own pass, reward track or shop, like Deadpool's Diner's, with levels, XP, rewards, its currency and its collectibles) | "alliance" (any alliance screen: members, bounties, milestones or the alliance leaderboard) | "album" (the variant albums list, or one album with its variants) | "missions" (the Missions screen: daily missions, the weekly challenge or the season's chapters) | "pass" (the season pass reward track) | "other",
- "match": {"result": "W" | "L" | "T" | "" (from the player's side at the bottom), "cubes": cubes won or lost as a positive number (0 if not shown), "medals": Conquest medals won or lost as a positive number (0 if none), "retreated": true if the player retreated, "oppRetreated": true if the opponent retreated, "snapped": true if the player snapped, "oppSnapped": true if the opponent snapped, "mode": one of the game modes and events above, or the mode or event name shown, or "", "oppName": "", "locations": [{"name": "", "my": bottom player's power, "opp": top player's power}], "oppCards": ["card names on the top side"], "myCards": ["card names on the bottom side"], "turn": final turn number or null, "boosters": [{"card": "card name", "n": boosters this card earned, as shown on the results}]},
+ "match": {"result": "W" | "L" | "T" | "" (from the player's side at the bottom), "cubes": cubes won or lost as a positive number (0 if not shown), "medals": Conquest medals won or lost as a positive number (0 if none), "retreated": true if the player retreated, "oppRetreated": true if the opponent retreated, "snapped": true if the player snapped, "oppSnapped": true if the opponent snapped, "mode": one of the game modes and events above, or the mode or event name shown, or "", "oppName": "", "locations": [{"name": "", "my": bottom player's power, "opp": top player's power, "myCards": [{"card": "each of the player's cards here", "power": number}], "oppCards": [{"card": "each opponent card here", "power": number}]}] (left to right), "eventGain": {"name": "an event currency won this match, like Bubs", "amount": number written in full (+1.2K is 1200)}, "oppCards": ["card names on the top side"], "myCards": ["card names on the bottom side"], "turn": final turn number or null, "boosters": [{"card": "card name", "n": boosters this card earned, as shown on the results}]},
  "numbers": {"topLeft": {"amount": the number at the top left of the top bar or null, "icon": "credits" (blue crystal, blue box) | "tokens" (purple token, purple box) | "other"}, "topRight": {"amount": the number at the top right or null, "icon": "gold" | "other"}, "rank": rank number 1-99, or "Infinite", or null, "rankCubes": cubes toward the next rank (the 4 in 4/7) or null, "rankCubesNeed": cubes the next rank needs (the 7 in 4/7) or null, "collectionLevel": the Collection Level (in a green badge) or null, "clNextReward": "the next big Collection Level reward if shown, like 3000 Collector's Tokens", "clNextIn": Collection Levels until it or null, "credits": Credits (blue crystal icon) or null, "gold": Gold (gold bar icon) or null, "tokens": Collector's Tokens (purple token icon) or null, "passLevel": season pass level or null, "passXp": points toward the next season pass level or null, "passXpNext": points that level needs in all or null, "passTier": "free" | "premium" | "premium+" | "" (which season pass the player has, if you can tell), "rerollCoins": Split Reroll Coins or null, "wildBoosters": Wild Boosters or null, "medals": Conquest medals or null, "goldPassDays": days left on the Gold Pass if shown or null, "goldPassClaimIn": "time until the Gold Pass's daily gold can be claimed, as shown, or empty", "freeTokensClaimed": true if today's free Collector's Tokens show as claimed, false if they can be claimed, else null, "freeCreditsIn": "time until the shop's free credits can be claimed again, as shown, like 7h 22m, or empty"},
  "deck": {"name": "", "cards": ["card names"]},
  "card": {"card": "card name", "variant": "variant name if shown, else empty", "rarity": "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Ultra" | "Infinity" | "", "boosters": this card's boosters or null, "splits": number of Infinity Splits if shown or null, "finish": "split finish if shown", "flare": "split flare if shown", "border": "border name if shown", "masteryLevel": Character Mastery level or null},
@@ -6476,7 +6479,7 @@ ${/^screen:/.test(hint || "") ? `This picture was saved automatically while the 
  "split": {"card": "card name", "finish": "finish it got", "flare": "flare it got", "rerolled": true if the player rerolled, "usedCoin": true if a Split Reroll Coin was spent},
  "variants": {"card": "card name", "screen": "editor" if this is the Custom Card editor's art picker (it only lists variants the player owns), otherwise "collection", "count": how many variant pictures you can see, "items": [{"name": "variant name or style if shown", "artist": "artist if shown", "owned": true if the player has it, false if it's greyed out, locked or shows a price}]},
  "shop": {"shop": "the shop's name, like Token Shop, Spotlight, an event shop's name, or a bundle's name", "bundles": [{"name": "the bundle's title, like Signature Bundle or Special Offer", "price": "its price as shown, like $29.99 or 1,200 Gold", "contents": ["each thing in it, like 3,600 Credits, Bucky Barnes Exiles Variant or 155 Ghost Rider Boosters"], "endsIn": "time it has left as shown, like 1d 13h", "value": "a value label if shown, like ~250 Collection Level Value!", "sold": true if bought or sold out}], "daily": [{"card": "card name", "variant": "variant name if it's a variant", "price": "its price", "pinned": true if marked Pinned!, "sold": true if bought}], "dailyRefreshIn": "time until the daily cards change, as shown", "packs": [{"name": "like Seasonal Series 5 or Series 4", "price": "its price", "complete": true if marked COMPLETE!}], "items": [{"card": "card name", "kind": "variant" | "card" | "border" | "other", "variant": "variant name or style if shown", "artist": "artist if shown", "price": "price as shown"}]},
- "event": {"event": "event or mode name", "level": current pass level or null, "levels": total levels or null, "xp": points toward the next level or null, "xpNext": points that level needs in all or null, "xpName": "what those points are called, like Event XP", "currency": {"name": "the event's main currency if shown, like Bubs", "amount": number or null}, "currencies": [{"name": "each of the event's currencies shown, by its label or icon", "amount": number}], "nextReward": "the next reward on the track", "milestones": [{"level": number, "reward": "", "claimed": true | false, "premium": true if it's on the paid track}], "collectibles": [{"name": "", "kind": "card" | "variant" | "avatar" | "title" | "cardback" | "border" | "emote" | "other", "owned": true if it's claimed, owned or marked SOLD in the event's shop}]},
+ "event": {"event": "event or mode name", "level": current pass level or null, "levels": total levels or null, "xp": points toward the next level or null, "xpNext": points that level needs in all or null, "xpName": "what those points are called, like Event XP", "currency": {"name": "the event's main currency if shown, like Bubs", "amount": number or null}, "currencies": [{"name": "each of the event's currencies shown, by its label or icon, like Bubs or Nachos", "amount": number written in full, "use": "match" if it's earned by playing matches, "shop" if it's spent in the event's shop, else ""}], "shop": [{"name": "an item in the event's shop", "kind": "card" | "variant" | "avatar" | "title" | "cardback" | "border" | "emote" | "credits" | "pack" | "other", "price": number, "currency": "what it costs, like Nachos", "sold": true if bought}], "nextReward": "the next reward on the track", "milestones": [{"level": number, "reward": "", "claimed": true | false, "premium": true if it's on the paid track}], "collectibles": [{"name": "", "kind": "card" | "variant" | "avatar" | "title" | "cardback" | "border" | "emote" | "other", "owned": true if it's claimed, owned or marked SOLD in the event's shop}]},
  "alliance": {"name": "alliance name", "tab": "members" | "bounties" | "milestones" | "leaderboard" | "other", "teamPoints": the alliance's points this week or null, "myPoints": the player's own points this week or null, "nextMilestone": {"points": points needed or null, "reward": ""}, "resetsIn": "time left in the week as shown, like 2d 5h", "dropsLeft": bounty drops left this week or null, "myNext": points the player's next personal milestone needs or null, "members": [{"name": "", "role": "Leader" | "Officer" | "Member" | "", "points": alliance points this week or null, "cubes": cubes, or points from cubes on the contributors list, or null, "bounties": bounties done, or points from bounties on the contributors list, or null, "score": total points or score or null, "collectionLevel": Collection Level or null, "rank": "rank as shown, like Infinite or 75, or empty"}], "memberCount": how many members it has or null, "bounties": [{"text": "what to do, as written", "rarity": "Common" | "Epic" | "Legendary" | "", "points": points it gives or null, "progress": done so far or null, "goal": how many it needs or null, "mine": true if the player has it active}], "board": [{"rank": number, "name": "alliance name", "points": null, "cubes": null, "bounties": null, "mine": true if it's the player's alliance}]}}
  "album": {"name": "the album's name if one album is open, else empty", "have": variants collected or null, "of": variants in it or null, "rewards": [{"at": "like 6/12", "reward": "what it gives", "claimed": true if collected}], "cards": [{"card": "card name of each variant shown", "variant": "the variant's name or style if shown", "artist": "artist if shown", "owned": true if the player has it, false if it's greyed out or locked}], "albums": [{"name": "", "have": number, "of": number}] for the albums list},
  "missions": {"tab": "daily" | "season" | "other", "refreshIn": "time until new daily missions, as shown, or empty", "items": [{"text": "today's mission, as written", "progress": done so far or null, "goal": how many it needs or null, "reward": "what it gives, like 100 Season Pass XP", "done": true if it's complete or claimed}], "weekly": {"done": weekly challenge missions done or null, "of": how many it has or null, "points": the challenge's points so far or null, "pointsNext": points for its next reward or null, "endsIn": "time until the weekly challenge resets, if shown", "items": [{"text": "the mission without the HARD: label", "hard": true if marked HARD:, "progress": number or null, "goal": number or null, "reward": "", "done": true | false}]}, "chapters": [{"number": the chapter number, "name": "its name, like Insatiable Immortal", "complete": true if marked COMPLETE, "unlocksIn": "time until it unlocks if locked, as shown", "items": [{"text": "", "progress": number or null, "goal": number or null, "reward": "", "done": true | false, "unlocksIn": "if this mission is still locked"}]}]},
@@ -6535,6 +6538,7 @@ async function readOneShot(x) {
   // Before Android 1.13 the tracker could carry an event's name from its hub over to a ranked match, so its game mode guess can't be trusted.
   if (hint && !/^screen:/.test(hint) && NATIVE && verCmp(String(natInfo().version || "0"), "1.13") < 0) hint = "";
   await aiPace();
+  if (/^turn:/.test(hint)) { const t = obj(await store.sample.json(TURN_PROMPT(cardRoster(), hint), { images: [s.img], modelTier: "default" })); S.shotSeen = [...seen.filter((h) => h !== s.hash), s.hash].slice(-200); x.raw = t; x.kind = "turn"; x.hint = hint; return applyTurnShot(x, t, s.time, hint, x.file && x.file.snapMeta); }
   const r = obj(await store.sample.json(SHOT_PROMPT(cardRoster(), hint), { images: [s.img], modelTier: "default" }));
   S.shotSeen = [...seen.filter((h) => h !== s.hash), s.hash].slice(-200);
   x.raw = r;
@@ -6636,10 +6640,12 @@ function applyShotMatch(x, mm, time, hint, meta) {
     turn: num(mm.turn) || 6, bot: "unsure", notes: "", locs, tracked: locs.length === 3, plays: plays.map((k) => ({ k, loc: -1, power: num(card(k).power) })), shot: true };
   if (!res) { x.status = "Couldn't tell who won"; x.detail = "Tap Check to fill it in."; }
   const bot = applyAutoBot(m, meta, mm);
+  attachTurns(m, meta, mm);
+  const eg = obj(mm.eventGain); if (eg.name && nIn(eg.amount)) m.eventGain = { name: String(eg.name).slice(0, 20), amount: nIn(eg.amount) };
   putMatch(m); onMatchSaved(m);
   const boosters = applyMatchBoosters(m, mm.boosters);
   x.matchId = m.id; x.undo = { type: "match", id: m.id };
-  if (res) { x.status = `Logged: ${res === "W" ? "win" : res === "L" ? "loss" : "tie"}${m.cubes ? " " + signed(m.cubes) : ""}${m.oppName ? " vs " + m.oppName : ""}`; x.detail = [mode !== "Ranked" ? mode : "", m.medals ? `${signed(m.medals)} medals` : "", d ? d.name : "", locs.map((l) => `${l.name} ${l.my}–${l.opp}`).join(", "), boosters ? `+${boosters} boosters` : "", bot && m.bot !== "unsure" ? (m.bot === "likely" ? "probably a bot" : "probably a person") : ""].filter(Boolean).join(" · "); }
+  if (res) { x.status = `Logged: ${res === "W" ? "win" : res === "L" ? "loss" : "tie"}${m.cubes ? " " + signed(m.cubes) : ""}${m.oppName ? " vs " + m.oppName : ""}`; x.detail = [mode !== "Ranked" ? mode : "", m.medals ? `${signed(m.medals)} medals` : "", d ? d.name : "", locs.map((l) => `${l.name} ${l.my}–${l.opp}`).join(", "), boosters ? `+${boosters} boosters` : "", m.eventGain ? `+${fmt(m.eventGain.amount)} ${m.eventGain.name}` : "", arr(m.turns).length ? `play-by-play for ${m.turns.length} turn${m.turns.length === 1 ? "" : "s"}` : "", bot && m.bot !== "unsure" ? (m.bot === "likely" ? "probably a bot" : "probably a person") : ""].filter(Boolean).join(" · "); }
   save();
 }
 // A shop, event or alliance screen that also shows your currencies along the top: those update too.
@@ -6855,7 +6861,7 @@ if (NATIVE) {
     // Android's back button closes an open panel first
     back: () => { const sh = $("#sheet"); if (sh && !sh.hidden) { closeSheet(); return true; } return false; },
   };
-  const ready = () => { try { NATIVE.ready(); } catch { /* old app */ } natRules(); if (natCan("updateInfo")) { try { nat.update = obj(JSON.parse(NATIVE.updateInfo())); } catch { /* none yet */ } } };
+  const ready = () => { try { NATIVE.ready(); } catch { /* old app */ } natRules(); if (natCan("updateInfo")) { try { nat.update = obj(JSON.parse(NATIVE.updateInfo())); } catch { /* none yet */ } } natCheckSoon(true); setTimeout(updatePopup, 2500); };
   if (document.readyState === "complete") setTimeout(ready, 0); else window.addEventListener("load", ready);
   document.addEventListener("toggle", (e) => { if (e.target && e.target.dataset && e.target.dataset.natlog) nat.logOpen = e.target.open; }, true);
 }
@@ -6867,12 +6873,12 @@ function natEvent(type, data) {
     return;
   }
   if (type === "route") { if (sheetFn) closeSheet(); go(String(data || "").replace(/^#/, "") || "home"); return; }
-  if (type === "update") { nat.update = obj(data); if (nat.checking) { nat.checking = 0; toast(natUpdateReady() ? `Version 1.${nat.update.latest} is ready. Tap Update now.` : "You have the newest app."); } refreshView(); return; }
+  if (type === "update") { nat.update = obj(data); if (nat.checking) { nat.checking = 0; toast(natUpdateReady() ? `Version 1.${nat.update.latest} is ready. Tap Update now.` : "You have the newest app."); } refreshView(); updatePopup(); return; }
   if (type === "update-progress") { nat.pct = num(data); refreshView(); return; }
   if (type === "update-installing") { nat.pct = -1; nat.tried = Date.now(); toast("Tap Update in Android's window to finish."); refreshView(); return; }
   if (type === "update-error") { nat.pct = -1; nat.tried = Date.now(); toast(String(data || "The update didn't work.")); refreshView(); return; }
   natInfo();
-  if (type === "resume") { _widgetSig = ""; setTimeout(pushWidget, 800); }
+  if (type === "resume") { _widgetSig = ""; setTimeout(pushWidget, 800); nat.popped = 0; natCheckSoon(false); setTimeout(updatePopup, 1500); }
   if ((type === "perm" || type === "resume") && notifyPrefs().on) { saveNotifyState(); if (type === "perm" && natCan("checkAlertsNow") && natCan("canNotify") && NATIVE.canNotify()) NATIVE.checkAlertsNow(); }
   if (type === "queue" || type === "resume") natPull();
   if (ui.tab === "settings") refreshView();
@@ -6920,6 +6926,7 @@ async function natRules() {
       const modes = obj(j.modes);
       for (const name of modeNames()) if (!modes[name]) modes[name] = [String(name).toLowerCase()];
       j.modes = modes;
+      j.turnShots = S.turnShots !== false;  // a picture of the board each turn, for the play-by-play
       if (NATIVE.setRules(JSON.stringify(j))) return true;
     } catch { /* next */ }
   }
@@ -6928,6 +6935,27 @@ async function natRules() {
 
 /* A newer Android app is on GitHub. (The rest of SNAP Stat comes from the website, so it's always up to date.) */
 const natUpdateReady = () => num(nat.update.latest) > num(nat.update.current) && !!nat.update.url;
+/* Every time SNAP Stat opens (or you come back to it), it asks GitHub for a newer app, at most once a minute. */
+function natCheckSoon(first) {
+  if (!natCan("checkUpdate") || nat.pct >= 0) return;
+  if (!first && Date.now() - num(nat.checkedAt) < 60e3) return;
+  nat.checkedAt = Date.now();
+  try { NATIVE.checkUpdate(); } catch { /* older app */ }
+}
+// A pop-up when an update is ready: once each time the app is opened, and after any open panel is closed
+function updatePopup() {
+  if (!natUpdateReady() || nat.popped || nat.pct >= 0) return;
+  const sh = $("#sheet"); if (sh && !sh.hidden) { nat.popWait = true; return; }
+  nat.popped = Date.now(); nat.popWait = false; openSheet(updateSheet);
+}
+function updateSheet() {
+  if (!natUpdateReady()) return `${sheetHead("You have the newest app")}<p class="muted small">SNAP Stat for Android ${esc(natInfo().version || "")} is up to date.</p>`;
+  const busy = nat.pct >= 0;
+  return `${sheetHead("App update ready", `SNAP Stat for Android 1.${esc(nat.update.latest)} · you have ${esc(natInfo().version || "an older one")}`)}
+    <p class="small">It takes a few seconds: tap <b>Update now</b>, then <b>Update</b> (or <b>Install</b>) in Android's window.${nat.update.canInstall === false ? " Android will first ask you to allow SNAP Stat to install apps: turn it on, then come back." : ""}</p>
+    <div class="row"><button class="btn snap" data-a="natUpdate" ${busy ? "disabled" : ""}>${busy ? `Downloading… ${nat.pct}%` : "Update now"}</button><button class="btn ghost" data-a="close">Later</button></div>
+    ${nat.tried ? `<span class="muted small">Didn't update? <button class="btn sm ghost" data-a="natGetApk">Download it in Chrome</button> and open the file to install it.</span>` : ""}`;
+}
 function natUpdateBanner() {
   if (!NATIVE) return "";
   if (!natCan("updateInfo")) return `<section class="sec"><div class="panel row between nowrap"><div><b>Install the new Android app once</b><div class="small muted">After this one, app updates install with a tap.</div></div><button class="btn snap" data-a="natGetApk">Download</button></div></section>`;
@@ -6965,6 +6993,7 @@ function androidPanel() {
         <pre class="small" style="white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto;margin:8px 0">${esc(nat.log || "Tap Refresh to see it.")}</pre>
         <div class="row"><button class="btn sm" data-a="natLogRefresh">Refresh</button><button class="btn sm" data-a="natLogCopy">${ICON.copy} Copy for Claude</button></div></details>
       <div class="row between"><span class="small">Every screenshot it's read, with what it found</span><button class="btn sm" data-a="reviewOpen">Review screenshots</button></div>
+      ${turnShotsPanel()}
     </div>
     <div class="row between small"><span class="muted">App version ${esc(i.version || "?")}${natUpdateReady() ? ` · version 1.${esc(nat.update.latest)} is ready` : ""}</span>${natUpdateReady() ? `<button class="btn sm snap" data-a="natUpdate" ${nat.pct >= 0 ? "disabled" : ""}>${nat.pct >= 0 ? `Updating… ${nat.pct}%` : "Update now"}</button>` : natCan("checkUpdate") ? `<button class="btn sm ghost" data-a="natCheckUpdate">${nat.checking ? "Checking…" : "Check for an update"}</button>` : ""}</div></section>`;
 }
@@ -8438,7 +8467,8 @@ function eventPassHtml(e, compact) {
       ${need ? progBar(xp, need, `${fmt(need - xp)} ${pr.xpName || "XP"} to level ${lv + 1}`) : levels ? passBar(lv, levels) : ""}
       ${need ? `<span class="muted small">${fmt(Math.max(0, need - xp))} ${esc(pr.xpName || "XP")} to level ${lv + 1}${pr.next ? `: ${esc(pr.next)}` : ""}</span>` : pr.next ? `<span class="muted small">Next: ${esc(pr.next)}</span>` : ""}` : `<span class="muted small">Screenshot the event's pass and your level, XP and next reward fill in.</span>`}
     ${nextMs && !compact ? `<span class="small">Next milestone: level ${num(nextMs.level)}${nextMs.reward ? ` · ${esc(nextMs.reward)}` : ""}${nextMs.premium ? ` <span class="pill gold">Premium</span>` : ""}</span>` : ""}
-    <div class="row small">${(arr(pr.curs).length ? pr.curs : obj(pr.cur).name ? [pr.cur] : []).map((c) => `<span class="pill dim">${esc(c.name)}: <b class="num">${fmt(c.amount)}</b></span>`).join("")}${items.length ? `<span class="pill dim">${got}/${items.length} collected</span>` : ""}${pr.at ? `<span class="muted">updated ${ago(pr.at) === "now" ? "just now" : esc(ago(pr.at)) + " ago"}</span>` : ""}</div>`;
+    <div class="row small">${(arr(pr.curs).length ? pr.curs : obj(pr.cur).name ? [pr.cur] : []).map((c) => `<span class="pill dim" title="${c.use === "match" ? "earned in matches" : c.use === "shop" ? "spent in the event's shop" : ""}">${esc(c.name)}${c.use === "match" ? " (from matches)" : c.use === "shop" ? " (shop)" : ""}: <b class="num">${fmt(c.amount)}</b></span>`).join("")}${eventGainLine(e)}${items.length ? `<span class="pill dim">${got}/${items.length} collected</span>` : ""}${pr.at ? `<span class="muted">updated ${ago(pr.at) === "now" ? "just now" : esc(ago(pr.at)) + " ago"}</span>` : ""}</div>`;
+  if (!compact && arr(pr.shop).length) return `<div class="stack" style="gap:6px">${body}${eventShopHtml(pr)}</div>`;
   return compact ? `<button class="li evpass" data-a="eventOpen" data-id="${esc(e.id)}"><div class="grow stack" style="gap:4px"><div class="row between"><b>${esc(e.name)}</b><span class="muted small">ends in ${esc(countdown(e.endTs))}</span></div>${body}</div></button>` : `<div class="stack" style="gap:6px">${body}</div>`;
 }
 function eventsPassHome() {
@@ -8453,7 +8483,7 @@ function findEventByName(n) {
 function applyShotEvent(x, e, time) {
   const ev = findEventByName(e.event || ""); if (!ev) { x.status = "An event screen, but I couldn't tell which event"; x.detail = String(e.event || ""); return; }
   const before = clone(obj(S.eventProg[ev.id])), pr = (S.eventProg[ev.id] = obj(S.eventProg[ev.id])), done = [];
-  const n = (v) => (v !== null && v !== undefined && v !== "" && Number.isFinite(Number(String(v).replace(/,/g, ""))) ? Math.max(0, Math.round(Number(String(v).replace(/,/g, "")))) : null);
+  const n = (v) => nIn(v);
   // The home screen shows the season pass level beside the event's banner; that number isn't the event's level
   const cs = currentSeason(), seasonLv = cs ? num(obj(S.passes[cs.id]).level) : 0;
   const lvOk = n(e.level) !== null && !(n(e.levels) && n(e.level) > n(e.levels)) && !(seasonLv && n(e.level) === seasonLv && !n(e.xpNext) && !arr(e.milestones).length);
@@ -8463,9 +8493,11 @@ function applyShotEvent(x, e, time) {
   if (n(e.xpNext)) { pr.xpNext = n(e.xpNext); done.push(`${fmt(pr.xp)}/${fmt(pr.xpNext)} ${String(e.xpName || "XP").slice(0, 20)}`); }
   if (e.xpName) pr.xpName = String(e.xpName).slice(0, 24);
   // The event's currencies (Deadpool's Diner has more than one): all of them, and the main one for the widget
-  const curs = [obj(e.currency), ...arr(e.currencies).map(obj)].filter((c) => c.name && n(c.amount) !== null).map((c) => ({ name: String(c.name).slice(0, 24), amount: n(c.amount) }));
-  const byName = new Map(); for (const c of curs) if (!byName.has(keyOf(c.name))) byName.set(keyOf(c.name), c);
-  if (byName.size) { pr.curs = [...byName.values()].slice(0, 6); pr.cur = pr.curs[0]; done.push(pr.curs.map((c) => `${fmt(c.amount)} ${c.name}`).join(", ")); }
+  const curs = [...arr(e.currencies).map(obj), obj(e.currency)].filter((c) => c.name && n(c.amount) !== null && !/^gold$/i.test(String(c.name).trim())).map((c) => ({ name: curName(c.name), amount: n(c.amount), use: curUse(c) }));
+  const byName = new Map(arr(pr.curs).map((c) => [keyOf(c.name), c])); for (const c of curs) byName.set(keyOf(c.name), { ...obj(byName.get(keyOf(c.name))), ...c, use: c.use || obj(byName.get(keyOf(c.name))).use || "", at: time || Date.now() });
+  if (curs.length) { pr.curs = [...byName.values()].sort((a, b) => (a.use === "match" ? 0 : 1) - (b.use === "match" ? 0 : 1)).slice(0, 6); pr.cur = pr.curs[0]; done.push(curs.map((c) => `${fmt(c.amount)} ${c.name}`).join(", ")); }
+  const shop = arr(e.shop).map((i) => ({ name: String(obj(i).name || "").slice(0, 60), kind: String(obj(i).kind || "").slice(0, 12), price: n(obj(i).price), currency: curName(obj(i).currency || ""), sold: !!obj(i).sold })).filter((i) => i.name).slice(0, 40);
+  if (shop.length) { const by = new Map(arr(pr.shop).map((i) => [keyOf(i.name), i])); shop.forEach((i) => by.set(keyOf(i.name), i)); pr.shop = [...by.values()].slice(0, 60); pr.shopAt = time || Date.now(); done.push(`${shop.length} shop item${shop.length === 1 ? "" : "s"}`); }
   if (e.nextReward) pr.next = String(e.nextReward).slice(0, 80);
   const ms = arr(e.milestones).map((m) => ({ level: n(obj(m).level), reward: String(obj(m).reward || "").slice(0, 60), claimed: !!obj(m).claimed, premium: !!obj(m).premium })).filter((m) => m.level);
   if (ms.length) { const by = new Map(arr(pr.ms).map((m) => [m.level + (m.premium ? "p" : ""), m])); ms.forEach((m) => by.set(m.level + (m.premium ? "p" : ""), m)); pr.ms = [...by.values()].sort((a, b) => a.level - b.level).slice(0, 80); done.push(`${ms.length} milestone${ms.length === 1 ? "" : "s"}`); }
@@ -8888,7 +8920,8 @@ setTimeout(() => whenDataReady(() => { try {
 /* ============ More from the game (October 29, 2026): the weekly challenge and season chapters, bundles, daily cards
    and packs, the season pass track, the web shop, a review of every screenshot read, and an automatic bot check ============ */
 
-const nIn = (v) => { const z = Number(String(v ?? "").replace(/[,\s]/g, "")); return v !== null && v !== undefined && String(v).trim() !== "" && Number.isFinite(z) ? Math.max(0, Math.round(z)) : null; };
+// A number as the game shows it: 1,826, 21.2K, 1.5M
+const nIn = (v) => { if (v === null || v === undefined || String(v).trim() === "") return null; const s = String(v).replace(/[,\s+]/g, ""), m = s.match(/^(\d+(?:\.\d+)?)([kKmM])?$/); const z = m ? Number(m[1]) * (m[2] ? (/k/i.test(m[2]) ? 1e3 : 1e6) : 1) : Number(s); return Number.isFinite(z) ? Math.max(0, Math.round(z)) : null; };
 const leftAt = (txt, time) => { const l = parseLeft(txt); return l > 0 && l < 60 * DAY ? (time || Date.now()) + l : 0; };
 const cdSpan = (ts) => `<span data-cd="${ts}">${esc(countdown(ts))}</span>`;
 
@@ -9101,7 +9134,7 @@ async function shotLogSave(x) {
   if (!x || x.dupe || !x.file) return;
   try {
     const img = await shrinkShot(x.file);
-    const rec = { id: x.logId || uid(), at: Date.now(), taken: num(x.file.lastModified) || Date.now(), hint: String(x.hint || x.file.snapHint || "").slice(0, 80), kind: String(x.kind || ""), status: String(x.status || "").slice(0, 160), detail: String(x.detail || "").slice(0, 400), data: JSON.stringify(x.raw || {}).slice(0, 12000), img, verdict: "" };
+    const rec = { id: x.logId || uid(), at: Date.now(), taken: num(x.file.lastModified) || Date.now(), hint: String(x.hint || x.file.snapHint || "").slice(0, 80), session: String(obj(x.file.snapMeta).session || ""), kind: String(x.kind || ""), status: String(x.status || "").slice(0, 160), detail: String(x.detail || "").slice(0, 400), data: JSON.stringify(x.raw || {}).slice(0, 12000), img, verdict: "" };
     if (x.logId) { const old = await shotStore("readonly", (st) => st.get(x.logId)).catch(() => null); if (old) rec.verdict = ""; }
     await shotStore("readwrite", (st) => st.put(rec));
     const all = await shotStore("readonly", (st) => st.getAllKeys());
@@ -9110,7 +9143,7 @@ async function shotLogSave(x) {
 }
 async function shotLogAll() { const list = await shotStore("readonly", (st) => st.getAll()).catch(() => []); return arr(list).sort((a, b) => b.at - a.at); }
 const rv = { list: null, filter: "all", open: "", urls: new Map(), busy: "" };
-async function reviewOpen() { rv.list = null; openSheet(reviewSheet); rv.list = await shotLogAll(); refreshSheet(); }
+async function reviewOpen(keep) { if (!keep) rv.session = ""; rv.list = null; openSheet(reviewSheet); rv.list = await shotLogAll(); refreshSheet(); }
 function rvUrl(r) { if (!rv.urls.has(r.id) && r.img) rv.urls.set(r.id, URL.createObjectURL(r.img)); return rv.urls.get(r.id) || ""; }
 function readable(o, depth = 0) {
   if (o === null || o === undefined || o === "") return "";
@@ -9122,9 +9155,10 @@ function reviewSheet() {
   const list = rv.list;
   if (!list) return `${sheetHead("Screenshots SNAP Stat read")}<p class="muted small">Loading…</p>`;
   const checked = list.filter((r) => r.verdict), right = checked.filter((r) => r.verdict === "right").length;
-  const shown = list.filter((r) => rv.filter === "all" || (rv.filter === "wrong" ? r.verdict === "wrong" : rv.filter === "todo" ? !r.verdict : r.kind === rv.filter));
+  const shown = list.filter((r) => !rv.session || r.session === rv.session).filter((r) => rv.filter === "all" || (rv.filter === "wrong" ? r.verdict === "wrong" : rv.filter === "todo" ? !r.verdict : r.kind === rv.filter));
   const ch = (v, l, n) => `<button class="chip" data-a="rvFilter" data-v="${v}" aria-pressed="${rv.filter === v}">${l} <span class="num muted">${n}</span></button>`;
   return `${sheetHead("Screenshots SNAP Stat read", `${list.length} kept on this phone${checked.length ? ` · you checked ${checked.length}: ${right} right (${Math.round((right / checked.length) * 100)}%)` : ""}`)}
+    ${rv.session ? `<p class="small">One match's pictures, a turn at a time. <button class="linkbtn" data-a="rvAll">Show every screenshot</button></p>` : ""}
     <div class="chips">${ch("all", "All", list.length)}${ch("todo", "Not checked", list.filter((r) => !r.verdict).length)}${ch("wrong", "Marked wrong", list.filter((r) => r.verdict === "wrong").length)}${ch("match", "Matches", list.filter((r) => r.kind === "match").length)}${ch("numbers", "Numbers", list.filter((r) => r.kind === "numbers").length)}${ch("shop", "Shops", list.filter((r) => r.kind === "shop").length)}</div>
     ${shown.length ? `<div class="list">${shown.slice(0, 60).map((r) => `<div class="li rvrow" style="align-items:flex-start;gap:10px">${r.img ? `<img src="${esc(rvUrl(r))}" alt="" class="shot-thumb" style="width:72px;height:auto;border-radius:8px" data-a="rvBig" data-id="${esc(r.id)}">` : ""}<div class="grow stack" style="gap:4px;min-width:0">
         <div class="row between nowrap"><b class="small">${esc(r.status || "Read")}</b>${r.verdict ? `<span class="pill ${r.verdict === "right" ? "W" : "L"}">${r.verdict === "right" ? "Right" : "Wrong"}</span>` : ""}</div>
@@ -9138,6 +9172,7 @@ function reviewSheet() {
 }
 Object.assign(A, {
   reviewOpen: () => reviewOpen(),
+  rvAll: () => { rv.session = ""; refreshSheet(); },
   rvFilter: (el) => { rv.filter = el.dataset.v; refreshSheet(); },
   rvOpen: (el) => { rv.open = rv.open === el.dataset.id ? "" : el.dataset.id; refreshSheet(); },
   rvBig: (el) => { const r = arr(rv.list).find((x) => x.id === el.dataset.id); if (r) window.open(rvUrl(r), "_blank"); },
@@ -9326,6 +9361,112 @@ function tokenPlanHtml() {
 function bountyDeckLine(b) {
   const best = bestDecksFor([{ text: b.text, done: !!(b.goal && num(b.progress) >= b.goal) }], 1)[0];
   return best ? `<span class="small">Try <button class="linkbtn" data-a="deckOpen" data-id="${esc(best.d.id)}">${esc(best.d.name)}</button> <span class="muted">(${esc(best.helps[0].replace(/^.*\(/, "").replace(/\)$/, ""))})</span></span>` : "";
+}
+/* ============ Event currencies (Deadpool's Diner's Bubs and Nachos), and a play-by-play of each match from the
+   tracker's picture of the board every turn ============ */
+
+/* ---------- Event currencies: what each is called and what it's for ---------- */
+// Known ones: Deadpool's Diner pays Bubs for playing matches and sells things for Nachos
+const EVENT_CUR = { bubs: { name: "Bubs", use: "match" }, bub: { name: "Bubs", use: "match" }, nachos: { name: "Nachos", use: "shop" }, nacho: { name: "Nachos", use: "shop" } };
+function curName(n) { const k = keyOf(n); return (EVENT_CUR[k] && EVENT_CUR[k].name) || String(n || "").trim().slice(0, 24); }
+function curUse(c) { const k = keyOf(obj(c).name), u = String(obj(c).use || "").toLowerCase(); return (EVENT_CUR[k] && EVENT_CUR[k].use) || (u === "match" || u === "shop" ? u : ""); }
+// Bubs (or another event currency) won in your matches since the event screen was last read
+function eventGainLine(e) {
+  const pr = obj(S.eventProg[e.id]), cur = arr(pr.curs).find((c) => c.use === "match"); if (!cur) return "";
+  const ms = realMatches().filter((m) => m.eventGain && keyOf(m.eventGain.name) === keyOf(cur.name) && m.ts >= e.startTs);
+  if (!ms.length) return "";
+  const since = ms.filter((m) => m.ts > num(cur.at)).reduce((s, m) => s + num(m.eventGain.amount), 0);
+  const all = ms.reduce((s, m) => s + num(m.eventGain.amount), 0);
+  return `<span class="pill dim">+${fmt(all)} ${esc(cur.name)} from ${ms.length} logged match${ms.length === 1 ? "" : "es"}${since ? ` (${fmt(since)} since the Diner was last read)` : ""}</span>`;
+}
+function eventShopHtml(pr) {
+  const shopCur = arr(pr.curs).find((c) => c.use === "shop"), have = shopCur ? num(shopCur.amount) : 0;
+  const items = arr(pr.shop).slice().sort((a, b) => (a.sold ? 1 : 0) - (b.sold ? 1 : 0) || num(a.price) - num(b.price));
+  return `<h3>The event's shop</h3><div class="list">${items.map((i) => { const can = !i.sold && shopCur && keyOf(i.currency || shopCur.name) === keyOf(shopCur.name) && num(i.price) > 0 && num(i.price) <= have;
+      return `<div class="li"><div class="grow"><div class="t">${esc(i.name)}</div>${i.kind && i.kind !== "other" ? `<div class="s">${esc(KIND_TXT[i.kind] || i.kind)}</div>` : ""}</div>${i.price ? `<span class="num small">${fmt(i.price)} ${esc(i.currency || "")}</span>` : ""}${i.sold ? `<span class="pill dim">Bought</span>` : can ? `<span class="pill W">You can afford it</span>` : ""}</div>`; }).join("")}</div>
+    ${shopCur ? `<span class="muted small">You have ${fmt(have)} ${esc(shopCur.name)}. From your screenshots of the event's shop${pr.shopAt ? `, ${esc(ago(pr.shopAt))} ago` : ""}.</span>` : ""}`;
+}
+
+/* ---------- Play-by-play: the tracker saves the board each time you end a turn ---------- */
+// That picture shows every card you've played so far (this turn's too) and the opponent's cards revealed before it,
+// so comparing one turn's picture with the next shows what each of you played, where, and the Power each location has.
+const TURN_PROMPT = (roster, hint) => `This is a MARVEL SNAP match in progress, just after the player (at the bottom) ended turn ${String(hint).slice(5) || "?"}. Read the board.
+Valid card names (name cost/power): ${roster}
+Reply as JSON: {"turn": the turn number shown (3/6 is 3) or null, "energy": the energy left in the player's energy circle or null, "locations": [{"name": "location name, or empty if not revealed yet", "my": the player's Power here (bottom number), "opp": the opponent's Power here (top number), "myCards": [{"card": "card name, from its art", "power": its Power}], "oppCards": [{"card": "", "power": number}]}] (exactly three, left to right), "hand": ["card names in the player's hand"], "oppName": "the opponent's name at the top if shown", "snapped": true if the cube shows the stakes were raised}
+List only cards you can see. Never guess.`;
+function applyTurnShot(x, t, time, hint, meta) {
+  const sess = String(obj(meta).session || ""), n = num(obj(meta).turn) || num(t.turn) || num(String(hint).slice(5));
+  if (!sess || !n) { x.status = "A picture from a match, but not which one"; save(); return; }
+  const L = (S.turnLog = obj(S.turnLog));
+  for (const [k, v] of Object.entries(L)) if (Date.now() - num(obj(v).at) > 3 * DAY) delete L[k];
+  const locs = arr(t.locations).slice(0, 3).map((l) => ({ name: String(obj(l).name || "").slice(0, 40), my: nIn(obj(l).my), opp: nIn(obj(l).opp), myCards: turnCards(obj(l).myCards), oppCards: turnCards(obj(l).oppCards) }));
+  const e = (L[sess] = obj(L[sess])); e.at = time || Date.now(); e.turns = obj(e.turns);
+  e.turns[n] = { locs, energy: nIn(t.energy), hand: arr(t.hand).map((h) => { const c = fuzzyCard(h); return c ? c.key : ""; }).filter(Boolean).slice(0, 10), at: time };
+  if (t.oppName) e.oppName = String(t.oppName).slice(0, 40);
+  x.status = `Turn ${n} of a match`; x.detail = locs.map((l) => `${l.name || "?"} ${l.my ?? "?"}–${l.opp ?? "?"}`).join(" · ");
+  // A match already logged from an earlier end picture gets the new turn too
+  const m = realMatches().find((mm) => mm.session === sess); if (m) { attachTurns(m, { session: sess }, null); putMatch(m); }
+  save();
+}
+function turnCards(list) { return arr(list).map((c) => { const f = fuzzyCard(obj(c).card); return f ? { k: f.key, p: nIn(obj(c).power) } : null; }).filter(Boolean).slice(0, 8); }
+// What appeared on one side between two boards: [{k, p, loc}]
+function boardDiff(a, b, side) {
+  const out = [];
+  for (let i = 0; i < 3; i++) {
+    const before = arr(obj(arr(a && a.locs)[i])[side]).map((c) => c.k), left = [...before];
+    for (const c of arr(obj(arr(b.locs)[i])[side])) { const j = left.indexOf(c.k); if (j >= 0) left.splice(j, 1); else out.push({ ...c, loc: i }); }
+  }
+  return out;
+}
+function buildTurns(log, mm) {
+  const shots = Object.entries(obj(obj(log).turns)).map(([n, s]) => ({ n: Number(n), ...s })).sort((a, b) => a.n - b.n);
+  if (!shots.length) return [];
+  // The end screen shows the last board, with the opponent's final cards
+  const endLocs = mm ? arr(mm.locations).slice(0, 3).map((l) => ({ name: String(obj(l).name || ""), my: nIn(obj(l).my), opp: nIn(obj(l).opp), myCards: turnCards(obj(l).myCards), oppCards: turnCards(obj(l).oppCards) })) : [];
+  const end = endLocs.some((l) => l.myCards.length || l.oppCards.length) ? { n: shots[shots.length - 1].n + 1, locs: endLocs, end: true } : null;
+  const names = (i) => { for (const s of [...shots].reverse()) { const nm = obj(arr(s.locs)[i]).name; if (nm) return nm; } return obj(endLocs[i]).name || `Location ${i + 1}`; };
+  const out = [];
+  shots.forEach((s, i) => {
+    const prev = shots[i - 1] || null, next = shots[i + 1] || end;
+    const mine = boardDiff(prev, s, "myCards");             // yours this turn (you see your own cards as you place them)
+    const theirs = next ? boardDiff(s, next, "oppCards") : []; // theirs this turn, seen once they're revealed
+    const spent = mine.reduce((t, c) => t + (card(c.k).cost === "?" ? 0 : num(card(c.k).cost)), 0);
+    const pb = next || s; // the Power once this turn's cards were revealed
+    out.push({ n: s.n, mine, theirs, spent, left: s.energy, power: [0, 1, 2].map((j) => { const l = obj(arr(pb.locs)[j]); return { name: names(j), my: l.my, opp: l.opp }; }), gap: prev && s.n - prev.n > 1 ? prev.n + 1 : 0 });
+  });
+  // Cards of yours on the final board that no turn picture showed (the last turn's, if it wasn't saved)
+  if (end) { const last = shots[shots.length - 1], extra = boardDiff(last, end, "myCards"); if (extra.length) out.push({ n: end.n, mine: extra, theirs: [], spent: extra.reduce((t, c) => t + (card(c.k).cost === "?" ? 0 : num(card(c.k).cost)), 0), left: null, power: [0, 1, 2].map((j) => ({ name: names(j), my: obj(end.locs[j]).my, opp: obj(end.locs[j]).opp })), gap: 0, final: true }); }
+  return out.slice(0, 10);
+}
+function attachTurns(m, meta, mm) {
+  const sess = String(obj(meta).session || ""); if (!sess) return;
+  m.session = sess; if (obj(meta).vs) m.vs = String(meta.vs).slice(0, 60);
+  const log = obj(S.turnLog)[sess]; if (!log) return;
+  const t = buildTurns(log, mm || m.endBoard || null); if (t.length) m.turns = t;
+  if (mm && arr(mm.locations).length) m.endBoard = { locations: arr(mm.locations).slice(0, 3) };
+  if (!m.oppName && log.oppName) m.oppName = log.oppName;
+}
+function playByPlayHtml(m) {
+  const turns = arr(m.turns); if (!turns.length) return "";
+  const deck = S.decks.find((d) => d.id === m.deckId) || null;
+  const chips = (list, mineSide) => list.map((c) => `<div class="stack" style="gap:2px;align-items:center;width:62px">${cardChip(c.k, { noOwn: true, pow: c.p ?? undefined, deck: mineSide ? deck : null, size: "xs" })}</div>`).join("");
+  return `<div class="stack pbp" style="gap:8px"><span class="eyebrow">Play by play</span>${turns.map((t) => {
+      const at = (list) => [0, 1, 2].map((j) => list.filter((c) => c.loc === j)).map((cs, j) => (cs.length ? `<div class="stack" style="gap:3px"><span class="muted small">${esc(t.power[j].name)}</span><div class="chiplist">${chips(cs, list === t.mine)}</div></div>` : "")).join("");
+      return `<div class="panel stack small" style="gap:6px"><div class="row between"><b>${t.gap ? `Turns ${t.gap}–${t.n}` : `Turn ${t.n}`}</b><span class="muted">${t.mine.length ? `spent ${t.spent} energy` : "you played nothing"}${t.left !== null && t.left !== undefined ? ` · ${t.left} left` : ""}</span></div>
+        ${t.mine.length ? `<span class="small">You played</span><div class="row" style="align-items:flex-start;gap:12px">${at(t.mine)}</div>` : ""}
+        ${t.theirs.length ? `<span class="small">They played</span><div class="row" style="align-items:flex-start;gap:12px">${at(t.theirs)}</div>` : ""}
+        <span class="muted small">${t.power.map((p) => `${esc(p.name)} ${p.my ?? "?"}–${p.opp ?? "?"}`).join(" · ")}</span></div>`; }).join("")}
+    ${m.session ? `<button class="btn sm ghost" data-a="reviewSession" data-id="${esc(m.session)}">See this match's pictures</button>` : ""}
+    <span class="muted small">From the tracker's picture of the board each time you ended a turn. Their cards show on the turn they were revealed.</span></div>`;
+}
+Object.assign(A, {
+  reviewSession: async (el) => { rv.session = el.dataset.id; rv.filter = "all"; await reviewOpen(true); },
+  natTurnShots: (el) => { S.turnShots = el.dataset.v === "1"; save(); natRules(); render(); toast(S.turnShots ? "Each turn will be saved for the play-by-play" : "Turns won't be saved"); },
+});
+function turnShotsPanel() {
+  if (!NATIVE) return "";
+  const on = S.turnShots !== false;
+  return `<div class="row between small"><span>Save the board each turn for a play-by-play <span class="muted">(about 6 more AI reads a match)</span></span><button class="btn sm ${on ? "snap" : "ghost"}" data-a="natTurnShots" data-v="${on ? "0" : "1"}" aria-pressed="${on}">${on ? "On" : "Off"}</button></div>`;
 }
 /* ============ Standalone (Firebase) sign-in and storage ============ */
 const FB_CFG_KEY = "snapstat.firebaseConfig", FB_SKIP_KEY = "snapstat.skipSignIn";
