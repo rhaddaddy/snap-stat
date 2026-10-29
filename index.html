@@ -389,7 +389,7 @@ details.chap > summary::-webkit-details-marker { display: none; }
 .sheet-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .sheet-h h2 { min-width: 0; overflow-wrap: anywhere; }
 .x { background: var(--surface-2); border: 1px solid var(--line); width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex: none; }
-#toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(88px + env(safe-area-inset-bottom, 0px)); z-index: 30; background: var(--fg); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-weight: 600; font-size: 14px; box-shadow: var(--shadow); max-width: calc(100% - 32px); }
+#toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(88px + env(safe-area-inset-bottom, 0px)); z-index: 30; background: var(--fg); color: var(--bg); padding: 9px 16px; border-radius: 20px; text-align: center; line-height: 1.35; font-weight: 600; font-size: 14px; box-shadow: var(--shadow); max-width: calc(100% - 32px); }
 .note { font-size: 13px; color: var(--muted); border-left: 3px solid var(--snap-b); padding: 6px 10px; background: var(--snap-soft); border-radius: 0 8px 8px 0; }
 .alert { display: flex; gap: 10px; align-items: flex-start; padding: 11px 14px; border-bottom: 1px solid var(--line); }
 .alert:last-child { border-bottom: 0; }
@@ -599,11 +599,14 @@ button.cbt { cursor: pointer; }
 .cbd { display: block; font-size: 11px; color: var(--muted); }
 
 /* The game's clock */
-details.clock > summary { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; cursor: pointer; }
-details.clock > summary::-webkit-details-marker { display: none; }
+.clkgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+details.clockmore > summary { list-style: none; cursor: pointer; }
+details.clockmore > summary::-webkit-details-marker { display: none; }
+.clk ul.clist { font-size: 12.5px; margin-top: 6px; padding-left: 16px; gap: 3px; line-height: 1.3; }
 .clk { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .clk .k { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 .clk b { font-size: 22px; line-height: 1.15; }
+.cd { font-variant-numeric: tabular-nums; white-space: nowrap; }
 ul.clist { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 2px; }
 .cwrap.pick > .ct { outline: 3px solid var(--cube); outline-offset: 2px; }
 .muhint { border-color: color-mix(in srgb, var(--cube) 50%, var(--line)); margin-bottom: 8px; }
@@ -1263,7 +1266,14 @@ function weekKey(ts) { const d = new Date(ts); d.setHours(12, 0, 0, 0); d.setDat
 function toInputDT(ts) { const d = new Date(ts); const p = (x) => String(x).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
 const dayStart = (d) => new Date(d + "T00:00").getTime();
 const dayEnd = (d) => new Date(d + "T23:59:59").getTime();
-function countdown(ts) { const d = ts - Date.now(); if (d <= 0) return "ended"; const days = Math.floor(d / DAY), h = Math.floor((d % DAY) / 3600e3); return days ? `${days}d ${h}h` : `${h}h ${Math.floor((d % 3600e3) / 60e3)}m`; }
+// Time left, to the second: "3d 04h 09m 05s", "23h 09m 41s", "9m 05s", "41s"
+function countdown(ts) {
+  const d = ts - Date.now(); if (!(d > 0)) return "ended"; if (d === Infinity) return "no end date";
+  const days = Math.floor(d / DAY), h = Math.floor((d % DAY) / 3600e3), m = Math.floor((d % 3600e3) / 60e3), s = Math.floor((d % 60e3) / 1000), p = (x) => String(x).padStart(2, "0");
+  return days ? `${days}d ${p(h)}h ${p(m)}m ${p(s)}s` : h ? `${h}h ${p(m)}m ${p(s)}s` : m ? `${m}m ${p(s)}s` : `${s}s`;
+}
+// A countdown that ticks every second while it's on screen (see the ticker in c4_clock.js)
+const cdSpan = (ts) => { const t = Number(ts), txt = esc(countdown(t)); return Number.isFinite(t) && t > Date.now() ? `<span class="cd" data-cd="${t}">${txt}</span>` : txt; };
 function hue(s) { let h = 7; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }
 /* Stylized "art": a two-tone gradient with halftone dots, seeded by a name. Stands in for card art, which isn't shown. */
 function artStyle(seed) { const h = hue(seed); return `--a1:hsl(${h} 70% 46%);--a2:hsl(${(h + 48) % 360} 65% 16%)`; }
@@ -2567,7 +2577,7 @@ async function saveNotifyState() {
     today: todaySummary(),
     missions: (() => { const mi = missionState(); return mi.items.length ? { key: missionDay(), left: mi.left, resetAt: nextReset() } : null; })(),
     webshop: { claimed: String(obj(S.webshop).claimed || ""), url: WEB_SHOP },
-    clock: { resetUtcHour: RESET_UTC_HOUR, refreshUtcHours: REFRESH_UTC_HOURS, daily: DAILY_RESET_ITEMS.slice(0, 6), refresh: REFRESH_8H_ITEMS },
+    clock: { resetUtcHour: RESET_UTC_HOUR, refreshUtcHours: REFRESH_UTC_HOURS, daily: DAILY_NOTE, refresh: REFRESH_NOTE, refreshName: REFRESH_NAME },
     saved: now,
   };
   if (natAlerts()) { try { SnapStatNative.setAlerts(JSON.stringify(state)); } catch { /* best effort */ } return; }
@@ -2729,21 +2739,26 @@ function eventTimes(e) {
   return { startTs, endTs: end - 1 };
 }
 
-const DAILY_RESET_ITEMS = ["Daily free credits", "Gold Pass claim", "Collector's Shop free tokens", "Daily shop refresh", "Season missions", "Web shop and its free credits", "New seasons, events, missions and shop items start (and old ones leave)"];
-const REFRESH_8H_ITEMS = ["Missions", "Free credits", "Collector's Shop cards", "Shop cosmetics", "Bonus boosters"];
+// What changes at each one. The daily reset is also one of the mission refreshes (19:00 UTC is in both).
+const DAILY_RESET_ITEMS = ["Free credits in the shop", "The shop's daily offer", "Free Collector's Tokens", "Gold Pass gold (if you have it)", "Free web shop credits", "Credit purchase limits", "New bundles and offers start, old ones leave", "Seasons, events and modes start and end"];
+const REFRESH_8H_ITEMS = ["2 new daily missions: 1 normal, 1 hard (up to 6 wait for you)", "New daily cards in the Collector's Token shop (your pinned card stays)", "The Token shop's Spotlight and variant slots"];
+// Shorter versions for the Android notification at each one
+const DAILY_NOTE = ["Free shop credits", "the daily offer", "free Collector's Tokens", "Gold Pass gold"];
+const REFRESH_NOTE = ["2 new daily missions", "new Collector's Token shop cards"];
+const REFRESH_NAME = "Mission refresh";
 function clockHtml() {
-  const dr = nextDailyReset(), rf = next8hRefresh(), times = refreshTimes();
+  const dr = nextDailyReset(), rf = next8hRefresh(), times = refreshTimes().slice().sort((a, b) => new Date(a).getHours() - new Date(b).getHours());
   const p = notifyPrefs();
-  return `<section class="sec"><details class="panel clock" ${ui.clockOpen ? "open" : ""} data-clock="1"><summary>
-      <div class="clk"><span class="k">Daily reset</span><b class="num" data-cd="${dr}">${esc(countdown(dr))}</b><span class="muted small">${esc(clockTime(dr))}</span></div>
-      <div class="clk"><span class="k">8-hour refresh</span><b class="num" data-cd="${rf}">${esc(countdown(rf))}</b><span class="muted small">${esc(clockTime(rf))}</span></div></summary>
-    <div class="stack small" style="margin-top:10px">
-      <div><b>Every day at ${esc(clockTime(dr))}</b><ul class="clist">${DAILY_RESET_ITEMS.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
-      <div><b>Every 8 hours</b> <span class="muted">(${times.map(clockTime).sort((a, b) => a.localeCompare(b)).map(esc).join(", ")})</span><ul class="clist">${REFRESH_8H_ITEMS.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
-      <p class="muted">The game's servers reset at 19:00 UTC. That's 12:00 PM Pacific during daylight saving time and 11:00 AM the rest of the year, and the 8-hour refreshes move with it.</p>
-      ${natAlerts() && natCan("resetAlarms") ? `<div class="stack" style="gap:6px"><label class="check"><input type="checkbox" data-notifychk="resetDaily" ${p.resetDaily ? "checked" : ""} ${p.on ? "" : "disabled"}> Notify me at the daily reset</label><label class="check"><input type="checkbox" data-notifychk="reset8h" ${p.reset8h ? "checked" : ""} ${p.on ? "" : "disabled"}> Notify me at each 8-hour refresh</label>${p.on ? "" : `<span class="muted">Turn on notifications in Settings › App first.</span>`}</div>`
+  const list = (items) => `<ul class="clist">${items.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  return `<section class="sec"><div class="panel clock stack" style="gap:10px"><div class="clkgrid">
+      <div class="clk"><span class="k">Daily reset</span><b class="num">${cdSpan(dr)}</b><span class="muted small">${esc(clockTime(dr))} every day</span>${list(DAILY_RESET_ITEMS)}</div>
+      <div class="clk"><span class="k">${REFRESH_NAME}</span><b class="num">${cdSpan(rf)}</b><span class="muted small">Every 8 hours: ${times.map(clockTime).map(esc).join(", ")}</span>${list(REFRESH_8H_ITEMS)}</div></div>
+    <details class="clockmore" ${ui.clockOpen ? "open" : ""} data-clock="1"><summary class="muted small">Reset times and notifications ›</summary>
+    <div class="stack small" style="margin-top:8px">
+      <p class="muted">The game's servers reset at 19:00 UTC. That's 12:00 PM Pacific during daylight saving time and 11:00 AM the rest of the year, and the mission refreshes move with it. Your missions page and the Collector's Token shop show the game's own timers once you've screenshotted them.</p>
+      ${natAlerts() && natCan("resetAlarms") ? `<div class="stack" style="gap:6px"><label class="check"><input type="checkbox" data-notifychk="resetDaily" ${p.resetDaily ? "checked" : ""} ${p.on ? "" : "disabled"}> Notify me at the daily reset</label><label class="check"><input type="checkbox" data-notifychk="reset8h" ${p.reset8h ? "checked" : ""} ${p.on ? "" : "disabled"}> Notify me at each mission refresh</label>${p.on ? "" : `<span class="muted">Turn on notifications in Settings › App first.</span>`}</div>`
         : window.SnapStatNative ? `<p class="muted">Update the Android app to get a notification at each reset.</p>` : `<p class="muted">The Android app can notify you at each reset.</p>`}
-    </div></details></section>`;
+    </div></details></div></section>`;
 }
 /* ---------- The Android home-screen widget ---------- */
 function widgetState() {
@@ -2780,12 +2795,22 @@ function widgetPanel() {
     ${n ? "" : `<div><button class="btn sm snap" data-a="natPinWidget">Add it to my home screen</button></div><span class="muted">If nothing pops up: press and hold an empty spot on your home screen, tap <b>Widgets</b>, find <b>SNAP Stat</b>, then press and hold the widget and drag it where you want it.</span>`}</div>`;
 }
 
-// Countdowns tick while the app is open; when one runs out, the page redraws (a new day, a new season…).
-setInterval(() => {
-  let due = false;
-  document.querySelectorAll("[data-cd]").forEach((el) => { const t = Number(el.dataset.cd); if (t <= Date.now()) due = true; else el.textContent = countdown(t); });
-  if (due && !document.hidden) { try { refreshView(); } catch { /* not ready */ } }
-}, 20000);
+// Countdowns tick every second while the app is open; when one runs out, the page redraws (a new day, a new season…).
+// Only numbers count (form fields elsewhere use data-cd for other things), and a timer that has run out stops ticking,
+// so the redraw happens once.
+function tickCountdowns() {
+  if (document.hidden) return;
+  const now = Date.now(); let due = false;
+  document.querySelectorAll("[data-cd]").forEach((el) => {
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+    const t = Number(el.dataset.cd); if (!Number.isFinite(t) || t <= 0) return;
+    if (t <= now) { el.removeAttribute("data-cd"); el.textContent = countdown(t); due = true; return; }
+    const s = countdown(t); if (el.textContent !== s) el.textContent = s;
+  });
+  if (due) { try { refreshView(); } catch { /* not ready */ } }
+}
+(function tick() { try { tickCountdowns(); } catch { /* keep ticking */ } setTimeout(tick, 1000 - (Date.now() % 1000) + 15); })();
+document.addEventListener("visibilitychange", () => { if (!document.hidden) try { tickCountdowns(); } catch { /* not ready */ } });
 document.addEventListener("toggle", (e) => { if (e.target && e.target.dataset && e.target.dataset.clock) ui.clockOpen = e.target.open; }, true);
 /* ============ Shared view bits ============ */
 function periodChips() { return `<div class="chips" role="group" aria-label="Time period">${periods().map((p) => `<button class="chip" data-a="period" data-v="${esc(p.id)}" aria-pressed="${ui.period === p.id}">${esc(p.label)}</button>`).join("")}</div>`; }
@@ -2823,7 +2848,7 @@ function seasonHero() {
   const items = collectibleItems(cs); const got = items.filter((it) => findCollectible(it, cs.name).owned).length;
   const bg = showArt() ? seasonArt(cs) : "";
   return `<button class="season halftone halftone-dots ${bg ? "has-art" : ""}" data-a="seasonOpen" data-id="${esc(cs.id)}" style="text-align:left;cursor:pointer">${bg ? imgTag(bg, "sbg") : ""}
-    <div class="row between"><span class="eyebrow">Current season · ends in ${esc(countdown(cs.endTs))}</span>${rankBadge(S.me.rank || r.end)}</div>
+    <div class="row between"><span class="eyebrow">Current season · ends in ${cdSpan(cs.endTs)}</span>${rankBadge(S.me.rank || r.end)}</div>
     <span class="nm">${esc(cs.name)}</span>
     <div class="row between small"><span>Season pass level <b class="num">${num(p.level)}</b> / ${of}${num(p.xpNext) ? ` · ${fmt(num(p.xp))}/${fmt(num(p.xpNext))} to the next` : ""} · ${esc(PASS_TIERS[p.tier] || "Free")}</span><span>${got}/${items.length} collected</span></div>
     ${passBar(num(p.level), of)}${(() => { const r = passPace(cs); return r && !r.done && r.needPerDay ? `<span class="small muted">${fmt(r.needPerDay)} pass XP a day reaches level ${r.goalLevel}${r.perDay ? ` · on pace for ${r.endLevel}` : ""}</span>` : ""; })()}</button>`;
@@ -2831,7 +2856,7 @@ function seasonHero() {
 function eventsStrip() {
   const ev = events(); const liveEv = ev.filter((e) => timeState(e) === "live"); const next = ev.filter((e) => timeState(e) === "upcoming").slice(0, 3);
   if (!liveEv.length && !next.length) return "";
-  const row = (e) => { const st = timeState(e); return `<button class="li ev" data-a="eventOpen" data-id="${esc(e.id)}"><span class="pill ${st === "live" ? "live" : "dim"}">${st === "live" ? "LIVE" : esc(dayStr(e.startTs))}</span><div class="grow"><div class="t">${esc(e.name)}</div><div class="s">${esc(EVENT_TYPES[e.type] || "Event")} · ${st === "live" ? "ends in " + esc(countdown(e.endTs)) : "starts in " + esc(countdown(e.startTs))}</div></div><span class="muted">›</span></button>`; };
+  const row = (e) => { const st = timeState(e); return `<button class="li ev" data-a="eventOpen" data-id="${esc(e.id)}"><span class="pill ${st === "live" ? "live" : "dim"}">${st === "live" ? "LIVE" : esc(dayStr(e.startTs))}</span><div class="grow"><div class="t">${esc(e.name)}</div><div class="s">${esc(EVENT_TYPES[e.type] || "Event")} · ${st === "live" ? "ends in " + cdSpan(e.endTs) : "starts in " + cdSpan(e.startTs)}</div></div><span class="muted">›</span></button>`; };
   return `<section class="sec"><div class="sec-h"><h2>Events & modes</h2><button class="btn sm ghost" data-a="go" data-to="events">All events</button></div><div class="list">${liveEv.map(row).join("")}${next.map(row).join("")}</div></section>`;
 }
 function homeParts() {
@@ -3689,7 +3714,7 @@ function vMore() {
   const alerts = wishAlerts().length; const promos = promoList().filter((p) => p.status === "active" && !S.redeemed[p.id]).length;
   const cs = currentSeason(); const liveEv = events().filter((e) => timeState(e) === "live").length;
   return `<section class="sec"><h1>More</h1><div class="list">
-    ${item("seasons", "Seasons, ranks & passes", cs ? `${esc(cs.name)} · ends in ${esc(countdown(cs.endTs))}` : `${seasons().length} tracked`)}
+    ${item("seasons", "Seasons, ranks & passes", cs ? `${esc(cs.name)} · ends in ${cdSpan(cs.endTs)}` : `${seasons().length} tracked`)}
     ${item("events", "Events & limited-time modes", liveEv ? `${liveEv} live now` : `${events().length} tracked`)}
     ${item("locations", "Locations", allLocations().length ? `${allLocations().filter((l) => !l.soon).length} locations, their effects and how you do on them` : "How you do on each location")}
     ${item("balance", "Balance changes", (() => { const n = balanceChanges().filter((x) => x.date >= localDate(Date.now() - 14 * DAY) && deckCardKeys().has(x.key)).length; return n ? `${n} change${n > 1 ? "s" : ""} to cards in your decks lately` : "Every buff, nerf and rework"; })())}
@@ -3755,7 +3780,7 @@ function vSeasons() {
 function seasonRow(s) {
   const st = timeState(s); const p = obj(S.passes[s.id]); const r = obj(S.ranks["s:" + s.id]); const items = collectibleItems(s); const got = items.filter((it) => findCollectible(it, s.name).owned).length;
   return `<button class="li" data-a="seasonOpen" data-id="${esc(s.id)}">${seasonPic(s, "sart")}<div class="grow"><div class="t">${esc(s.name)} ${st === "live" ? `<span class="pill live">Live</span>` : ""}</div>
-    <div class="s">${esc(dateStr(s.start))}${s.end ? " – " + esc(dateStr(s.end)) : ""}${st === "live" ? " · ends in " + esc(countdown(s.endTs)) : st === "upcoming" ? " · starts in " + esc(countdown(s.startTs)) : ""}${items.length ? ` · ${got}/${items.length} collected` : ""}${p.level ? ` · pass ${num(p.level)}` : ""}${r.peak ? ` · peak ${esc(r.peak)}` : ""}</div></div><span class="muted">›</span></button>`;
+    <div class="s">${esc(dateStr(s.start))}${s.end ? " – " + esc(dateStr(s.end)) : ""}${st === "live" ? " · ends in " + cdSpan(s.endTs) : st === "upcoming" ? " · starts in " + cdSpan(s.startTs) : ""}${items.length ? ` · ${got}/${items.length} collected` : ""}${p.level ? ` · pass ${num(p.level)}` : ""}${r.peak ? ` · peak ${esc(r.peak)}` : ""}</div></div><span class="muted">›</span></button>`;
 }
 let se = null;
 function seasonSheet() {
@@ -3765,7 +3790,7 @@ function seasonSheet() {
   const ms = realMatches().filter((m) => m.ts >= s.startTs && m.ts <= s.endTs); const stat = statsFor(ms);
   const items = collectibleItems(s); const got = items.filter((it) => findCollectible(it, s.name).owned).length;
   const evs = events().filter((e) => e.startTs <= s.endTs && e.endTs >= s.startTs);
-  return `${sheetHead(esc(s.name), `${esc(dateStr(s.start))}${s.end ? " – " + esc(dateStr(s.end)) : ""} · ${st === "live" ? "ends in " + esc(countdown(s.endTs)) : st === "upcoming" ? "starts in " + esc(countdown(s.startTs)) : "ended"}`)}
+  return `${sheetHead(esc(s.name), `${esc(dateStr(s.start))}${s.end ? " – " + esc(dateStr(s.end)) : ""} · ${st === "live" ? "ends in " + cdSpan(s.endTs) : st === "upcoming" ? "starts in " + cdSpan(s.startTs) : "ended"}`)}
     ${seasonPic(s, "shero")}
     ${s.passCard ? `<div class="row">${nameChip(s.passCard)}<span class="pill gold">Season pass card</span></div>` : ""}
     ${st !== "upcoming" ? `<div class="panel stack"><h3>My season</h3>
@@ -3809,7 +3834,7 @@ function vEvents() {
   return `<section class="sec">${backBar("Events")}
     <p class="muted small">Events and limited-time game modes with their dates, reward tracks and collectibles, plus your progress on each pass.${store.mode === "cloud" ? " Event info is shared with everyone using this app." : ""}</p>
     ${stateTabs("eventTab", counts)}
-    ${list.length ? `<div class="list">${list.map((e) => { const st = timeState(e); const pr = obj(S.eventProg[e.id]); const items = collectibleItems(e); const got = items.filter((it) => findCollectible(it, e.name).owned).length; return `<button class="li" data-a="eventOpen" data-id="${esc(e.id)}"><span class="pill ${st === "live" ? "live" : "dim"}">${st === "live" ? "LIVE" : esc(dayStr(e.startTs))}</span><div class="grow"><div class="t">${esc(e.name)}</div><div class="s">${esc(EVENT_TYPES[e.type] || "Event")} · ${st === "live" ? "ends in " + esc(countdown(e.endTs)) : st === "upcoming" ? "starts in " + esc(countdown(e.startTs)) : esc(dateStr(e.start))}${items.length ? ` · ${got}/${items.length} collected` : ""}${num(e.passLevels) ? ` · pass ${num(pr.level)}/${num(e.passLevels)}` : ""}</div></div><span class="muted">›</span></button>`; }).join("")}</div>`
+    ${list.length ? `<div class="list">${list.map((e) => { const st = timeState(e); const pr = obj(S.eventProg[e.id]); const items = collectibleItems(e); const got = items.filter((it) => findCollectible(it, e.name).owned).length; return `<button class="li" data-a="eventOpen" data-id="${esc(e.id)}"><span class="pill ${st === "live" ? "live" : "dim"}">${st === "live" ? "LIVE" : esc(dayStr(e.startTs))}</span><div class="grow"><div class="t">${esc(e.name)}</div><div class="s">${esc(EVENT_TYPES[e.type] || "Event")} · ${st === "live" ? "ends in " + cdSpan(e.endTs) : st === "upcoming" ? "starts in " + cdSpan(e.startTs) : esc(dateStr(e.start))}${items.length ? ` · ${got}/${items.length} collected` : ""}${num(e.passLevels) ? ` · pass ${num(pr.level)}/${num(e.passLevels)}` : ""}</div></div><span class="muted">›</span></button>`; }).join("")}</div>`
       : `<div class="empty"><span>${ui.eventTab === "current" ? "Nothing live right now in your list." : ui.eventTab === "upcoming" ? "No upcoming events added yet." : "No past events added yet."}</span>${store.provider === "firebase" && store.mode === "cloud" && canEditShared() && !seasons().length && !events().length ? `<button class="btn snap" data-a="loadSeed">Load season & event history</button>` : ""}</div>`}
     ${canEditShared() ? `<button class="btn snap" data-a="eventNew">${ICON.plus} Add event or mode</button>` : `<p class="muted small">Events fill in automatically. The app owner can add or fix them.</p>`}</section>`;
 }
@@ -3819,7 +3844,7 @@ function eventSheet() {
   const e = events().find((x) => x.id === ee.id) || { ...ee, startTs: dayStart(ee.start), endTs: ee.end ? dayEnd(ee.end) : dayEnd(ee.start) };
   const st = timeState(e); const pr = obj(S.eventProg[e.id]); const items = collectibleItems(e); const got = items.filter((it) => findCollectible(it, e.name).owned).length;
   const ms = realMatches().filter((m) => (m.mode === "Event" || m.mode === "Limited-time mode") && m.ts >= e.startTs && m.ts <= e.endTs); const stat = statsFor(ms);
-  return `${sheetHead(esc(e.name), `${esc(EVENT_TYPES[e.type] || "Event")} · ${esc(dateStr(e.start))}${e.end ? " – " + esc(dateStr(e.end)) : ""} · ${st === "live" ? "ends in " + esc(countdown(e.endTs)) : st === "upcoming" ? "starts in " + esc(countdown(e.startTs)) : "ended"}`)}
+  return `${sheetHead(esc(e.name), `${esc(EVENT_TYPES[e.type] || "Event")} · ${esc(dateStr(e.start))}${e.end ? " – " + esc(dateStr(e.end)) : ""} · ${st === "live" ? "ends in " + cdSpan(e.endTs) : st === "upcoming" ? "starts in " + cdSpan(e.startTs) : "ended"}`)}
     ${e.shopUntil ? `<p class="small">Event shop open until ${esc(dateStr(e.shopUntil))}</p>` : ""}${e.desc ? `<p class="small" style="white-space:pre-wrap">${esc(e.desc)}</p>` : ""}${srcLink(e)}
     ${st !== "upcoming" ? `<div class="panel stack"><h3>My progress</h3>
       ${eventPassHtml(e, false)}
@@ -4686,7 +4711,7 @@ function climbPanel() {
       <div class="tile"><div class="k">Games to go</div><div class="v">${games ? "≈" + fmt(games) : "—"}</div></div>
       <div class="tile"><div class="k">Days at your pace</div><div class="v">${days ? "≈" + fmt(days) : "—"}</div></div></div>
     ${track}
-    <p class="muted small">${pace.n ? `Pace from your last ${plural(pace.n, "Ranked game")}${pace.gpd ? `, about ${Math.round(pace.gpd * 10) / 10} a day` : ""}.` : "Log Ranked matches to see your pace."}${cs ? ` Season ends in ${esc(countdown(cs.endTs))}.` : ""} Check it against the game now and then: a match you forget to log makes it drift.</p>
+    <p class="muted small">${pace.n ? `Pace from your last ${plural(pace.n, "Ranked game")}${pace.gpd ? `, about ${Math.round(pace.gpd * 10) / 10} a day` : ""}.` : "Log Ranked matches to see your pace."}${cs ? ` Season ends in ${cdSpan(cs.endTs)}.` : ""} Check it against the game now and then: a match you forget to log makes it drift.</p>
     <div><button class="btn sm ghost" data-a="climbEdit">Fix rank</button></div></div>`;
 }
 
@@ -5089,7 +5114,7 @@ function allianceWeekHtml() {
   const d = new Date(dayStart(weekKey(Date.now()).slice(1))); d.setDate(d.getDate() + 7); const ends = d.getTime();
   const board = [...rows].filter((r) => num(r.w.games)).sort((a, b) => num(b.w.w) - num(a.w.w) || num(b.w.cubes) - num(a.w.cubes));
   const top = [...rows].filter((r) => ch.val(r.w)).sort((a, b) => ch.val(b.w) - ch.val(a.w)).slice(0, 5);
-  return `<div class="panel stack halftone"><div class="row between"><span class="eyebrow">This week's challenge</span><span class="muted small">resets in ${esc(countdown(ends))}</span></div>
+  return `<div class="panel stack halftone"><div class="row between"><span class="eyebrow">This week's challenge</span><span class="muted small">resets in ${cdSpan(ends)}</span></div>
       <b style="font-size:17px">${esc(ch.t)}</b><div class="row between small"><span class="num">${fmt(Math.min(total, goal))} / ${fmt(goal)} ${esc(ch.unit)}</span>${total >= goal ? `<span class="pill W">Done!</span>` : ""}</div>${progBar(total, goal, `${total} of ${goal} ${ch.unit}`)}
       <span class="muted small">${top.length ? "Top: " + top.map((r) => `${esc(r.me ? "You" : r.p.handle)} ${fmt(ch.val(r.w))}`).join(" · ") : "Nobody has counted toward it yet. Matches you log this week count."}</span></div>
     <h3>This week's leaders</h3>${board.length ? `<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Player</th><th class="n">Wins</th><th class="n">Games</th><th class="n">Cubes</th></tr></thead><tbody>${board.map((r, i) => `<tr><td class="num">${i + 1}</td><td>${r.me ? `<b>You</b>` : `<button class="chip" data-a="profileOpen" data-id="${esc(r.id)}">${esc(r.p.handle)}</button>`}</td><td class="n">${num(r.w.w)}</td><td class="n">${num(r.w.games)}</td><td class="n ${num(r.w.cubes) >= 0 ? "pos" : "neg"}">${signed(num(r.w.cubes))}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted small">No games logged by your alliance this week yet.</p>`}`;
@@ -5694,7 +5719,7 @@ function missionState() {
 }
 function missionsHtml(mi = missionState()) {
   if (!mi.items.length) return "";
-  return `<div class="panel stack small"><div class="row between"><b>Daily checklist</b><span class="muted">resets in ${esc(countdown(nextReset()))}</span></div>
+  return `<div class="panel stack small"><div class="row between"><b>Daily checklist</b><span class="muted">resets in ${cdSpan(nextReset())}</span></div>
     ${mi.items.map((x) => `<label class="check"><input type="checkbox" data-mission="${esc(x.id)}" ${mi.done.includes(x.id) ? "checked" : ""}> ${esc(x.text)}</label>`).join("")}</div>`;
 }
 function missionEditSheet() {
@@ -6126,7 +6151,7 @@ function catchUpSheet() {
     ${com.length ? step(++n, "Cards other players use most that you don't have", com.map((r) => esc(card(r.k).name)).join(", ") + ".", `<div class="chiplist">${com.map((r) => cardChip(r.k, { a: "cardOpen" })).join("")}</div>`) : ""}
     ${ready.length ? step(++n, "Decks you can play today", ready.map((d) => esc(d.name)).join(", ") + ".", `<div><button class="btn sm" data-a="go" data-to="cards/decks">See them in Decks</button></div>`) : ""}
     ${num(S.wallet.credits) >= 50 ? step(++n, "Use your credits", `${fmt(S.wallet.credits)} credits is about ${fmt(Math.floor(num(S.wallet.credits) / 50))} Collection Levels of upgrades.`) : ""}
-    ${cs ? step(++n, "This season", `${esc(cs.name)} ends in ${esc(countdown(cs.endTs))}. Set your rank in Home › Stats to track your climb.`, `<div><button class="btn sm" data-a="go" data-to="home/stats">Stats</button></div>`) : ""}
+    ${cs ? step(++n, "This season", `${esc(cs.name)} ends in ${cdSpan(cs.endTs)}. Set your rank in Home › Stats to track your climb.`, `<div><button class="btn sm" data-a="go" data-to="home/stats">Stats</button></div>`) : ""}
     </div>`;
 }
 function catchUpBanner() { const away = daysAway(); return away >= 21 && away < 999 ? `<section class="sec"><div class="panel row between nowrap halftone"><div><b>Welcome back!</b><div class="small muted">It's been ${plural(away, "day")}. Here's how to catch up fast.</div></div><button class="btn sm snap" data-a="catchUp">Catch-up plan</button></div></section>` : ""; }
@@ -6954,6 +6979,7 @@ function updateSheet() {
   return `${sheetHead("App update ready", `SNAP Stat for Android 1.${esc(nat.update.latest)} · you have ${esc(natInfo().version || "an older one")}`)}
     <p class="small">It takes a few seconds: tap <b>Update now</b>, then <b>Update</b> (or <b>Install</b>) in Android's window.${nat.update.canInstall === false ? " Android will first ask you to allow SNAP Stat to install apps: turn it on, then come back." : ""}</p>
     <div class="row"><button class="btn snap" data-a="natUpdate" ${busy ? "disabled" : ""}>${busy ? `Downloading… ${nat.pct}%` : "Update now"}</button><button class="btn ghost" data-a="close">Later</button></div>
+    <span class="muted small">If Google Play Protect says <b>Harmful app blocked</b>: tap <b>More details</b>, then <b>Install anyway</b>. Apps from outside the Play Store that record the screen get this warning until Google reviews them. This update is SNAP Stat's own, from its GitHub page.</span>
     ${nat.tried ? `<span class="muted small">Didn't update? <button class="btn sm ghost" data-a="natGetApk">Download it in Chrome</button> and open the file to install it.</span>` : ""}`;
 }
 function natUpdateBanner() {
@@ -8364,7 +8390,7 @@ function recapBanner() {
   const r = recapDue(); if (!r) return "";
   const pic = showArt() ? seasonArt(r.s) : "";
   return `<section class="sec"><div class="panel recapb ${pic ? "has-art" : ""}">${pic ? imgTag(pic, "sbg") : ""}<div class="stack" style="gap:6px;position:relative;z-index:1">
-    <b>${r.ending ? `${esc(r.s.name)} ends in ${esc(countdown(r.s.endTs))}` : `${esc(r.s.name)} is over`}</b><span class="small">Your season recap is ready: your record, best deck, top card and luckiest location in one picture.</span>
+    <b>${r.ending ? `${esc(r.s.name)} ends in ${cdSpan(r.s.endTs)}` : `${esc(r.s.name)} is over`}</b><span class="small">Your season recap is ready: your record, best deck, top card and luckiest location in one picture.</span>
     <div class="row"><button class="btn snap sm" data-a="recapSeason" data-id="${esc(r.s.id)}">See my recap</button>${r.ending ? "" : `<button class="btn sm ghost" data-a="recapDismiss" data-id="${esc(r.s.id)}">Not now</button>`}</div></div></div></section>`;
 }
 function bestLocation(ms) {
@@ -8428,7 +8454,7 @@ function openWebShop() {
 function webshopHtml() {
   const done = webshopClaimed(), opened = obj(S.webshop).opened === gameDay(), next = nextDailyReset();
   return `<section class="sec"><div class="panel row between nowrap webshop"><div class="stack" style="gap:2px;min-width:0"><b>Web shop</b>
-      <span class="small ${done ? "pos" : "muted"}">${done ? `✓ Free credits claimed today · more in <span data-cd="${next}">${esc(countdown(next))}</span>` : "Free credits waiting today"}</span></div>
+      <span class="small ${done ? "pos" : "muted"}">${done ? `✓ Free credits claimed today · more in ${cdSpan(next)}` : "Free credits waiting today"}</span></div>
     <div class="row nowrap">${done ? `<button class="btn sm ghost" data-a="webshopUnclaim" aria-label="Not claimed yet">Undo</button>` : opened ? `<button class="btn sm" data-a="webshopClaimed">I claimed them</button>` : ""}<button class="btn sm snap" data-a="webshopOpen">Open</button></div></div></section>`;
 }
 // A notification or widget can open #webshop.
@@ -8469,7 +8495,7 @@ function eventPassHtml(e, compact) {
     ${nextMs && !compact ? `<span class="small">Next milestone: level ${num(nextMs.level)}${nextMs.reward ? ` · ${esc(nextMs.reward)}` : ""}${nextMs.premium ? ` <span class="pill gold">Premium</span>` : ""}</span>` : ""}
     <div class="row small">${(arr(pr.curs).length ? pr.curs : obj(pr.cur).name ? [pr.cur] : []).map((c) => `<span class="pill dim" title="${c.use === "match" ? "earned in matches" : c.use === "shop" ? "spent in the event's shop" : ""}">${esc(c.name)}${c.use === "match" ? " (from matches)" : c.use === "shop" ? " (shop)" : ""}: <b class="num">${fmt(c.amount)}</b></span>`).join("")}${eventGainLine(e)}${items.length ? `<span class="pill dim">${got}/${items.length} collected</span>` : ""}${pr.at ? `<span class="muted">updated ${ago(pr.at) === "now" ? "just now" : esc(ago(pr.at)) + " ago"}</span>` : ""}</div>`;
   if (!compact && arr(pr.shop).length) return `<div class="stack" style="gap:6px">${body}${eventShopHtml(pr)}</div>`;
-  return compact ? `<button class="li evpass" data-a="eventOpen" data-id="${esc(e.id)}"><div class="grow stack" style="gap:4px"><div class="row between"><b>${esc(e.name)}</b><span class="muted small">ends in ${esc(countdown(e.endTs))}</span></div>${body}</div></button>` : `<div class="stack" style="gap:6px">${body}</div>`;
+  return compact ? `<button class="li evpass" data-a="eventOpen" data-id="${esc(e.id)}"><div class="grow stack" style="gap:4px"><div class="row between"><b>${esc(e.name)}</b><span class="muted small">ends in ${cdSpan(e.endTs)}</span></div>${body}</div></button>` : `<div class="stack" style="gap:6px">${body}</div>`;
 }
 function eventsPassHome() {
   const live = events().filter((e) => timeState(e) === "live" && (num(e.passLevels) || obj(S.eventProg[e.id]).level || obj(S.eventProg[e.id]).xp || collectibleItems(e).length || /diner|pass/i.test(e.name)));
@@ -8495,7 +8521,7 @@ function applyShotEvent(x, e, time) {
   // The event's currencies (Deadpool's Diner has more than one): all of them, and the main one for the widget
   const curs = [...arr(e.currencies).map(obj), obj(e.currency)].filter((c) => c.name && n(c.amount) !== null && !/^gold$/i.test(String(c.name).trim())).map((c) => ({ name: curName(c.name), amount: n(c.amount), use: curUse(c) }));
   const byName = new Map(arr(pr.curs).map((c) => [keyOf(c.name), c])); for (const c of curs) byName.set(keyOf(c.name), { ...obj(byName.get(keyOf(c.name))), ...c, use: c.use || obj(byName.get(keyOf(c.name))).use || "", at: time || Date.now() });
-  if (curs.length) { pr.curs = [...byName.values()].sort((a, b) => (a.use === "match" ? 0 : 1) - (b.use === "match" ? 0 : 1)).slice(0, 6); pr.cur = pr.curs[0]; done.push(curs.map((c) => `${fmt(c.amount)} ${c.name}`).join(", ")); }
+  if (curs.length) { pr.curs = [...byName.values()].sort((a, b) => (a.use === "match" ? 0 : 1) - (b.use === "match" ? 0 : 1)).slice(0, 6); pr.cur = pr.curs[0]; done.push([...new Map(curs.map((c) => [keyOf(c.name), c])).values()].map((c) => `${fmt(c.amount)} ${c.name}`).join(", ")); }
   const shop = arr(e.shop).map((i) => ({ name: String(obj(i).name || "").slice(0, 60), kind: String(obj(i).kind || "").slice(0, 12), price: n(obj(i).price), currency: curName(obj(i).currency || ""), sold: !!obj(i).sold })).filter((i) => i.name).slice(0, 40);
   if (shop.length) { const by = new Map(arr(pr.shop).map((i) => [keyOf(i.name), i])); shop.forEach((i) => by.set(keyOf(i.name), i)); pr.shop = [...by.values()].slice(0, 60); pr.shopAt = time || Date.now(); done.push(`${shop.length} shop item${shop.length === 1 ? "" : "s"}`); }
   if (e.nextReward) pr.next = String(e.nextReward).slice(0, 80);
@@ -8589,7 +8615,7 @@ function allianceExtraHtml() {
   const mem = [...V.members].sort((a, b) => num(b[sort]) - num(a[sort]) || String(a.name).localeCompare(String(b.name)));
   const ms = (k, l) => `<button class="chip" data-a="allyMemSort" data-v="${k}" aria-pressed="${sort === k}">${l}</button>`;
   const when = (t) => (t ? `<span class="muted small">from a screenshot ${ago(t) === "now" ? "just now" : esc(ago(t)) + " ago"}</span>` : "");
-  return `<div class="panel stack"><div class="row between"><h3 style="margin:0">This week</h3>${V.endsAt ? `<span class="muted small">resets in <span data-cd="${V.endsAt}">${esc(countdown(V.endsAt))}</span></span>` : ""}</div>
+  return `<div class="panel stack"><div class="row between"><h3 style="margin:0">This week</h3>${V.endsAt ? `<span class="muted small">resets in ${cdSpan(V.endsAt)}</span>` : ""}</div>
       ${obj(V.team).next && num(V.team.next.points) ? nextMsHtml("Alliance's next milestone", teamPts, V.team.next.points, V.team.next.reward) : trackHtml(ALLY_TEAM_TRACK, teamPts, "Alliance milestones")}
       ${num(D.myNext) ? nextMsHtml("Your next milestone", myPts, D.myNext, "") : trackHtml(ALLY_MY_TRACK, myPts, "Your milestones")}
       <div class="row">${shotInput("numbers")}<span class="muted small">Screenshot the alliance's Bounties, Members and Leaderboard tabs (or play with the tracker on) to fill these in.</span></div></div>
@@ -8901,10 +8927,10 @@ function freebiesHtml() {
   const ft = obj(S.freeTokens);
   if (ft.at) out.push(ft.claimed === gd ? `<span class="pill W">✓ Free tokens claimed</span>` : obj(S.freeTokens).at && gameDay(ft.at) === gd ? `<span class="pill gold">Free tokens to claim</span>` : "");
   const fc = obj(S.freeCredits);
-  if (fc.nextAt) out.push(fc.nextAt > now ? `<span class="pill dim">Free credits in <span data-cd="${fc.nextAt}">${esc(countdown(fc.nextAt))}</span></span>` : `<span class="pill gold">Free credits ready</span>`);
+  if (fc.nextAt) out.push(fc.nextAt > now ? `<span class="pill dim">Free credits in ${cdSpan(fc.nextAt)}</span>` : `<span class="pill gold">Free credits ready</span>`);
   const gp = obj(S.goldPass);
   if (gp.days) { const left = Math.max(0, gp.days - Math.floor((now - num(gp.at)) / DAY)); out.push(`<span class="pill ${left <= 3 ? "gold" : "dim"}">Gold Pass: ${left} day${left === 1 ? "" : "s"} left</span>`);
-    if (gp.claimAt && left > 0) out.push(gp.claimAt > now ? `<span class="pill dim">Gold Pass gold in <span data-cd="${gp.claimAt}">${esc(countdown(gp.claimAt))}</span></span>` : `<span class="pill gold">Gold Pass gold ready</span>`); }
+    if (gp.claimAt && left > 0) out.push(gp.claimAt > now ? `<span class="pill dim">Gold Pass gold in ${cdSpan(gp.claimAt)}</span>` : `<span class="pill gold">Gold Pass gold ready</span>`); }
   const list = out.filter(Boolean);
   return list.length ? `<div class="chiplist">${list.join("")}</div>` : "";
 }
@@ -8923,7 +8949,6 @@ setTimeout(() => whenDataReady(() => { try {
 // A number as the game shows it: 1,826, 21.2K, 1.5M
 const nIn = (v) => { if (v === null || v === undefined || String(v).trim() === "") return null; const s = String(v).replace(/[,\s+]/g, ""), m = s.match(/^(\d+(?:\.\d+)?)([kKmM])?$/); const z = m ? Number(m[1]) * (m[2] ? (/k/i.test(m[2]) ? 1e3 : 1e6) : 1) : Number(s); return Number.isFinite(z) ? Math.max(0, Math.round(z)) : null; };
 const leftAt = (txt, time) => { const l = parseLeft(txt); return l > 0 && l < 60 * DAY ? (time || Date.now()) + l : 0; };
-const cdSpan = (ts) => `<span data-cd="${ts}">${esc(countdown(ts))}</span>`;
 
 /* ---------- Missions: the weekly challenge and the season's chapters ---------- */
 function missionItem(i) {
@@ -8977,7 +9002,7 @@ function vMissions() {
       ${arr(wk.items).map(missionRow).join("")}<span class="muted small">Seen ${ago(wk.at) === "now" ? "just now" : esc(ago(wk.at)) + " ago"}</span></div>` : `<div class="panel small">${tip}</div>`}</section>
   <section class="sec"><div class="sec-h"><h2>${cs ? esc(cs.name) + " chapters" : "Season chapters"}</h2>${next ? `<span class="muted small">next unlock in ${cdSpan(next)}</span>` : ""}</div>
     ${ch.length ? `<div class="stack" style="gap:8px">${ch.map((c) => { const lock = c.unlocksAt && c.unlocksAt > now, d = arr(c.items).filter((i) => i.done).length;
-      return `<details class="panel chap" ${!c.complete && !lock ? "open" : ""}><summary><span><b>Chapter ${esc(c.n || "?")}</b>${c.name ? ` · ${esc(c.name)}` : ""}</span>${c.complete ? `<span class="pill W">Complete</span>` : lock ? `<span class="pill dim">${ICON.lock} ${esc(countdown(c.unlocksAt))}</span>` : c.items.length ? `<span class="pill live">${d}/${c.items.length}</span>` : ""}</summary>
+      return `<details class="panel chap" ${!c.complete && !lock ? "open" : ""}><summary><span><b>Chapter ${esc(c.n || "?")}</b>${c.name ? ` · ${esc(c.name)}` : ""}</span>${c.complete ? `<span class="pill W">Complete</span>` : lock ? `<span class="pill dim">${ICON.lock} ${cdSpan(c.unlocksAt)}</span>` : c.items.length ? `<span class="pill live">${d}/${c.items.length}</span>` : ""}</summary>
         ${c.items.length ? `<div class="stack" style="margin-top:8px;gap:8px">${c.items.map(missionRow).join("")}</div>` : c.complete ? "" : `<span class="muted small">Scroll to this chapter in the game to see its missions.</span>`}</details>`; }).join("")}</div>`
       : old ? `<div class="panel stack small">${old.items.map(missionRow).join("")}</div>` : `<div class="panel small">${tip}</div>`}</section>`;
 }

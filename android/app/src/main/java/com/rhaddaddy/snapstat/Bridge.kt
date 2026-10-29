@@ -192,7 +192,7 @@ class Bridge(private val act: MainActivity) {
     @JavascriptInterface fun setWidget(json: String): Boolean = Widget.save(ctx, json)
     @JavascriptInterface fun widgetCount(): Int = Widget.count(ctx)
     @JavascriptInterface fun pinWidget(): Boolean = Widget.requestPin(ctx)
-    /** Sets the alarm for the next reset or 8-hour refresh (used for the widget and the reset notifications). */
+    /** Sets the alarm for the next reset or mission refresh (used for the widget and the reset notifications). */
     @JavascriptInterface fun resetAlarms(): Boolean { ResetClock.schedule(ctx); return true }
     @JavascriptInterface fun checkAlertsNow() { kotlin.concurrent.thread { try { Alerts.check(ctx) } catch (e: Exception) { TrackerLog.add("Alert check failed: ${e.message}") } } }
 

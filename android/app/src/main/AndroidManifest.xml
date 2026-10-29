@@ -102,7 +102,7 @@
                 android:resource="@xml/snap_widget_info" />
         </receiver>
 
-        <!-- The game's daily reset and 8-hour refreshes: updates the widget and sends the reset notifications -->
+        <!-- The game's daily reset and mission refreshes (every 8 hours): updates the widget and sends the reset notifications -->
         <receiver
             android:name=".ResetAlarm"
             android:exported="false" />

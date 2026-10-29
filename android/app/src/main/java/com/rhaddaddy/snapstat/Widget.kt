@@ -170,7 +170,7 @@ object Widget {
 
 /**
  * The game's clock: the daily reset is at 19:00 UTC (12:00 PM Pacific in summer, 11:00 AM in winter), and some things
- * refresh every 8 hours from it. An alarm at each refresh updates the widget and, if you asked, sends a notification.
+ * refresh every 8 hours from it (the mission refreshes). An alarm at each one updates the widget and, if you asked, sends a notification.
  */
 object ResetClock {
     private fun clock(ctx: Context): JSONObject? = try {
@@ -217,12 +217,15 @@ object ResetClock {
         val h = refreshHours(st).firstOrNull { it == hour } ?: return
         if (prefs == null || !prefs.optBoolean("on")) return
         val daily = h == resetHour(st)
-        val items = { k: String, def: String -> st?.optJSONObject("clock")?.optJSONArray(k)?.let { a -> (0 until a.length()).joinToString(", ") { a.optString(it) } } ?: def }
+        // "a, b and c"
+        val items = { k: String, def: String -> st?.optJSONObject("clock")?.optJSONArray(k)?.let { a -> val l = (0 until a.length()).map { a.optString(it) }.filter { it.isNotBlank() }
+            if (l.size > 1) l.dropLast(1).joinToString(", ") + " and " + l.last() else l.firstOrNull() } ?: def }
+        val refreshName = st?.optJSONObject("clock")?.optString("refreshName")?.ifBlank { null } ?: "Mission refresh"
         val tag = "reset:" + java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date(now)) + ":" + h
         val web = prefs.optBoolean("webshop", true)
-        if (daily && prefs.optBoolean("resetDaily")) Alerts.show(ctx, "MARVEL SNAP's daily reset", items("daily", "Daily free credits, Gold Pass claim, Collector's Shop free tokens and a new daily shop") + " are ready." + if (web) " Tap to claim your free web shop credits." else "", tag, if (web) "#webshop" else "#home")
+        if (daily && prefs.optBoolean("resetDaily")) Alerts.show(ctx, "MARVEL SNAP's daily reset", items("daily", "Free shop credits, the daily offer, free Collector's Tokens and Gold Pass gold") + " are ready." + if (web) " Tap to claim your free web shop credits." else "", tag, if (web) "#webshop" else "#home")
         else if (daily && web) Alerts.show(ctx, "Free web shop credits", "Today's free credits are waiting in the web shop. Tap to claim them.", "webshop:$tag", "#webshop")
-        else if (prefs.optBoolean("reset8h")) Alerts.show(ctx, "8-hour refresh", items("refresh", "Missions, free credits, Collector's Shop cards, shop cosmetics and bonus boosters") + " just refreshed.", tag, "#home")
+        else if (prefs.optBoolean("reset8h")) Alerts.show(ctx, refreshName, items("refresh", "2 new daily missions and new Collector's Token shop cards").replaceFirstChar { it.uppercase() } + " are here.", tag, "#home/missions")
     }
 }
 
