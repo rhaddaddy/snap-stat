@@ -71,7 +71,7 @@ jobs:
         run: pip install --quiet pillow numpy && python3 scripts/update-borders.py
         continue-on-error: true
       - name: Download season art and card backs
-        run: pip install --quiet pillow numpy opencv-python-headless && python3 scripts/update-art.py
+        run: (sudo apt-get install -y -qq tesseract-ocr > /dev/null 2>&1 || true) && pip install --quiet pillow numpy opencv-python-headless pytesseract && python3 scripts/update-art.py
         continue-on-error: true
       - name: Save changes
         run: |

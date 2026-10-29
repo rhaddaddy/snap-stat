@@ -3,6 +3,7 @@
 #   seasons:   { "2026-09": { "img": ..., "title": "Axis: Inversion", "link": ... } }   keyed by the month the season starts
 #   cardbacks: [ { "id": "ArthurPendragon_01", "name": ..., "added": ..., "img": ... } ]
 #   titles:    [ "+5 Energy IRL", ... ]   every title's name, from snap.fan
+#   emotes:    [ { "id": "DeadpoolOuchAnim", "name": ..., "kind": "image" | "anim" | "text", "img": ..., "sf": ..., "texts": [...], "added": ... } ]
 # Run by .github/workflows/update-cards.yml.
 import html, json, os, re, sys, urllib.request
 from datetime import datetime, timezone
@@ -97,8 +98,29 @@ def look(im):
     band = (ys.max() - ys.min()) / x.shape[0] if len(ys) else 0
     flat = 1 - busy.mean()
     edges = float(cv2.Canny(x.mean(2).astype(np.uint8), 60, 160).mean() / 255)
-    stand_in = flat > 0.86 and band < 0.3 or float(x.std()) < 6
-    return {"detail": round(edges + float(x.std()) / 500, 4), "standIn": bool(stand_in)}
+    dark = float((x.mean(2) < 28).mean())  # a moving card back's first frame is often nearly all black
+    stand_in = flat > 0.86 and band < 0.3 or float(x.std()) < 6 or dark > 0.82
+    return {"detail": round(edges + float(x.std()) / 500, 4), "standIn": bool(stand_in), "dark": round(dark, 3), "hash": dhash(im)}
+
+def dhash(im):
+    """A fingerprint of the picture, to spot the same picture listed for two different card backs."""
+    g = np.asarray(im.convert("L").resize((17, 16), Image.LANCZOS), dtype=np.int16)
+    bits = (g[:, 1:] > g[:, :-1]).flatten()
+    return "".join("1" if b else "0" for b in bits)
+
+def ham(a, b): return sum(x != y for x, y in zip(a or "", b or "")) if a and b and len(a) == len(b) else 999
+
+try:
+    import pytesseract; pytesseract.get_tesseract_version(); have_ocr = True
+except Exception: have_ocr = False
+def label_words(im):
+    """Words like PLACEHOLDER or CARDBACK printed on a stand-in picture."""
+    if not have_ocr or im is None: return ""
+    try:
+        g = im.convert("L").resize((im.width * 2, im.height * 2))
+        t = pytesseract.image_to_string(g, config="--psm 11").lower()
+        return " ".join(sorted({w for w in ("placeholder", "cardback", "golden version") if w in t.replace("pmace", "place")}))
+    except Exception: return ""
 
 def text_line(im):
     """A line of white text across a card back (the game's stand-in label showing through the art), if there is one."""
@@ -123,7 +145,7 @@ def paint_out(im, t):
     out = cv2.inpaint(cv2.cvtColor(np.asarray(im.convert("RGB")), cv2.COLOR_RGB2BGR), m, max(5, W // 100), cv2.INPAINT_TELEA)
     o = Image.fromarray(cv2.cvtColor(out, cv2.COLOR_BGR2RGB)).convert("RGBA"); o.putalpha(im.split()[3]); return o
 
-CHECK_V = 2  # bump to check every card back again
+CHECK_V = 3  # bump to check every card back again
 if have_cv and backs:
     os.makedirs("cardbacks", exist_ok=True)
     try: checked = json.load(open("cardbacks/checked.json"))
@@ -147,7 +169,9 @@ if have_cv and backs:
         else:
             m_im, f_im = card_crop(get_bytes(m_url)), card_crop(get_bytes(f_url)) if f_url else None
             mq, fq = (look(m_im) if m_im else None), (look(f_im) if f_im else None)
-            use, f_good = "none", bool(fq and not fq["standIn"])
+            if fq: fq["words"] = label_words(f_im)
+            if mq: mq["words"] = label_words(m_im)
+            use, f_good = "none", bool(fq and not fq["standIn"] and not fq["words"])
             if mq and not mq["standIn"]:
                 mt = text_line(m_im)
                 ft = text_line(f_im) if f_im is not None and fq and fq["standIn"] else None
@@ -165,8 +189,35 @@ if have_cv and backs:
         b["img"] = m_url if use == "msz" else f_url if use == "sf" else f"cardbacks/{cid}.webp" if use == "fixed" else ""
         if use == "none": b["noArt"] = True
         else: b.pop("noArt", None)
+    # Marvel Snap Zone sometimes shows one card back's picture for another (Hulk shows Sam Wilson Red Hulk's, Avengers shows
+    # Young Avengers'). When two card backs have the same picture there and snap.fan has a different, good one, use snap.fan's.
+    def fp(cid, k): return ((checked.get(cid) or {}).get(k) or {}).get("hash")
+    switched = 0
+    for b in backs:
+        cid = b["id"]; c = checked.get(cid) or {}
+        if c.get("use") != "msz" or not c.get("sf"): continue
+        f = c.get("f") or {}
+        if not f or f.get("standIn") or f.get("words"): continue
+        mh, fh = fp(cid, "m"), fp(cid, "f")
+        twins = [o["id"] for o in backs if o["id"] != cid and ham(mh, fp(o["id"], "m")) <= 8]
+        sf_twins = [o["id"] for o in backs if o["id"] != cid and ham(fh, fp(o["id"], "f")) <= 8]
+        if twins and ham(mh, fh) > 12 and not sf_twins:
+            c["use"] = "sf"; c["why"] = "same picture as " + twins[0] + " on Marvel Snap Zone"; switched += 1
+    # Ones checked by eye (cardbacks/overrides.json): {"ZombieVenom_01": "none", ...}
+    try: overrides = json.load(open("cardbacks/overrides.json"))
+    except Exception: overrides = {}
+    tally = {}
+    for b in backs:
+        cid = b["id"]; c = checked.get(cid) or {}; use = overrides.get(cid) or c.get("use") or "msz"
+        if use == "fixed" and not os.path.exists(f"cardbacks/{cid}.webp"): use = c.get("use") if c.get("use") != "fixed" else "msz"
+        tally[use] = tally.get(use, 0) + 1
+        m_url, f_url = f"https://static.marvelsnap.pro/cardbacks/{cid}.webp", c.get("sf") or ""
+        if not (b.get("img") or "").startswith("cardbacks/") and b.get("img") and "snap.fan" not in b.get("img", ""): m_url = b["img"]
+        b["img"] = m_url if use == "msz" else f_url if use == "sf" and f_url else f"cardbacks/{cid}.webp" if use == "fixed" else ""
+        if use == "none" or not b["img"]: b["noArt"] = True; b["img"] = ""
+        else: b.pop("noArt", None)
     json.dump(checked, open("cardbacks/checked.json", "w"), indent=0, sort_keys=True)
-    print("card back pictures:", tally)
+    print("card back pictures:", tally, "· switched to snap.fan for a repeated picture:", switched)
 
 # ---------- Titles (the phrases you collect and show on your profile) ----------
 # snap.fan lists every title's name on one page. Keep the old list if the page can't be read.
@@ -179,7 +230,44 @@ try:
     print("titles:", len(found))
 except Exception as e: print("titles page", e)
 
-body = {"source": "Marvel Snap Zone (marvelsnapzone.com)", "seasons": dict(sorted(seasons.items())), "cardbacks": backs, "titles": titles}
+# ---------- Emotes ----------
+# Marvel Snap Zone lists every emote with its picture and when it was added; snap.fan says which are text, picture or
+# moving emotes, has the words of the text ones, and its pictures can be read by the app.
+emotes, found = list(prev.get("emotes") or []), {}
+for pg in range(1, 9):
+    try: page = get("https://marvelsnapzone.com/emotes/" + (f"?pg={pg}" if pg > 1 else ""))
+    except Exception as e: print("emotes page", pg, e); break
+    new = 0
+    for m in re.finditer(r'<a class="msz-cat-i[^"]*" href="/emotes/([^/"]+)/">(.*?)</a>', page, re.S):
+        cid, body = m.group(1), m.group(2)
+        if cid in found or not re.fullmatch(r"[A-Za-z0-9_]+", cid): continue
+        new += 1
+        g = lambda pat: (lambda mm: clean(mm.group(1)) if mm else "")(re.search(pat, body, re.S))
+        img = re.search(r'<img[^>]+src="([^"]+)"', body)
+        found[cid] = {"id": cid, "name": (g(r'msz-cat-i__name">(.*?)</span>') or cid)[:60], "added": g(r'msz-cat-i__date">(.*?)</span>').replace("Added in ", "")[:30],
+                      "img": img.group(1) if img else f"https://static.marvelsnap.pro/emotes/{cid}.png", "src": g(r'msz-cat-i__src">(.*?)</span>')[:50]}
+    if not new: break
+try:
+    page = get("https://snap.fan/emotes/")
+    secs = [(m.start(), m.group(1)) for m in re.finditer(r"<h2[^>]*>(.*?)</h2>", page)]
+    for si, (pos, sec) in enumerate(secs):
+        kind = "text" if "text" in sec.lower() else "anim" if "anim" in sec.lower() else "image"
+        for cell in re.split(r'<div class="emote-grid__cell"', page[pos:secs[si + 1][0] if si + 1 < len(secs) else len(page)])[1:]:
+            mid = re.search(r'href="/emotes/([A-Za-z0-9_]+)/"', cell)
+            if not mid: continue
+            cid = mid.group(1); img = re.search(r'<img[^>]+src="(https://game-assets\.snap\.fan/[^"]+)"', cell)
+            nm = re.search(r'class="emote-grid__name"[^>]*>\s*<a[^>]*>(.*?)</a>', cell, re.S)
+            texts = [clean(t) for t in re.findall(r'game-emote__text-value[^>]*>(.*?)</div>', cell)][:2]
+            e = found.setdefault(cid, {"id": cid, "name": (clean(nm.group(1)) if nm else texts[0] if texts else cid)[:60], "added": "", "img": ""})
+            e["kind"] = kind
+            if img: e["sf"] = img.group(1)
+            if texts: e["texts"] = texts
+except Exception as e: print("snap.fan emotes", e)
+for e in found.values(): e.setdefault("kind", "anim" if e["id"].endswith("Anim") else "image")
+if len(found) >= 50: emotes = sorted(found.values(), key=lambda e: (e["kind"] != "text",))
+print("emotes:", len(emotes))
+
+body = {"source": "Marvel Snap Zone (marvelsnapzone.com)", "seasons": dict(sorted(seasons.items())), "cardbacks": backs, "titles": titles, "emotes": emotes}
 if {k: v for k, v in prev.items() if k != "updated"} == body: print("No changes."); sys.exit(0)
 body["updated"] = datetime.now(timezone.utc).isoformat()
 json.dump(body, open("art.json", "w"), ensure_ascii=False, separators=(",", ":"))
