@@ -2785,7 +2785,7 @@ function seasonHero() {
   return `<button class="season halftone halftone-dots ${bg ? "has-art" : ""}" data-a="seasonOpen" data-id="${esc(cs.id)}" style="text-align:left;cursor:pointer">${bg ? imgTag(bg, "sbg") : ""}
     <div class="row between"><span class="eyebrow">Current season · ends in ${esc(countdown(cs.endTs))}</span>${rankBadge(S.me.rank || r.end)}</div>
     <span class="nm">${esc(cs.name)}</span>
-    <div class="row between small"><span>Season pass level <b class="num">${num(p.level)}</b> / ${of} · ${esc(PASS_TIERS[p.tier] || "Free")}</span><span>${got}/${items.length} collected</span></div>
+    <div class="row between small"><span>Season pass level <b class="num">${num(p.level)}</b> / ${of}${num(p.xpNext) ? ` · ${fmt(num(p.xp))}/${fmt(num(p.xpNext))} to the next` : ""} · ${esc(PASS_TIERS[p.tier] || "Free")}</span><span>${got}/${items.length} collected</span></div>
     ${passBar(num(p.level), of)}</button>`;
 }
 function eventsStrip() {
@@ -6369,25 +6369,50 @@ const shots = { items: [], busy: false };
 function shotHash(s) { let h = 2166136261; for (let i = 0; i < s.length; i += 7) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36) + s.length.toString(36); }
 // Game modes to choose from: the standard ones plus events and limited-time modes running around now
 const modeNames = () => [...new Set([...MODES.filter((m) => !["Other", "Event", "Limited-time mode"].includes(m)), ...events().filter((e) => e.endTs > Date.now() - 30 * DAY && e.startTs < Date.now() + 7 * DAY).map((e) => String(e.name))])];
-const SCREEN_NAMES = { alliance: "alliance", event: "event pass", eventshop: "event shop", seasonpass: "season pass", shop: "shop (offers and bundles)", shopcurrency: "shop's Credits and Gold", shoptokens: "shop's Collector's Token", shopmedals: "Conquest medal shop", home: "home", albums: "variant albums", missions: "missions", card: "card upgrade", collectionlevel: "Collection Level" };
+const SCREEN_NAMES = { alliance: "alliance", event: "event pass", eventshop: "event shop", seasonpass: "season pass", shop: "shop (offers and bundles)", shopcurrency: "shop's Credits and Gold", shoptokens: "shop's Collector's Token", shopmedals: "Conquest medal shop", home: "home", albums: "variant albums", missions: "missions", card: "card upgrade", split: "card split result", collectionlevel: "Collection Level" };
+// What each screen's top bar shows, so its numbers aren't mixed up (an event's currencies aren't Credits).
+const TOP_BAR = "In MARVEL SNAP's top bar, the number at the top left (beside a coin) is Credits and the number at the top right (beside a gold bar) is Gold. On the home screen, the number with a small badge under the deck name (like +33,706) is the Collection Level, and the number beside SEASON PASS is the season pass level.";
+const SCREEN_TIPS = {
+  home: "Read it as \"numbers\". " + TOP_BAR + " Collector's Tokens aren't shown here.",
+  shop: "Read it as \"shop\". " + TOP_BAR,
+  shopcurrency: "Read it as \"shop\" (Credits and Gold offers, the Gold Pass and the free credits). " + TOP_BAR,
+  shoptokens: "Read it as \"shop\". On this tab (the Collector's Token shop) the number at the top left is Collector's Tokens, not Credits.",
+  shopmedals: "Read it as \"shop\" (the Conquest medal shop). The number at the top is Conquest medals.",
+  seasonpass: "Read it as \"numbers\": the season pass level and the points toward the next level (like 368/1,000). " + TOP_BAR,
+  collectionlevel: "Read it as \"numbers\": the Collection Level. " + TOP_BAR,
+  event: "Read it as \"event\". The numbers along the top of an event's screens are that event's own currencies (like Bubs), not Credits or Gold, so leave \"numbers\" out.",
+  eventshop: "Read it as \"event\" (the event's shop). The numbers along the top are the event's own currencies, not Credits or Gold, so leave \"numbers\" out.",
+  alliance: "Read it as \"alliance\". Leave \"numbers\" out.",
+  missions: "Read it as \"missions\".",
+  albums: "Read it as \"album\".",
+  card: "Read it as \"card\".",
+  split: "Read it as \"split\".",
+};
+// Which of your numbers each saved screen really shows. The rest are left alone, so a number in the same spot on
+// another screen (the Collector's Token tab's tokens, say, where the home screen has credits) can't land in the wrong place.
+const CG = ["credits", "gold"];
+const SCREEN_NUMS = { home: [...CG, "collectionLevel", "passLevel", "rank", "rankCubes"], shop: CG, shopcurrency: [...CG, "goldPassDays", "freeCreditsIn"], shoptokens: ["tokens", "gold", "freeTokensClaimed"], shopmedals: ["medals", "gold"],
+  seasonpass: [...CG, "passLevel", "passXp", "passXpNext"], collectionlevel: [...CG, "collectionLevel"], albums: CG, missions: CG, card: CG, split: CG, event: [], eventshop: [], alliance: [] };
+// The kinds each saved screen can be; anything else the reader says is set aside.
+const SCREEN_KINDS = { home: ["numbers"], shop: ["shop", "numbers", "variants"], shopcurrency: ["shop", "numbers"], shoptokens: ["shop", "numbers"], shopmedals: ["shop", "numbers"], seasonpass: ["numbers"], collectionlevel: ["numbers"], event: ["event"], eventshop: ["event", "shop"], alliance: ["alliance"], missions: ["missions"], albums: ["album"], card: ["card", "split", "variants"], split: ["split"] };
 const SHOT_PROMPT = (roster, hint) => `You are reading a screenshot from the mobile game MARVEL SNAP. Decide what screen it shows and pull out everything visible that's listed below.
 Valid card names (name cost/power): ${roster}
 Game modes and events: ${modeNames().join("; ")}
-${/^screen:/.test(hint || "") ? `This picture was saved automatically while the player was on the game's ${SCREEN_NAMES[String(hint).slice(7)] || "menu"} screen.\n` : hint ? `Just before this, the player's screen mentioned "${String(hint).slice(0, 60)}". Use that for the game mode if the picture itself doesn't show the mode.\n` : ""}Reply as JSON:
+${/^screen:/.test(hint || "") ? `This picture was saved automatically while the player was on the game's ${SCREEN_NAMES[String(hint).slice(7)] || "menu"} screen. ${SCREEN_TIPS[String(hint).slice(7)] || ""}\n` : hint ? `Just before this, the player's screen mentioned "${String(hint).slice(0, 60)}". Use that for the game mode if the picture itself doesn't show the mode, except that a result with cubes won or lost is a Ranked match (or Conquest, with medals).\n` : ""}Reply as JSON:
 {"kind": "match" (end of a match, or the board during one) | "numbers" (home, profile, rank, shop, collection or season pass screens showing the player's numbers) | "deck" (a deck of cards) | "card" (one card's own screen: its upgrade level, boosters, splits, variants or Custom Card) | "collection" (the collection grid, with booster counts on the cards) | "split" (the result of an Infinity Split) | "variants" (one card's variants screen, showing which of its variants the player has) | "shop" (a shop screen: the Token Shop, Spotlight Caches, the shop's daily and special offers, a bundle or the Season Pass) | "event" (an event or limited-time mode's own pass, reward track or shop, like Deadpool's Diner's, with levels, XP, rewards, its currency and its collectibles) | "alliance" (any alliance screen: members, bounties, milestones or the alliance leaderboard) | "album" (the variant albums list, or one album with its variants) | "missions" (the daily or season missions list) | "other",
  "match": {"result": "W" | "L" | "T" | "" (from the player's side at the bottom), "cubes": cubes won or lost as a positive number (0 if not shown), "medals": Conquest medals won or lost as a positive number (0 if none), "retreated": true if the player retreated, "oppRetreated": true if the opponent retreated, "snapped": true if the player snapped, "oppSnapped": true if the opponent snapped, "mode": one of the game modes and events above, or the mode or event name shown, or "", "oppName": "", "locations": [{"name": "", "my": bottom player's power, "opp": top player's power}], "oppCards": ["card names on the top side"], "myCards": ["card names on the bottom side"], "turn": final turn number or null, "boosters": [{"card": "card name", "n": boosters this card earned, as shown on the results}]},
- "numbers": {"rank": rank number 1-99, or "Infinite", or null, "rankCubes": cubes toward the next rank or null, "collectionLevel": number or null, "credits": number or null, "gold": number or null, "tokens": Collector's Tokens number or null, "passLevel": season pass level or null, "rerollCoins": Split Reroll Coins or null, "wildBoosters": Wild Boosters or null, "medals": Conquest medals or null, "goldPassDays": days left on the Gold Pass if shown or null, "freeTokensClaimed": true if today's free Collector's Tokens show as claimed, false if they can be claimed, else null, "freeCreditsIn": "time until the shop's free credits can be claimed again, as shown, like 7h 22m, or empty"},
+ "numbers": {"rank": rank number 1-99, or "Infinite", or null, "rankCubes": cubes toward the next rank or null, "collectionLevel": number or null, "credits": number or null, "gold": number or null, "tokens": Collector's Tokens number or null, "passLevel": season pass level or null, "passXp": points toward the next season pass level or null, "passXpNext": points that level needs in all or null, "rerollCoins": Split Reroll Coins or null, "wildBoosters": Wild Boosters or null, "medals": Conquest medals or null, "goldPassDays": days left on the Gold Pass if shown or null, "freeTokensClaimed": true if today's free Collector's Tokens show as claimed, false if they can be claimed, else null, "freeCreditsIn": "time until the shop's free credits can be claimed again, as shown, like 7h 22m, or empty"},
  "deck": {"name": "", "cards": ["card names"]},
  "card": {"card": "card name", "variant": "variant name if shown, else empty", "rarity": "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Ultra" | "Infinity" | "", "boosters": this card's boosters or null, "splits": number of Infinity Splits if shown or null, "finish": "split finish if shown", "flare": "split flare if shown", "border": "border name if shown", "masteryLevel": Character Mastery level or null},
  "collection": {"cards": [{"card": "card name", "boosters": the booster number on the card, "rarity": "upgrade level if you can tell, else empty"}]},
  "split": {"card": "card name", "finish": "finish it got", "flare": "flare it got", "rerolled": true if the player rerolled, "usedCoin": true if a Split Reroll Coin was spent},
  "variants": {"card": "card name", "screen": "editor" if this is the Custom Card editor's art picker (it only lists variants the player owns), otherwise "collection", "count": how many variant pictures you can see, "items": [{"name": "variant name or style if shown", "artist": "artist if shown", "owned": true if the player has it, false if it's greyed out, locked or shows a price}]},
  "shop": {"shop": "the shop's name, like Token Shop, Spotlight, an event shop's name, or a bundle's name", "items": [{"card": "card name", "kind": "variant" | "card" | "border" | "other", "variant": "variant name or style if shown", "artist": "artist if shown", "price": "price as shown"}]},
- "event": {"event": "event or mode name", "level": current pass level or null, "levels": total levels or null, "xp": points toward the next level or null, "xpNext": points that level needs in all or null, "xpName": "what those points are called, like Event XP", "currency": {"name": "the event's currency if shown, like Bubs", "amount": number or null}, "nextReward": "the next reward on the track", "milestones": [{"level": number, "reward": "", "claimed": true | false, "premium": true if it's on the paid track}], "collectibles": [{"name": "", "kind": "card" | "variant" | "avatar" | "title" | "cardback" | "border" | "emote" | "other", "owned": true if it's claimed, owned or marked SOLD in the event's shop}]},
- "alliance": {"name": "alliance name", "tab": "members" | "bounties" | "milestones" | "leaderboard" | "other", "teamPoints": the alliance's points this week or null, "myPoints": the player's own points this week or null, "nextMilestone": {"points": points needed or null, "reward": ""}, "resetsIn": "time left in the week as shown, like 2d 5h", "dropsLeft": bounty drops left this week or null, "myNext": points the player's next personal milestone needs or null, "members": [{"name": "", "role": "Leader" | "Officer" | "Member" | "", "points": alliance points or null, "cubes": cubes or null, "bounties": bounties completed or null, "score": total score or null, "collectionLevel": Collection Level or null, "rank": "rank as shown, like Infinite or 75, or empty"}], "memberCount": how many members it has or null, "bounties": [{"text": "what to do, as written", "rarity": "Common" | "Epic" | "Legendary" | "", "points": points it gives or null, "progress": done so far or null, "goal": how many it needs or null, "mine": true if the player has it active}], "board": [{"rank": number, "name": "alliance name", "points": null, "cubes": null, "bounties": null, "mine": true if it's the player's alliance}]}}
+ "event": {"event": "event or mode name", "level": current pass level or null, "levels": total levels or null, "xp": points toward the next level or null, "xpNext": points that level needs in all or null, "xpName": "what those points are called, like Event XP", "currency": {"name": "the event's main currency if shown, like Bubs", "amount": number or null}, "currencies": [{"name": "each of the event's currencies shown, by its label or icon", "amount": number}], "nextReward": "the next reward on the track", "milestones": [{"level": number, "reward": "", "claimed": true | false, "premium": true if it's on the paid track}], "collectibles": [{"name": "", "kind": "card" | "variant" | "avatar" | "title" | "cardback" | "border" | "emote" | "other", "owned": true if it's claimed, owned or marked SOLD in the event's shop}]},
+ "alliance": {"name": "alliance name", "tab": "members" | "bounties" | "milestones" | "leaderboard" | "other", "teamPoints": the alliance's points this week or null, "myPoints": the player's own points this week or null, "nextMilestone": {"points": points needed or null, "reward": ""}, "resetsIn": "time left in the week as shown, like 2d 5h", "dropsLeft": bounty drops left this week or null, "myNext": points the player's next personal milestone needs or null, "members": [{"name": "", "role": "Leader" | "Officer" | "Member" | "", "points": alliance points this week or null, "cubes": cubes, or points from cubes on the contributors list, or null, "bounties": bounties done, or points from bounties on the contributors list, or null, "score": total points or score or null, "collectionLevel": Collection Level or null, "rank": "rank as shown, like Infinite or 75, or empty"}], "memberCount": how many members it has or null, "bounties": [{"text": "what to do, as written", "rarity": "Common" | "Epic" | "Legendary" | "", "points": points it gives or null, "progress": done so far or null, "goal": how many it needs or null, "mine": true if the player has it active}], "board": [{"rank": number, "name": "alliance name", "points": null, "cubes": null, "bounties": null, "mine": true if it's the player's alliance}]}}
  "album": {"name": "the album's name if one album is open, else empty", "have": variants collected or null, "of": variants in it or null, "cards": [{"card": "card name of each variant shown", "variant": "the variant's name or style if shown", "artist": "artist if shown", "owned": true if the player has it, false if it's greyed out or locked}], "albums": [{"name": "", "have": number, "of": number}] for the albums list},
  "missions": {"tab": "daily" | "season" | "other", "refreshIn": "time until new missions, as shown, or empty", "items": [{"text": "the mission, as written", "progress": done so far or null, "goal": how many it needs or null, "reward": "what it gives, like 100 Season Pass XP", "done": true if it's complete or claimed}]},
-If the screen also shows the player's credits, gold, Collector's Tokens, Collection Level or season pass level (along the top, say), fill "numbers" too, whatever the kind.
+If the screen also shows the player's own Credits or Gold along the top, or their Collector's Tokens, Collection Level or season pass level, fill "numbers" too, whatever the kind. An event's screens show the event's own currencies along the top instead (like Bubs): those go in "event", never in "numbers".
 Leave out sections that don't apply. Never guess numbers you can't read.`;
 async function fileToShot(file) { const img = await imageForAI(file); return { img, hash: shotHash(img.data), time: num(file.lastModified) || Date.now(), url: URL.createObjectURL(file) }; }
 function shotsSheet() {
@@ -6419,11 +6444,20 @@ async function readOneShot(x) {
   const s = await fileToShot(x.file); x.url = s.url;
   const seen = arr(S.shotSeen); if (seen.includes(s.hash)) { x.status = "Already read this screenshot"; return; }
   let hint = x.file && x.file.snapHint ? String(x.file.snapHint) : "";
-  // Before Android 1.10 the tracker also picked up event names from the home screen, so its game mode guess can't be trusted.
-  if (hint && !/^screen:/.test(hint) && NATIVE && verCmp(String(natInfo().version || "0"), "1.10") < 0) hint = "";
+  // Before Android 1.13 the tracker could carry an event's name from its hub over to a ranked match, so its game mode guess can't be trusted.
+  if (hint && !/^screen:/.test(hint) && NATIVE && verCmp(String(natInfo().version || "0"), "1.13") < 0) hint = "";
   const r = obj(await store.sample.json(SHOT_PROMPT(cardRoster(), hint), { images: [s.img], modelTier: "default" }));
   S.shotSeen = [...seen, s.hash].slice(-200);
-  const kind = String(r.kind || "");
+  let kind = String(r.kind || "");
+  const sk = /^screen:/.test(hint) ? SCREEN_KINDS[hint.slice(7)] : null;
+  if (sk && !sk.includes(kind)) {
+    if (sk.includes("numbers") && r.numbers) kind = "numbers";
+    else { x.status = "Saved by the tracker, but it didn't look like that screen"; x.detail = `${SCREEN_NAMES[hint.slice(7)] || hint.slice(7)} · read as ${kind || "nothing"}`; save(); return; }
+  }
+  // Keep only the numbers this screen really shows (event and alliance screens: none of them are yours)
+  const keep = /^screen:/.test(hint) ? SCREEN_NUMS[hint.slice(7)] : null;
+  if (keep && r.numbers) r.numbers = Object.fromEntries(Object.entries(obj(r.numbers)).filter(([k]) => keep.includes(k)));
+  x.hint = hint;
   if (kind === "match") return applyShotMatch(x, obj(r.match), s.time, hint);
   if (kind === "card") return applyShotCard(x, obj(r.card));
   if (kind === "collection") return applyShotCollection(x, obj(r.collection).cards);
@@ -6444,8 +6478,10 @@ function applyShotMatch(x, mm, time, hint) {
   const d = S.decks.find((dk) => plays.length >= 3 && plays.filter((k) => dk.cards.includes(k)).length >= Math.min(4, plays.length));
   const locs = arr(mm.locations).slice(0, 3).map((l) => ({ name: String(l.name || "").slice(0, 40), my: num(l.my), opp: num(l.opp) }));
   const pickMode = (v) => { const kv = keyOf(v || ""); return kv ? [...modeNames(), ...MODES].find((mo) => keyOf(mo) === kv) || null : null; };
-  const mode = pickMode(mm.mode) || (mm.mode ? String(mm.mode).slice(0, 30) : pickMode(hint) || (hint ? String(hint).slice(0, 30) : "Ranked"));
   const mag = clamp(Math.abs(num(mm.cubes)), 0, 8), medals = Math.abs(Math.round(num(mm.medals)));
+  let mode = pickMode(mm.mode) || (mm.mode ? String(mm.mode).slice(0, 30) : pickMode(hint) || (hint ? String(hint).slice(0, 30) : "Ranked"));
+  // Cubes only change hands in Ranked: a match with cubes isn't the event the player last looked at
+  if (mag && !pickMode(mm.mode) && !mm.mode && mode !== "Ranked") mode = "Ranked";
   // Only Ranked has cubes. Conquest has medals; events and other modes have their own rewards.
   const noCubes = mode !== "Ranked" && !mag;
   const m = { id: uid(), ts: time, result: res || "W", cubes: noCubes ? 0 : res === "L" ? -mag : res === "T" ? 0 : mag, ...(noCubes ? { noCubes: true } : {}), ...(medals ? { medals: res === "L" ? -medals : medals } : {}), mode, deckId: d ? d.id : "", deckName: d ? d.name : "", oppName: String(mm.oppName || "").slice(0, 40),
@@ -6460,19 +6496,28 @@ function applyShotMatch(x, mm, time, hint) {
 }
 // A shop, event or alliance screen that also shows your currencies along the top: those update too.
 function alsoNumbers(x, n, time) {
-  n = obj(n); if (!["credits", "gold", "tokens", "collectionLevel", "passLevel", "medals", "goldPassDays"].some((k) => n[k] !== null && n[k] !== undefined && Number.isFinite(Number(n[k]))) && typeof n.freeTokensClaimed !== "boolean" && !n.freeCreditsIn) return;
-  const y = {}; applyShotNumbers(y, { credits: n.credits, gold: n.gold, tokens: n.tokens, collectionLevel: n.collectionLevel, passLevel: n.passLevel, medals: n.medals, goldPassDays: n.goldPassDays, freeTokensClaimed: n.freeTokensClaimed, freeCreditsIn: n.freeCreditsIn }, time);
+  n = obj(n); if (!["credits", "gold", "tokens", "collectionLevel", "passLevel", "passXp", "medals", "goldPassDays"].some((k) => n[k] !== null && n[k] !== undefined && Number.isFinite(Number(n[k]))) && typeof n.freeTokensClaimed !== "boolean" && !n.freeCreditsIn) return;
+  const y = {}; applyShotNumbers(y, { credits: n.credits, gold: n.gold, tokens: n.tokens, collectionLevel: n.collectionLevel, passLevel: n.passLevel, passXp: n.passXp, passXpNext: n.passXpNext, medals: n.medals, goldPassDays: n.goldPassDays, freeTokensClaimed: n.freeTokensClaimed, freeCreditsIn: n.freeCreditsIn }, time);
   if (y.detail) x.detail = [x.detail, y.detail].filter(Boolean).join(" · ");
 }
 function applyShotNumbers(x, n, time) {
   const before = { wallet: { ...S.wallet }, col: S.me.colLevel, rank: S.me.rank, peak: S.me.peak, climb: clone(obj(S.climb)), passes: clone(obj(S.passes)), goldPass: clone(S.goldPass || null), freeTokens: clone(S.freeTokens || null), freeCredits: clone(S.freeCredits || null) };
   const done = [];
   if (n.rerollCoins !== undefined) n.rerolls = n.rerollCoins; if (n.wildBoosters !== undefined) n.wild = n.wildBoosters;
-  for (const [k, l] of [["credits", "credits"], ["gold", "gold"], ["tokens", "tokens"], ["rerolls", "Split Reroll Coins"], ["wild", "Wild Boosters"], ["medals", "Conquest medals"]]) if (n[k] !== null && n[k] !== undefined && Number.isFinite(Number(n[k]))) { S.wallet[k] = Math.max(0, Math.round(Number(n[k]))); done.push(`${fmt(S.wallet[k])} ${l}`); if (k === "tokens") { const lg = arr(S.walletLog); lg.push({ t: time, v: S.wallet.tokens }); S.walletLog = lg.slice(-60); } }
-  if (Number.isFinite(Number(n.collectionLevel)) && Number(n.collectionLevel) > 0) { S.me.colLevel = Math.round(Number(n.collectionLevel)); done.push(`Collection Level ${fmt(S.me.colLevel)}`); }
+  // A 0 for credits, gold or tokens is nearly always a number the AI couldn't see, unless it came from the screen that shows it
+  const zeroOk = (k) => /^screen:(shoptokens|home|shopcurrency)/.test(String(x.hint || "")) && (k !== "tokens" || /shoptokens/.test(String(x.hint)));
+  for (const [k, l] of [["credits", "credits"], ["gold", "gold"], ["tokens", "tokens"], ["rerolls", "Split Reroll Coins"], ["wild", "Wild Boosters"], ["medals", "Conquest medals"]]) if (n[k] !== null && n[k] !== undefined && String(n[k]).trim() !== "" && Number.isFinite(Number(n[k])) && (Number(n[k]) > 0 || !["credits", "gold", "tokens"].includes(k) || zeroOk(k))) { S.wallet[k] = Math.max(0, Math.round(Number(n[k]))); done.push(`${fmt(S.wallet[k])} ${l}`); if (k === "tokens") { const lg = arr(S.walletLog); lg.push({ t: time, v: S.wallet.tokens }); S.walletLog = lg.slice(-60); } }
+  // Collection Level only goes up, so a lower one is usually a misreading: it's used once two screenshots agree on it
+  const cl = Math.round(Number(n.collectionLevel)), old = num(S.me.colLevel);
+  if (n.collectionLevel !== null && n.collectionLevel !== undefined && Number.isFinite(cl) && cl > 0 && cl < 200000) {
+    const low = obj(S.colLow);
+    if (!old || cl >= old - 50 || (low.v && Math.abs(low.v - cl) <= 50)) { S.me.colLevel = cl; S.colLow = null; done.push(`Collection Level ${fmt(cl)}`); }
+    else S.colLow = { v: cl, at: time || Date.now() };
+  }
   const rk = /^inf/i.test(String(n.rank)) ? 100 : Number(n.rank);
   if (rk >= 1 && rk <= 100) { S.climb = { rank: Math.round(rk), cubes: clamp(num(n.rankCubes), 0, CPR - 1), at: time }; syncRankFromClimb(); if (!climbNow()) { S.me.rank = rankStr(Math.round(rk)); } done.push(rk >= 100 ? "rank Infinite" : `rank ${Math.round(rk)}`); }
   const cs = currentSeason(); if (cs && Number(n.passLevel) > 0) { const p = (S.passes[cs.id] = obj(S.passes[cs.id])); p.level = Math.round(Number(n.passLevel)); done.push(`pass level ${p.level}`); }
+  if (cs && Number(n.passXpNext) > 0 && Number(n.passXp) >= 0) { const p = (S.passes[cs.id] = obj(S.passes[cs.id])); p.xp = Math.round(Number(n.passXp)); p.xpNext = Math.round(Number(n.passXpNext)); p.xpAt = time || Date.now(); done.push(`${fmt(p.xp)}/${fmt(p.xpNext)} toward the next pass level`); }
   // Daily things the shop shows: Gold Pass days left, today's free Collector's Tokens, and when the free credits come back
   const t = time || Date.now();
   if (Number(n.goldPassDays) > 0 && Number(n.goldPassDays) < 2000) { S.goldPass = { days: Math.round(Number(n.goldPassDays)), at: t }; done.push(`Gold Pass ${S.goldPass.days} days left`); }
@@ -8183,7 +8228,7 @@ function eventPassHtml(e, compact) {
       ${need ? progBar(xp, need, `${fmt(need - xp)} ${pr.xpName || "XP"} to level ${lv + 1}`) : levels ? passBar(lv, levels) : ""}
       ${need ? `<span class="muted small">${fmt(Math.max(0, need - xp))} ${esc(pr.xpName || "XP")} to level ${lv + 1}${pr.next ? `: ${esc(pr.next)}` : ""}</span>` : pr.next ? `<span class="muted small">Next: ${esc(pr.next)}</span>` : ""}` : `<span class="muted small">Screenshot the event's pass and your level, XP and next reward fill in.</span>`}
     ${nextMs && !compact ? `<span class="small">Next milestone: level ${num(nextMs.level)}${nextMs.reward ? ` · ${esc(nextMs.reward)}` : ""}${nextMs.premium ? ` <span class="pill gold">Premium</span>` : ""}</span>` : ""}
-    <div class="row small">${obj(pr.cur).name ? `<span class="pill dim">${esc(pr.cur.name)}: <b class="num">${fmt(pr.cur.amount)}</b></span>` : ""}${items.length ? `<span class="pill dim">${got}/${items.length} collected</span>` : ""}${pr.at ? `<span class="muted">updated ${ago(pr.at) === "now" ? "just now" : esc(ago(pr.at)) + " ago"}</span>` : ""}</div>`;
+    <div class="row small">${(arr(pr.curs).length ? pr.curs : obj(pr.cur).name ? [pr.cur] : []).map((c) => `<span class="pill dim">${esc(c.name)}: <b class="num">${fmt(c.amount)}</b></span>`).join("")}${items.length ? `<span class="pill dim">${got}/${items.length} collected</span>` : ""}${pr.at ? `<span class="muted">updated ${ago(pr.at) === "now" ? "just now" : esc(ago(pr.at)) + " ago"}</span>` : ""}</div>`;
   return compact ? `<button class="li evpass" data-a="eventOpen" data-id="${esc(e.id)}"><div class="grow stack" style="gap:4px"><div class="row between"><b>${esc(e.name)}</b><span class="muted small">ends in ${esc(countdown(e.endTs))}</span></div>${body}</div></button>` : `<div class="stack" style="gap:6px">${body}</div>`;
 }
 function eventsPassHome() {
@@ -8198,13 +8243,19 @@ function findEventByName(n) {
 function applyShotEvent(x, e, time) {
   const ev = findEventByName(e.event || ""); if (!ev) { x.status = "An event screen, but I couldn't tell which event"; x.detail = String(e.event || ""); return; }
   const before = clone(obj(S.eventProg[ev.id])), pr = (S.eventProg[ev.id] = obj(S.eventProg[ev.id])), done = [];
-  const n = (v) => (v !== null && v !== undefined && Number.isFinite(Number(v)) ? Math.max(0, Math.round(Number(v))) : null);
-  if (n(e.level) !== null) { pr.level = n(e.level); done.push(`level ${pr.level}`); }
+  const n = (v) => (v !== null && v !== undefined && v !== "" && Number.isFinite(Number(String(v).replace(/,/g, ""))) ? Math.max(0, Math.round(Number(String(v).replace(/,/g, "")))) : null);
+  // The home screen shows the season pass level beside the event's banner; that number isn't the event's level
+  const cs = currentSeason(), seasonLv = cs ? num(obj(S.passes[cs.id]).level) : 0;
+  const lvOk = n(e.level) !== null && !(n(e.levels) && n(e.level) > n(e.levels)) && !(seasonLv && n(e.level) === seasonLv && !n(e.xpNext) && !arr(e.milestones).length);
+  if (lvOk) { pr.level = n(e.level); done.push(`level ${pr.level}`); }
   if (n(e.levels)) pr.levels = n(e.levels);
   if (n(e.xp) !== null) pr.xp = n(e.xp);
   if (n(e.xpNext)) { pr.xpNext = n(e.xpNext); done.push(`${fmt(pr.xp)}/${fmt(pr.xpNext)} ${String(e.xpName || "XP").slice(0, 20)}`); }
   if (e.xpName) pr.xpName = String(e.xpName).slice(0, 24);
-  const cur = obj(e.currency); if (cur.name && n(cur.amount) !== null) { pr.cur = { name: String(cur.name).slice(0, 24), amount: n(cur.amount) }; done.push(`${fmt(pr.cur.amount)} ${pr.cur.name}`); }
+  // The event's currencies (Deadpool's Diner has more than one): all of them, and the main one for the widget
+  const curs = [obj(e.currency), ...arr(e.currencies).map(obj)].filter((c) => c.name && n(c.amount) !== null).map((c) => ({ name: String(c.name).slice(0, 24), amount: n(c.amount) }));
+  const byName = new Map(); for (const c of curs) if (!byName.has(keyOf(c.name))) byName.set(keyOf(c.name), c);
+  if (byName.size) { pr.curs = [...byName.values()].slice(0, 6); pr.cur = pr.curs[0]; done.push(pr.curs.map((c) => `${fmt(c.amount)} ${c.name}`).join(", ")); }
   if (e.nextReward) pr.next = String(e.nextReward).slice(0, 80);
   const ms = arr(e.milestones).map((m) => ({ level: n(obj(m).level), reward: String(obj(m).reward || "").slice(0, 60), claimed: !!obj(m).claimed, premium: !!obj(m).premium })).filter((m) => m.level);
   if (ms.length) { const by = new Map(arr(pr.ms).map((m) => [m.level + (m.premium ? "p" : ""), m])); ms.forEach((m) => by.set(m.level + (m.premium ? "p" : ""), m)); pr.ms = [...by.values()].sort((a, b) => a.level - b.level).slice(0, 80); done.push(`${ms.length} milestone${ms.length === 1 ? "" : "s"}`); }
@@ -8613,6 +8664,15 @@ function freebiesHtml() {
   const list = out.filter(Boolean);
   return list.length ? `<div class="chiplist">${list.join("")}</div>` : "";
 }
+
+/* ---------- Once: an event level that was really the season pass level ---------- */
+// Before October 29, 2026 the home screen (season pass level beside the event's banner) could be read as the event's level.
+setTimeout(() => whenDataReady(() => { try {
+  if (obj(S.fixes).evlv) return;
+  const cs = currentSeason(), lv = cs ? num(obj(S.passes[cs.id]).level) : 0; let changed = false;
+  if (lv) for (const pr of Object.values(obj(S.eventProg))) if (pr && num(pr.level) === lv) { delete pr.level; changed = true; }
+  S.fixes = { ...obj(S.fixes), evlv: 1 }; save(); if (changed) render();
+} catch { /* next time */ } }), 2500);
 /* ============ Standalone (Firebase) sign-in and storage ============ */
 const FB_CFG_KEY = "snapstat.firebaseConfig", FB_SKIP_KEY = "snapstat.skipSignIn";
 function parseFirebaseConfig(text) {

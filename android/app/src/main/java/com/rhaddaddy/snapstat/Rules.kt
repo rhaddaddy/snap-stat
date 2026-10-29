@@ -43,7 +43,11 @@ data class Rules(
     val screens: List<Screen> = emptyList(),
     /** Screens whose words don't count for [modes], like the home screen, which lists every event that's on. */
     val modeNot: List<String> = emptyList(),
+    /** Screens that mean the player left a mode (the home screen), so the last mode seen no longer applies. */
+    val modeReset: List<String> = emptyList(),
 ) {
+    fun resetsMode(text: String): Boolean { val t = plainText(text); return modeReset.any { it.isNotBlank() && t.contains(it) } }
+
     /** The kind of screen [text] shows, if it's one of [screens]. */
     fun screenIn(text: String): Screen? { val t = plainText(text); return screens.firstOrNull { it.matches(t) } }
 
@@ -103,6 +107,7 @@ data class Rules(
                             s.optInt("maxPer", 1).coerceIn(1, 40), s.optInt("minGapSec", 4).coerceIn(1, 600), s.optDouble("same", 0.85).coerceIn(0.3, 0.99))
                     } } ?: d.screens,
                     modeNot = if (j.has("modeNot")) words(j.optJSONArray("modeNot")) else d.modeNot,
+                    modeReset = if (j.has("modeReset")) words(j.optJSONArray("modeReset")) else d.modeReset,
                 )
             } catch (e: Exception) {
                 null
