@@ -1,0 +1,2610 @@
+{
+"Agamotto_01": {
+"at": 1793233318.667196,
+"f": {
+"detail": 0.3011,
+"standIn": false
+},
+"m": {
+"detail": 0.3065,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Agamotto_01-67c59be22cfc3428703373bf70a91ae3aaaa0d9a60b6311d60ee8739e64de0db.webp",
+"use": "msz"
+},
+"Agamotto_02": {
+"at": 1793233319.058314,
+"f": {
+"detail": 0.3188,
+"standIn": false
+},
+"m": {
+"detail": 0.3268,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Agamotto_02-61c2f3d1153b6fc364c0cfb8b77bd535bc74a9a251b23925e92f7212d30013bb.webp",
+"use": "msz"
+},
+"AntiPolarMagneto_01": {
+"at": 1793233286.771431,
+"f": {
+"detail": 0.0866,
+"standIn": true
+},
+"m": {
+"detail": 0.2409,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/AntiPolarMagneto_01-f1cb459750b39b6d11fae76caceae2dbc47bb17c3a3c5be93fba6784dfbcbcf7.webp",
+"use": "fixed"
+},
+"Antman_01": {
+"at": 1793233359.996267,
+"f": {
+"detail": 0.3711,
+"standIn": false
+},
+"m": {
+"detail": 0.3435,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Antman_01-eef1f2350300482683084b1c70f355fa472d0543fe3d6409f02755b175478f7b.webp",
+"use": "msz"
+},
+"Ares_01": {
+"at": 1793233321.510805,
+"f": {
+"detail": 0.3039,
+"standIn": false
+},
+"m": {
+"detail": 0.3091,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Ares_01-cdf7b0711ca53ad4623000d4bf203d290a720aba34e7e99c46f3c3401739b122.webp",
+"use": "msz"
+},
+"Arishem_01": {
+"at": 1793233332.080573,
+"f": {
+"detail": 0.235,
+"standIn": false
+},
+"m": {
+"detail": 0.2341,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Arishem_01-0e09603e49dcadac758c87e061e4e3290f8db903a6806ef2150af3e4015f9676.webp",
+"use": "msz"
+},
+"Arishem_02": {
+"at": 1793233332.967494,
+"f": {
+"detail": 0.2821,
+"standIn": false
+},
+"m": {
+"detail": 0.2801,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Arishem_02-b54888e6577ac0cd667643934892120d47199fb889ebc9f8561bf24cf9d9fd52.webp",
+"use": "msz"
+},
+"ArthurPendragon_01": {
+"at": 1793233280.976386,
+"f": {
+"detail": 0.2903,
+"standIn": false
+},
+"m": {
+"detail": 0.2786,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/ArthurPendragon_01-7de535914d88aff7f3d038ad9f757fdd343ca2949967a8bf0e5c5b491d418954.webp",
+"use": "msz"
+},
+"Atlantis_01": {
+"at": 1793233353.560066,
+"f": {
+"detail": 0.2969,
+"standIn": false
+},
+"m": {
+"detail": 0.2985,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Atlantis_01-f158412c888819c8170c40cabc1f40dd2ef92c126c7ff2ffd4c292741fcdd404.webp",
+"use": "msz"
+},
+"Atlantis_02": {
+"at": 1793233353.937361,
+"f": {
+"detail": 0.2855,
+"standIn": false
+},
+"m": {
+"detail": 0.2985,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Atlantis_02-673636a0fe9ff8f69cc24e9900eafc7c2bc1ef50e1216b64ce5a1cf717e17b1a.webp",
+"use": "msz"
+},
+"Avengers_01": {
+"at": 1793233338.16669,
+"f": {
+"detail": 0.2444,
+"standIn": false
+},
+"m": {
+"detail": 0.222,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Avengers_01-7ce0084492fab5152ceb228ccbd2d7f1b6a4147ff3c311e8d48ab3b8f4966f50.webp",
+"use": "msz"
+},
+"Avengers_02": {
+"at": 1793233338.938251,
+"f": {
+"detail": 0.2529,
+"standIn": false
+},
+"m": {
+"detail": 0.222,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Avengers_02-76299f45a230946d3bb46b42708b98d5b6e3a7d4beddd09f6b492a96d6125240.webp",
+"use": "msz"
+},
+"BaronZemo_01": {
+"at": 1793233336.429224,
+"f": {
+"detail": 0.2423,
+"standIn": false
+},
+"m": {
+"detail": 0.2453,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/BaronZemo_01-2e45d4535f13c60e29a8afd457f4f1b188919f714ba6d69715a27169056a3840.webp",
+"use": "msz"
+},
+"Bastion_01": {
+"at": 1793233309.894242,
+"f": {
+"detail": 0.3183,
+"standIn": false
+},
+"m": {
+"detail": 0.3194,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Bastion_01-1c3cc1e8a528541150c2466f103a0e57dff306ff6300d4057fc83bbecead9500.webp",
+"use": "msz"
+},
+"BlackPanther_01": {
+"at": 1793233362.877487,
+"f": {
+"detail": 0.3016,
+"standIn": false
+},
+"m": {
+"detail": 0.2581,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/BlackPanther_01-afef047a29f57191cb32a83045ff08965bb89e0a9aca1413d8e9faea916a9842.webp",
+"use": "msz"
+},
+"Blade_01": {
+"at": 1793233344.957194,
+"f": {
+"detail": 0.2249,
+"standIn": false
+},
+"m": {
+"detail": 0.2268,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Blade_01-1a1adddaf8f8210e47cb6153a085312b6d05d58d36d0926e6cf38a790446f15f.webp",
+"use": "msz"
+},
+"Blade_02": {
+"at": 1793233345.778967,
+"f": {
+"detail": 0.2335,
+"standIn": false
+},
+"m": {
+"detail": 0.1514,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Blade_02-4570f1b008fb7825f06e41cb4cc602b3929132fcc57ee1f7b8f007f15f71f4f0.webp",
+"use": "sf"
+},
+"Blink_01": {
+"at": 1793233333.42986,
+"f": {
+"detail": 0.3447,
+"standIn": false
+},
+"m": {
+"detail": 0.3494,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Blink_01-65c9621413a0c73ed0be0fd84c5e2465fae5d2588cfa10745797cfa9d40b1d2f.webp",
+"use": "msz"
+},
+"Blink_02": {
+"at": 1793233333.823923,
+"f": {
+"detail": 0.318,
+"standIn": false
+},
+"m": {
+"detail": 0.2797,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Blink_02-a5563ac347da7ab430121a83ae052fbccdc7b2d4db8dd7121a64054efcfd0ad1.webp",
+"use": "msz"
+},
+"Bubs_01": {
+"at": 1793233328.641156,
+"f": {
+"detail": 0.3277,
+"standIn": false
+},
+"m": {
+"detail": 0.339,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Bubs_01-e87942eaf4485974b630a20b2a327735bdb7275505a572a5b44111ee566c8ea5.webp",
+"use": "msz"
+},
+"CaptainMarvel_01": {
+"at": 1793233346.170269,
+"f": {
+"detail": 0.2468,
+"standIn": false
+},
+"m": {
+"detail": 0.2479,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/CaptainMarvel_01-20a6047b80570168578289350209e32f7b3d1bf4168eb7541ee9181adb90bb7c.webp",
+"use": "msz"
+},
+"Carnage_01": {
+"at": 1793233326.133596,
+"f": {
+"detail": 0.3008,
+"standIn": false
+},
+"m": {
+"detail": 0.3063,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Carnage_01-48eb44ef58b81a6b1bb75d2c184ee38faccc1386ae6c33b911e4afe951f91a61.webp",
+"use": "msz"
+},
+"Cassette_01": {
+"at": 1793233356.402358,
+"f": {
+"detail": 0.3625,
+"standIn": false
+},
+"m": {
+"detail": 0.3555,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Cassette_01-80e0e6cc43e088d863d5d4ac701bca6bb366944e0886b11495e48326f98d3988.webp",
+"use": "msz"
+},
+"Cassette_02": {
+"at": 1793233356.004322,
+"f": {
+"detail": 0.408,
+"standIn": false
+},
+"m": {
+"detail": 0.3387,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Cassette_02-91657ae41a17872f217140a94da5a48aec9939550b1f7a4e202485b0ec55d605.webp",
+"use": "msz"
+},
+"Celebr8bit_01": {
+"at": 1793233324.065222,
+"f": {
+"detail": 0.3497,
+"standIn": false
+},
+"m": {
+"detail": 0.3194,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Celebr8bit_01-d13ef966d7c0e2fb452b11eacf94ac5c86d4ff428574c4e1c0266fd3071eb6b9.webp",
+"use": "msz"
+},
+"Celebr8bitpool_01": {
+"at": 1793233324.449577,
+"f": {
+"detail": 0.3102,
+"standIn": false
+},
+"m": {
+"detail": 0.3194,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Celebr8bitpool_01-690e78baf3ab0dfb9021b27edd8dfefcb3dc45a042d77763320437948d2eba7e.webp",
+"use": "msz"
+},
+"ClassicSpidey_01": {
+"at": 1793233327.327763,
+"f": {
+"detail": 0.2409,
+"standIn": false
+},
+"m": {
+"detail": 0.241,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/ClassicSpidey_01-4b24d80aa3fecd429d0bea09ebff091a05b5f39f39242606b0a00cb88786ed04.webp",
+"use": "msz"
+},
+"ClassicSpidey_02": {
+"at": 1793233327.761802,
+"f": {
+"detail": 0.2952,
+"standIn": false
+},
+"m": {
+"detail": 0.2947,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/ClassicSpidey_02-3b2ecbf77f453985c9706ba43fe6335029aa7923a7d5b5ed71540fac4c626c52.webp",
+"use": "msz"
+},
+"CosmicGhostRider_01": {
+"at": 1793233311.135895,
+"f": {
+"detail": 0.3364,
+"standIn": false
+},
+"m": {
+"detail": 0.3286,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/CosmicGhostRider_01-02c0b969d3c233f1a55af8e3fef30a5967bea4c21afdfc0478055912c238e273.webp",
+"use": "msz"
+},
+"Cosmic_01": {
+"at": 1793233362.056582,
+"f": {
+"detail": 0.3584,
+"standIn": false
+},
+"m": {
+"detail": 0.3286,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Cosmic_01-6cf3392a6ed365b182d03f7345e59bf1281bb58ba21142d1f53afe5f45fa6c5f.webp",
+"use": "msz"
+},
+"Cosmo_01": {
+"at": 1793233358.328822,
+"f": {
+"detail": 0.2875,
+"standIn": false
+},
+"m": {
+"detail": 0.2047,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Cosmo_01-d45c3d68edb84b9228e31a2c4c60f68507df3d9aabc6b89a5d816440304c576b.webp",
+"use": "msz"
+},
+"CyclopsDoomsday_01": {
+"at": 1793233279.241344,
+"f": {
+"detail": 0.0736,
+"standIn": true
+},
+"m": {
+"detail": 0.0755,
+"standIn": true
+},
+"sf": "https://game-assets.snap.fan/card_back_images/CyclopsDoomsday_01-d6fb5f4f095d1e52eac3e286228e09b05f069cfca2faf97d6c9b325036597726.webp",
+"use": "none"
+},
+"Daken_01": {
+"at": 1793233349.718316,
+"f": {
+"detail": 0.1802,
+"standIn": false
+},
+"m": {
+"detail": 0.183,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Daken_01-1c290c14f192113f0d90cfc63274227de5b37f941a7b4d1010a6f21185b5fc1a.webp",
+"use": "msz"
+},
+"Daken_02": {
+"at": 1793233350.124098,
+"f": {
+"detail": 0.1908,
+"standIn": false
+},
+"m": {
+"detail": 0.183,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Daken_02-9e146615a9935959d459a25d14dd30748c3e709a32292139db33e4d944efc026.webp",
+"use": "msz"
+},
+"Daredevil_01": {
+"at": 1793233348.600559,
+"f": {
+"detail": 0.1785,
+"standIn": false
+},
+"m": {
+"detail": 0.1967,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Daredevil_01-ed675016347d9c77545e09c0b580e6a19a31a29ad8368e4904c93bb67d0bea6b.webp",
+"use": "msz"
+},
+"Deadpool_01": {
+"at": 1793233330.362159,
+"f": {
+"detail": 0.1804,
+"standIn": false
+},
+"m": {
+"detail": 0.1913,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Deadpool_01-3426181b1fcc7c40d4661f25abf510a5919713166870c8bdda9c4a8688f92080.webp",
+"use": "msz"
+},
+"Deadpool_02": {
+"at": 1793233330.794559,
+"f": {
+"detail": 0.1812,
+"standIn": false
+},
+"m": {
+"detail": 0.1588,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Deadpool_02-409e92039eb80c072d116930bd24a88432386c31d8f367ae35c21da2e9c0da9b.webp",
+"use": "msz"
+},
+"DeathMech_01": {
+"at": 1793233348.221746,
+"f": {
+"detail": 0.2165,
+"standIn": false
+},
+"m": {
+"detail": 0.2183,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/DeathMech_01-83f5b22f831f34a7324ea6dcf4bad130e7ee23cc0523cf5578a3022f854ab419.webp",
+"use": "msz"
+},
+"DeathSkull_01": {
+"at": 1793233340.791073,
+"f": {
+"detail": 0.2246,
+"standIn": false
+},
+"m": {
+"detail": 0.2249,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/DeathSkull_01-344e3ac6a342a40f444ded7e7ddaef4becf888253f31e5adcf8cc036e27cc85f.webp",
+"use": "msz"
+},
+"DeathSkull_02": {
+"at": 1793233339.776931,
+"f": {
+"detail": 0.2354,
+"standIn": false
+},
+"m": {
+"detail": 0.2322,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/DeathSkull_02-6dd578896af977969716950841596a3cd2abaeab7abd62989b189da521c0204f.webp",
+"use": "msz"
+},
+"DoctorDoomDoomsday_01": {
+"at": 1793233279.626532,
+"f": {
+"detail": 0.0744,
+"standIn": true
+},
+"m": null,
+"sf": "https://game-assets.snap.fan/card_back_images/DoctorDoomDoomsday_01-1a25f3a0733c8a9898bd1e8e806ab40bbe2c146a1ac250b9d7aa80c068fe46f3.webp",
+"use": "none"
+},
+"DoctorDoomDoomsday_02": {
+"at": 1793233280.193048,
+"f": null,
+"m": null,
+"sf": "https://game-assets.snap.fan/card_back_images/DoctorDoomDoomsday_02-7e4b84b2414c1d0bc4d62b7c19a3b2f4d0c970f8c24945fa5854cb89895eba6c.webp",
+"use": "none"
+},
+"Dora_01": {
+"at": 1793233363.536742,
+"f": {
+"detail": 0.3398,
+"standIn": false
+},
+"m": {
+"detail": 0.2138,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Dora_01-2a7c1a8702317d0868f35094fb9b288aebaa54f6df8b7e816232209c927e0f04.webp",
+"use": "sf"
+},
+"Dormammu_01": {
+"at": 1793233315.104656,
+"f": {
+"detail": 0.3212,
+"standIn": false
+},
+"m": {
+"detail": 0.3233,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Dormammu_01-d54a296f196492b0d0286840e559f4b00e1a4bd2587b4241617b19b7a6ecbdbb.webp",
+"use": "msz"
+},
+"DraftBot_01": {
+"at": 1793233283.645787,
+"f": {
+"detail": 0.2492,
+"standIn": false
+},
+"m": null,
+"sf": "https://game-assets.snap.fan/card_back_images/DraftBot_01-bd80537be0e611d4443fcbcbddb1523d555b11a942525d714787a757abc8fd50.webp",
+"use": "sf"
+},
+"Echo_01": {
+"at": 1793233352.203807,
+"f": {
+"detail": 0.2573,
+"standIn": false
+},
+"m": {
+"detail": 0.1547,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Echo_01-bd24164bc6cf689c5638623583f09887a4e6eafa67a27eff465fc5bf76792748.webp",
+"use": "sf"
+},
+"Echo_02": {
+"at": 1793233352.621767,
+"f": {
+"detail": 0.26,
+"standIn": false
+},
+"m": {
+"detail": 0.0787,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Echo_02-531ebb967909700694c8fac7319346b8abc637287ea43d76d571702c244ef27a.webp",
+"use": "sf"
+},
+"Eternals_01": {
+"at": 1793233332.565772,
+"f": {
+"detail": 0.2367,
+"standIn": false
+},
+"m": {
+"detail": 0.2419,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Eternals_01-81e27e8bdffa5456e6e4cf003397aa9d288f82bd298f99a0c5e2f84cba66a714.webp",
+"use": "msz"
+},
+"FinFangFoom_01": {
+"at": 1793233302.342068,
+"f": {
+"detail": 0.378,
+"standIn": false
+},
+"m": {
+"detail": 0.3586,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/FinFangFoom_01-4898286555a75f8996e8d027e016b54bd8b4b5b6d5cb16945fa3262cd0b1e464.webp",
+"use": "msz"
+},
+"FinFangFoom_02": {
+"at": 1793233302.760715,
+"f": {
+"detail": 0.3416,
+"standIn": false
+},
+"m": {
+"detail": 0.3932,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/FinFangFoom_02-0c2250ff40624075eb5e2cc6b5e5d64e3a62c6e3ae26560d29f54ac170189660.webp",
+"use": "msz"
+},
+"Fud_01": {
+"at": 1793233366.078574,
+"f": {
+"detail": 0.2254,
+"standIn": false
+},
+"m": {
+"detail": 0.2329,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Fud_01-f054a108b98707f8b44dcb3e84930909654e56c89a70c626b1f77dcd1be77a59.webp",
+"use": "msz"
+},
+"Fud_02": {
+"at": 1793233331.247687,
+"f": {
+"detail": 0.3079,
+"standIn": false
+},
+"m": {
+"detail": 0.3199,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Fud_02-46e718b4486a7ca1be361e6427e541dbac2a4072c4f992e93734cb723a029d96.webp",
+"use": "msz"
+},
+"Fud_03": {
+"at": 1793233293.412345,
+"f": {
+"detail": 0.2733,
+"standIn": false
+},
+"m": {
+"detail": 0.3199,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Fud_03-20946f11797e46ab9a0b8e24d90017dbea1aa19c6814786974173a12b6d7df50.webp",
+"use": "msz"
+},
+"FutureFamine_01": {
+"at": 1793233298.256401,
+"f": {
+"detail": 0.3348,
+"standIn": false
+},
+"m": {
+"detail": 0.3374,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/FutureFamine_01-4f2ac2323b318e5adfd34678f8bae601392e05e794e2968dbe2d5fda37ab96ac.webp",
+"use": "msz"
+},
+"FutureFamine_02": {
+"at": 1793233299.294275,
+"f": {
+"detail": 0.3283,
+"standIn": false
+},
+"m": {
+"detail": 0.3298,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/FutureFamine_02-2f533109004b20dfdf89d26fd83a9a7a89e7a21aa47d977903473e65d1e132e8.webp",
+"use": "msz"
+},
+"FuturePestilence_01": {
+"at": 1793233298.695668,
+"f": {
+"detail": 0.3191,
+"standIn": false
+},
+"m": {
+"detail": 0.3226,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/FuturePestilence_01-5c88ca9c020a19e3c3da0dcf79b914c5d54c73e1c18f78561f11c1befa68e63c.webp",
+"use": "msz"
+},
+"Galactus_01": {
+"at": 1793233311.579715,
+"f": {
+"detail": 0.2883,
+"standIn": false
+},
+"m": {
+"detail": 0.3022,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Galactus_01-a46ca2520037cafc37a5a2d18733272c70e289791385f841d6a0e23c9c3486c8.webp",
+"use": "msz"
+},
+"Galactus_02": {
+"at": 1793233312.03327,
+"f": {
+"detail": 0.3068,
+"standIn": false
+},
+"m": {
+"detail": 0.3022,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Galactus_02-177c791ebfc74355a65b99175ab14103180bc1156bc4c95e768221e6ab8bcb4f.webp",
+"use": "msz"
+},
+"GambitHorseman_01": {
+"at": 1793233299.68663,
+"f": {
+"detail": 0.3119,
+"standIn": false
+},
+"m": {
+"detail": 0.329,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/GambitHorseman_01-c89e68cee0bf578d07aa40265225bbd01a5707b4867d7b506a70797b10184022.webp",
+"use": "msz"
+},
+"GambitHorseman_02": {
+"at": 1793233300.50644,
+"f": {
+"detail": 0.306,
+"standIn": false
+},
+"m": {
+"detail": 0.3281,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/GambitHorseman_02-94e675f2b6c13b2b7a4b320d68dfc596d2610b5682a45074c08e80ad3822c3b1.webp",
+"use": "msz"
+},
+"GhostRider_01": {
+"at": 1793233345.376061,
+"f": {
+"detail": 0.3412,
+"standIn": false
+},
+"m": {
+"detail": 0.3286,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/GhostRider_01-ddcae61385a857ac3c0ae31b64765e757c7b90b8cbd6ca1c0768a3d1ca87ee0f.webp",
+"use": "msz"
+},
+"GhostSpider_01": {
+"at": 1793233354.822544,
+"f": {
+"detail": 0.2702,
+"standIn": false
+},
+"m": {
+"detail": 0.2656,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/GhostSpider_01-b214a790ff91f59273c3736935c7787e43d6122321503c34ea811b9816082202.webp",
+"use": "msz"
+},
+"GoldenGauntlet2026_01": {
+"at": 1793233290.496981,
+"f": {
+"detail": 0.244,
+"standIn": false
+},
+"m": {
+"detail": 0.3788,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/GoldenGauntlet2026_01-349e03ed7074a3870946d29c8e7b0cba02462e4f8841a6d06cc7b3c9484c98e0.webp",
+"use": "msz"
+},
+"GoldenGauntlet2026_02": {
+"at": 1793233291.577334,
+"f": {
+"detail": 0.3449,
+"standIn": false
+},
+"m": {
+"detail": 0.249,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/GoldenGauntlet2026_02-205de4e6ed7de1649ed8bb7e0111400f57a9a98bf8d544566be1050405a202d3.webp",
+"use": "msz"
+},
+"GoldenGauntlet2026_03": {
+"at": 1793233290.921554,
+"f": {
+"detail": 0.3606,
+"standIn": false
+},
+"m": {
+"detail": 0.2914,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/GoldenGauntlet2026_03-063f0d1ebc226b4eb6595d0cc826ea3ad763bb151781d0d9711b96cada59e34a.webp",
+"use": "msz"
+},
+"GoldenGauntlet_01": {
+"at": 1793233305.31339,
+"f": {
+"detail": 0.3418,
+"standIn": false
+},
+"m": {
+"detail": 0.3726,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/GoldenGauntlet_01-61e2974000f0cbea772e52b3bd8897336f1e67d0321ab273bca5f4968638c419.webp",
+"use": "msz"
+},
+"GoldenGauntlet_02": {
+"at": 1793233305.686583,
+"f": {
+"detail": 0.2155,
+"standIn": false
+},
+"m": {
+"detail": 0.249,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/GoldenGauntlet_02-e826da373e2ec398330f175484bc2064829896b34895504381ec92d3222a9237.webp",
+"use": "msz"
+},
+"GoldenGauntlet_03": {
+"at": 1793233304.866325,
+"f": {
+"detail": 0.2222,
+"standIn": false
+},
+"m": {
+"detail": 0.2645,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/GoldenGauntlet_03-4699bd3c642bff1601fcc71920f0e514c74c632409b9a6dd08c1407054f277c9.webp",
+"use": "msz"
+},
+"Goose_01": {
+"at": 1793233357.70512,
+"f": {
+"detail": 0.2897,
+"standIn": false
+},
+"m": {
+"detail": 0.2949,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Goose_01-c7a12ddfe859c9b23197290c3de76f540abb128253cd884e46b3011da6979d09.webp",
+"use": "msz"
+},
+"Goose_02": {
+"at": 1793233357.303402,
+"f": {
+"detail": 0.3071,
+"standIn": false
+},
+"m": {
+"detail": 0.3008,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Goose_02-fdb1f5ab32e3a8b8671a6c08d1d8137605150a85c97f4eaa20e0d0dcccce30f8.webp",
+"use": "msz"
+},
+"Gorr_01": {
+"at": 1793233324.962708,
+"f": {
+"detail": 0.206,
+"standIn": false
+},
+"m": {
+"detail": 0.2025,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Gorr_01-1c02b4199a5f71bee20c4c8f4d4bc97b66925170d60f4992cbc7c2a178902ed0.webp",
+"use": "msz"
+},
+"Gorr_02": {
+"at": 1793233325.357894,
+"f": {
+"detail": 0.2441,
+"standIn": false
+},
+"m": {
+"detail": 0.2481,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Gorr_02-61d584cb74b59e98c5db67c8a93f065955bce580b21b54122f81333c9fd335bd.webp",
+"use": "msz"
+},
+"Guardians_01": {
+"at": 1793233356.820858,
+"f": {
+"detail": 0.304,
+"standIn": false
+},
+"m": {
+"detail": 0.2802,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Guardians_01-a268278ab1b9bc84e410d5ada45989671eea7a33e18e552fb292857f42ba1f87.webp",
+"use": "msz"
+},
+"Guardians_02": {
+"at": 1793233300.914881,
+"f": {
+"detail": 0.2954,
+"standIn": false
+},
+"m": {
+"detail": 0.3024,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Guardians_02-97eea6593d99ba259b3af495016fa2f8eff4b09d2558bb2d278488bb8bfd6708.webp",
+"use": "msz"
+},
+"Guardians_03": {
+"at": 1793233301.464127,
+"f": {
+"detail": 0.299,
+"standIn": false
+},
+"m": {
+"detail": 0.2957,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Guardians_03-b48e91827cdb58793b28af825c7b12be137471b507ca326742e3bf9c627231c5.webp",
+"use": "msz"
+},
+"Hellfire_01": {
+"at": 1793233342.411611,
+"f": {
+"detail": 0.3414,
+"standIn": false
+},
+"m": {
+"detail": 0.3421,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Hellfire_01-e628e8443692ef67b805a153d92912f1a43e5c8b02e1ee3f6ab0376869382ecd.webp",
+"use": "msz"
+},
+"Hellfire_02": {
+"at": 1793233342.838204,
+"f": {
+"detail": 0.3686,
+"standIn": false
+},
+"m": {
+"detail": 0.3707,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Hellfire_02-0914b4231834408ccf0e78c62d7911776eeec53a930acfdeb72198141b73554f.webp",
+"use": "msz"
+},
+"HopeSummers_01": {
+"at": 1793233338.557047,
+"f": {
+"detail": 0.2231,
+"standIn": false
+},
+"m": {
+"detail": 0.2252,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/HopeSummers_01-4f53e3e1615195b31154d0fb5b68ca6a633f6146fff9d555e4c0565908a4b903.webp",
+"use": "msz"
+},
+"Hulk_01": {
+"at": 1793233341.165805,
+"f": {
+"detail": 0.1642,
+"standIn": false
+},
+"m": {
+"detail": 0.3342,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Hulk_01-2bc42c791f88c19f74f8f16436c9d9937984247d96e20b2616fae0bebf6fb0a4.webp",
+"use": "msz"
+},
+"HumanTorchFirstSteps_01": {
+"at": 1793233312.782017,
+"f": {
+"detail": 0.292,
+"standIn": false
+},
+"m": {
+"detail": 0.301,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/HumanTorchFirstSteps_01-5b3de87921168280e292923a3e82a5accd59ee910817eea0fac8fc3448825a10.webp",
+"use": "msz"
+},
+"Hydra_01": {
+"at": 1793233364.847106,
+"f": {
+"detail": 0.3098,
+"standIn": false
+},
+"m": {
+"detail": 0.207,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Hydra_01-6b7524250c148d6ff9eb60baa5f8ae73a0f88ab11b107f5d1e188ce2f49e8b24.webp",
+"use": "msz"
+},
+"InfinityGauntlet_01": {
+"at": 1793233340.367065,
+"f": {
+"detail": 0.3201,
+"standIn": false
+},
+"m": {
+"detail": 0.3265,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/InfinityGauntlet_01-cddfe711bb2f0f8ef4af1dd2ff938b107d71e9de0274ab253f04a2ac9056d600.webp",
+"use": "msz"
+},
+"InfinityUltron_01": {
+"at": 1793233317.792676,
+"f": {
+"detail": 0.2982,
+"standIn": false
+},
+"m": {
+"detail": 0.3009,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/InfinityUltron_01-082599da0e7e6a12a2834b83e272c8aac68d5042e54f4d67d5976eba999262ad.webp",
+"use": "msz"
+},
+"InfinityUltron_02": {
+"at": 1793233317.381316,
+"f": {
+"detail": 0.3108,
+"standIn": false
+},
+"m": {
+"detail": 0.3112,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/InfinityUltron_02-29364a74bc01b17d27e1b2c2ced4d83d9864fd81137adfaf0830f937eb5336fc.webp",
+"use": "msz"
+},
+"InvisibleWomanFirstSteps_01": {
+"at": 1793233313.163426,
+"f": {
+"detail": 0.272,
+"standIn": false
+},
+"m": {
+"detail": 0.2616,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/InvisibleWomanFirstSteps_01-e77376d9e3a438222de60b267500cf666a9d946b4f5873c3ab3469602e889947.webp",
+"use": "msz"
+},
+"IronPatriot_01": {
+"at": 1793233322.803866,
+"f": {
+"detail": 0.3125,
+"standIn": false
+},
+"m": {
+"detail": 0.3205,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/IronPatriot_01-905f5c895ddd4dc323332c976771db662b637455c1c1728ee7eadc8ee9e1a895.webp",
+"use": "msz"
+},
+"IronPatriot_02": {
+"at": 1793233321.910117,
+"f": {
+"detail": 0.3198,
+"standIn": false
+},
+"m": {
+"detail": 0.3302,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/IronPatriot_02-6de69fac52a3987b1b24e2b259a3514ae7eac2c6fc131550899294d683396f2a.webp",
+"use": "msz"
+},
+"JuggernautHorseman_01": {
+"at": 1793233300.105551,
+"f": {
+"detail": 0.3044,
+"standIn": false
+},
+"m": {
+"detail": 0.3037,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/JuggernautHorseman_01-ce077fb765d3e5ec206f977c8c28f8db2ab72ef5b08d8b9646c45268e721e2bc.webp",
+"use": "msz"
+},
+"KateBishop_01": {
+"at": 1793233329.505869,
+"f": {
+"detail": 0.255,
+"standIn": false
+},
+"m": {
+"detail": 0.2545,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/KateBishop_01-414357ac4b3fd236b6d7a932c6b7478b431fafe80919b8094757ffcb5e1eda4c.webp",
+"use": "msz"
+},
+"Lockheed_01": {
+"at": 1793233303.170551,
+"f": {
+"detail": 0.3569,
+"standIn": false
+},
+"m": {
+"detail": 0.364,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Lockheed_01-5ae4a01b26eb4cf9f78786bdb21b18d1d2e92593854630f56b774d8e18589860.webp",
+"use": "msz"
+},
+"Loki_01": {
+"at": 1793233347.220681,
+"f": {
+"detail": 0.3182,
+"standIn": false
+},
+"m": {
+"detail": 0.3182,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Loki_01-dba7a7bf3c4a6d69cfd9a0e17b95156d19203949d2049f490dab8b78bfb9d0e3.webp",
+"use": "msz"
+},
+"Loki_02": {
+"at": 1793233346.783866,
+"f": {
+"detail": 0.3403,
+"standIn": false
+},
+"m": {
+"detail": 0.3426,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Loki_02-ce643f995f27b04f0b98469c54443c19685465199b14412975c781be2a3cb6b3.webp",
+"use": "msz"
+},
+"Magneto_01": {
+"at": 1793233339.366306,
+"f": {
+"detail": 0.29,
+"standIn": false
+},
+"m": {
+"detail": 0.2409,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Magneto_01-a3f82b8b74de3245316ecd23d6ec4e4cf7d340f8bfad3ab1cfacf78687c2f000.webp",
+"use": "msz"
+},
+"Marvel_01": {
+"at": 1793233367.389654,
+"f": {
+"detail": 0.2819,
+"standIn": false
+},
+"m": {
+"detail": 0.2348,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Marvel_01-040a7aab756990e21585d410c1506c19390742d6e452c309f101d4939d4e118c.webp",
+"use": "msz"
+},
+"Milano_01": {
+"at": 1793233301.916237,
+"f": {
+"detail": 0.3342,
+"standIn": false
+},
+"m": {
+"detail": 0.3377,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Milano_01-904b1e3dd66b063b7cd09c90577d358f48772f445ac3826c2cf5aff2df2677b0.webp",
+"use": "msz"
+},
+"Miles_01": {
+"at": 1793233354.411121,
+"f": {
+"detail": 0.248,
+"standIn": false
+},
+"m": {
+"detail": 0.2596,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Miles_01-0df2a844233d5a78fc5f907b7604896668bc168f2abb414fad90d0aefb432717.webp",
+"use": "msz"
+},
+"MisterFantasticFirstSteps_01": {
+"at": 1793233313.594427,
+"f": {
+"detail": 0.2591,
+"standIn": false
+},
+"m": {
+"detail": 0.286,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/MisterFantasticFirstSteps_01-005a477e27bc0d2973ea7a4ba31b4438995598fa832f5fc5c940171ff2af759e.webp",
+"use": "msz"
+},
+"MisterFantasticFirstSteps_02": {
+"at": 1793233312.413539,
+"f": {
+"detail": 0.2922,
+"standIn": false
+},
+"m": {
+"detail": 0.286,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/MisterFantasticFirstSteps_02-20e8cf2841bd698d516058e727492af10289a4ea3e5e5342859b63a504ec0571.webp",
+"use": "msz"
+},
+"MsMarvel_01": {
+"at": 1793233344.109168,
+"f": {
+"detail": 0.2324,
+"standIn": false
+},
+"m": {
+"detail": 0.2348,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/MsMarvel_01-c5e5a227192cefe43ec9c798d0c8cca6752445f979996aca1170e611a81226c0.webp",
+"use": "msz"
+},
+"Mystique_01": {
+"at": 1793233303.570548,
+"f": {
+"detail": 0.2325,
+"standIn": false
+},
+"m": {
+"detail": 0.2256,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Mystique_01-16dbde741f1a492c98324423ce097769118cff216a28d5412819a9d084a36d62.webp",
+"use": "msz"
+},
+"NewXMen_01": {
+"at": 1793233371.89645,
+"f": {
+"detail": 0.3477,
+"standIn": false
+},
+"m": {
+"detail": 0.3484,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/NewXMen_01-aa72047413d1acf65c7f235cc3e2430f03c20966260e17b29990849433f31372.webp",
+"use": "msz"
+},
+"NewXmen_01": {
+"at": 1793233316.603483,
+"f": null,
+"m": {
+"detail": 0.3484,
+"standIn": false
+},
+"sf": "",
+"use": "msz"
+},
+"PAX_01": {
+"at": 1793233335.376874,
+"f": {
+"detail": 0.3697,
+"standIn": false
+},
+"m": {
+"detail": 0.3878,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/PAX_01-7fe13bfea64833f574f15829a0e8f11fdf28f36b2edbec04e050a13f2e1b44d7.webp",
+"use": "msz"
+},
+"PAX_02": {
+"at": 1793233314.257439,
+"f": {
+"detail": 0.3853,
+"standIn": false
+},
+"m": {
+"detail": 0.3932,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/PAX_02-387fc3f62f34d3070b5f55e0cf45ace390bf41825bcc7986c46259b5e82b8ff3.webp",
+"use": "msz"
+},
+"PAX_03": {
+"at": 1793233296.388216,
+"f": {
+"detail": 0.3236,
+"standIn": false
+},
+"m": {
+"detail": 0.3932,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/PAX_03-991dae7bc7e187a5ac96218ca6219c53e9e1ac9b7c662995c02b46c24ad3664a.webp",
+"use": "msz"
+},
+"Phoenix_01": {
+"at": 1793233353.13057,
+"f": {
+"detail": 0.3175,
+"standIn": false
+},
+"m": {
+"detail": 0.3221,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Phoenix_01-7de4aea79923b0186161d92dfc4a391684f292201c038cf0dedf632f0eecd296.webp",
+"use": "msz"
+},
+"Prowler_01": {
+"at": 1793233308.185143,
+"f": {
+"detail": 0.297,
+"standIn": false
+},
+"m": {
+"detail": 0.3017,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Prowler_01-10e14af685568cb6a6bc65d4af6c7c56487d06c5f188117e921251a0836945c2.webp",
+"use": "msz"
+},
+"Prowler_02": {
+"at": 1793233307.7783,
+"f": {
+"detail": 0.3012,
+"standIn": false
+},
+"m": {
+"detail": 0.2482,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Prowler_02-7cc3767fda18b6baf2da6bec75a46105ea921b8f83eb561e06eeb3d4c4644ebe.webp",
+"use": "msz"
+},
+"PsylockeFracturedFrontier_01": {
+"at": 1793233292.993891,
+"f": {
+"detail": 0.0002,
+"standIn": true
+},
+"m": {
+"detail": 0.3662,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/PsylockeFracturedFrontier_01-bbe2ab37b4ec710d114ccbf7c1ac9e8ac4c6710c456cd39f48dba94cad9e511f.webp",
+"use": "msz"
+},
+"PsylockeFracturedFrontier_02": {
+"at": 1793233292.020187,
+"f": {
+"detail": 0.0002,
+"standIn": true
+},
+"m": {
+"detail": 0.3769,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/PsylockeFracturedFrontier_02-bbe2ab37b4ec710d114ccbf7c1ac9e8ac4c6710c456cd39f48dba94cad9e511f.webp",
+"use": "msz"
+},
+"PunisherWarMachine_01": {
+"at": 1793233296.824696,
+"f": {
+"detail": 0.2985,
+"standIn": false
+},
+"m": {
+"detail": 0.3003,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/PunisherWarMachine_01-afd7e5767cf53aac21d4a015787d29341d9bfc279bda5bc2f034d13ba33d59d9.webp",
+"use": "msz"
+},
+"PunisherWarMachine_02": {
+"at": 1793233295.955822,
+"f": {
+"detail": 0.2555,
+"standIn": false
+},
+"m": {
+"detail": 0.2573,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/PunisherWarMachine_02-358129bc74b14af8654d23fbb97fba9ff7d378561827e65ba6f7d635bf956d70.webp",
+"use": "msz"
+},
+"Punisher_01": {
+"at": 1793233349.324761,
+"f": {
+"detail": 0.2696,
+"standIn": false
+},
+"m": {
+"detail": 0.0,
+"standIn": true
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Punisher_01-84d1ab2de286d1c946338fb98deb9b7c23aecf837aa682664091f89c2b1c516d.webp",
+"use": "sf"
+},
+"Quantumania_01": {
+"at": 1793233360.821394,
+"f": {
+"detail": 0.3027,
+"standIn": false
+},
+"m": {
+"detail": 0.3158,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Quantumania_01-2492dc02d98dd3152dc45c33060b04529ef8b462623fdc6e5506aff0369321f0.webp",
+"use": "msz"
+},
+"Quantumania_02": {
+"at": 1793233360.383857,
+"f": {
+"detail": 0.2958,
+"standIn": false
+},
+"m": {
+"detail": 0.3141,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Quantumania_02-e618a3351e3ab8db54631a5fe1b971e2df9e9c891c3f67290e127b5c71103d6b.webp",
+"use": "msz"
+},
+"Rivals_01": {
+"at": 1793233323.205154,
+"f": {
+"detail": 0.2416,
+"standIn": false
+},
+"m": {
+"detail": 0.2423,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Rivals_01-945d421ccdaac23b13e636d8ba2a0d2dcf2e4ee5a5986d9f80998f8a1c360a92.webp",
+"use": "msz"
+},
+"Rivals_02": {
+"at": 1793233322.33761,
+"f": {
+"detail": 0.2598,
+"standIn": false
+},
+"m": {
+"detail": 0.2059,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Rivals_02-b8f65ee7f13cb982290183793e2b25b29c425be7bab12426c35c436b5b2c866d.webp",
+"use": "msz"
+},
+"SNAPAnniversary_04": {
+"at": 1793233282.41872,
+"f": {
+"detail": 0.3663,
+"standIn": false
+},
+"m": {
+"detail": 0.3647,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SNAPAnniversary_04-68adf9b368c3cd513a7174ba94e5ac57c20f972795b878c9df6d3a0cf616a1b3.webp",
+"use": "msz"
+},
+"SNAPWinterverse2026_01": {
+"at": 1793233280.56205,
+"f": {
+"detail": 0.0002,
+"standIn": true
+},
+"m": null,
+"sf": "https://game-assets.snap.fan/card_back_images/SNAPWinterverse2026_01-bbe2ab37b4ec710d114ccbf7c1ac9e8ac4c6710c456cd39f48dba94cad9e511f.webp",
+"use": "none"
+},
+"Sabretooth_01": {
+"at": 1793233334.255446,
+"f": {
+"detail": 0.2692,
+"standIn": false
+},
+"m": {
+"detail": 0.2726,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Sabretooth_01-fe61d21ac037b1f3d344d48f2d777b0055a195a0815affc35a822827555f5e3b.webp",
+"use": "msz"
+},
+"SamWilsonCap_01": {
+"at": 1793233320.603001,
+"f": {
+"detail": 0.2009,
+"standIn": false
+},
+"m": {
+"detail": 0.2,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SamWilsonCap_01-4545c74b0af80aaebde1001ed4377cd5eb63c95eeead1fe4c4814745cf77a342.webp",
+"use": "msz"
+},
+"SamWilsonHulk_01": {
+"at": 1793233321.089084,
+"f": {
+"detail": 0.3316,
+"standIn": false
+},
+"m": {
+"detail": 0.3342,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SamWilsonHulk_01-8290bf6e46d48d2cd26c1950f8e46282a1dd134eac75f21e804a56583666cfb6.webp",
+"use": "msz"
+},
+"SamWilsonHulk_02": {
+"at": 1793233319.910228,
+"f": {
+"detail": 0.3144,
+"standIn": false
+},
+"m": {
+"detail": 0.2903,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SamWilsonHulk_02-1564e9da1a707e3a6e31d7490b9ce90c2a7c68696a780d7faec004172345751f.webp",
+"use": "msz"
+},
+"SandCastle_01": {
+"at": 1793233295.263395,
+"f": {
+"detail": 0.3073,
+"standIn": false
+},
+"m": {
+"detail": 0.3092,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SandCastle_01-3ab4cf4daf9388e3c1c771e049a1ac4c48a94a27bd804a4005fb5cfbb0a4a616.webp",
+"use": "msz"
+},
+"SavageLand_01": {
+"at": 1793233361.632303,
+"f": {
+"detail": 0.3271,
+"standIn": false
+},
+"m": {
+"detail": 0.3233,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SavageLand_01-9f999d9b15b1460a11379828eededf88fc5827d1a705e5fabb7fe6fe205e15e7.webp",
+"use": "msz"
+},
+"SavageLand_02": {
+"at": 1793233361.221574,
+"f": {
+"detail": 0.2476,
+"standIn": false
+},
+"m": {
+"detail": 0.2045,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SavageLand_02-b40d3235890a7e8084efaf887a0bfa4428c622c287206ea7d2b1e5ccc132ae7c.webp",
+"use": "msz"
+},
+"SavageLand_03": {
+"at": 1793233366.998537,
+"f": {
+"detail": 0.2418,
+"standIn": false
+},
+"m": {
+"detail": 0.212,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SavageLand_03-0d94f2db7a1aee671cb9bbe05e02af26a1d140464252cf4cbb7ce4f975c08f16.webp",
+"use": "msz"
+},
+"ScarletSpider_01": {
+"at": 1793233328.217585,
+"f": {
+"detail": 0.2667,
+"standIn": false
+},
+"m": {
+"detail": 0.2705,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/ScarletSpider_01-1ad572b34498b71fbdd0120f8549bf593fd500649d98994ca2d8272749585fe8.webp",
+"use": "msz"
+},
+"ScorpionBrandNewDay_01": {
+"at": 1793233294.462365,
+"f": {
+"detail": 0.2655,
+"standIn": false
+},
+"m": {
+"detail": 0.2693,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/ScorpionBrandNewDay_01-e36bee964661a5418bc3ae2567717870f629e06aa7471c1e65dbdf330362e350.webp",
+"use": "msz"
+},
+"ScorpionBrandNewDay_02": {
+"at": 1793233294.032085,
+"f": {
+"detail": 0.2866,
+"standIn": false
+},
+"m": {
+"detail": 0.2848,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/ScorpionBrandNewDay_02-e80a726ba2e26db02f708b40885f4d8bd84f22a021625f965229609f09be21d6.webp",
+"use": "msz"
+},
+"SebastianShaw_01": {
+"at": 1793233343.320038,
+"f": {
+"detail": 0.3177,
+"standIn": false
+},
+"m": {
+"detail": 0.3151,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SebastianShaw_01-ff31ff084111d72fdaaeb3fe6e844ec7c26e3580d7418b7ec0ef44c04dfb6226.webp",
+"use": "msz"
+},
+"Sentinel_01": {
+"at": 1793233359.138169,
+"f": {
+"detail": 0.233,
+"standIn": false
+},
+"m": {
+"detail": 0.2301,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Sentinel_01-bd8aa77ba8ea358e837a2cf683ab4a54781301b4354cc697720d904a0676eb3a.webp",
+"use": "msz"
+},
+"ShadowlandsDaredevil_01": {
+"at": 1793233297.361382,
+"f": {
+"detail": 0.1858,
+"standIn": false
+},
+"m": {
+"detail": 0.1967,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/ShadowlandsDaredevil_01-88ffa7bf15cbeae75a201fb3e2602fec5686c1f0cc168b582ea42a13947c33b1.webp",
+"use": "msz"
+},
+"Shield_01": {
+"at": 1793233365.248165,
+"f": {
+"detail": 0.2712,
+"standIn": false
+},
+"m": {
+"detail": 0.2318,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Shield_01-db4e273bc6737be7ccc1eb8f57a209f750d77e75b2c7fd2be490ca494a8ed45c.webp",
+"use": "msz"
+},
+"SilverSurfer_01": {
+"at": 1793233362.455118,
+"f": {
+"detail": 0.3532,
+"standIn": false
+},
+"m": {
+"detail": 0.3548,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SilverSurfer_01-5879ff39eae6dae1eb901fd8c99b4ffe7a34193910bec60f3ffb5316bea716b6.webp",
+"use": "msz"
+},
+"SirPercyBlackKnight_01": {
+"at": 1793233281.870154,
+"f": {
+"detail": 0.2181,
+"standIn": false
+},
+"m": {
+"detail": 0.2961,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SirPercyBlackKnight_01-a01ec6e7e0fd3ccb8f9da37a68a6996b2e80f8ba19cfb42c1e1f00bd06f0ab45.webp",
+"use": "msz"
+},
+"SirPercyBlackKnight_02": {
+"at": 1793233281.423302,
+"f": {
+"detail": 0.3038,
+"standIn": false
+},
+"m": {
+"detail": 0.338,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SirPercyBlackKnight_02-1eccc0cbf4f9c6cb0242c4a11b276436bb29d084c23e95d2d0f2486337078e98.webp",
+"use": "msz"
+},
+"SnapCube_01": {
+"at": 1793233365.67384,
+"f": {
+"detail": 0.3544,
+"standIn": false
+},
+"m": {
+"detail": 0.3195,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SnapCube_01-3e1becaf65c6e1b016532750599842a875e7d9260d851314f0b46d308ac3a7ad.webp",
+"use": "msz"
+},
+"SnapCube_GOTY": {
+"at": 1793233366.493089,
+"f": {
+"detail": 0.3284,
+"standIn": false
+},
+"m": {
+"detail": 0.3195,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SnapCube_GOTY-967896e9d78a6429ef9b96f25e17cb47cad3d1c75743d7d4864e229ab5700787.webp",
+"use": "msz"
+},
+"Snap_01": {
+"at": 1793233367.6634,
+"f": {
+"detail": 0.2293,
+"standIn": false
+},
+"m": {
+"detail": 0.2404,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Snap_01-b46660aa8aed15aeb24455d1fd567fc2b36cd34e64519996d6ccd45d45eb5aba.webp",
+"use": "msz"
+},
+"Snap_02": {
+"at": 1793233368.062662,
+"f": {
+"detail": 0.2708,
+"standIn": false
+},
+"m": {
+"detail": 0.2757,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Snap_02-d530a93b8353c87f5232fdafa266f64bf1d65528a5eba9e3d9df54218148a104.webp",
+"use": "msz"
+},
+"Snap_03": {
+"at": 1793233368.420325,
+"f": {
+"detail": 0.2215,
+"standIn": false
+},
+"m": {
+"detail": 0.2279,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Snap_03-0d287c39158bfb8a4da928955507e8146706a95c467e84002826c015d157d5a4.webp",
+"use": "msz"
+},
+"Snap_04": {
+"at": 1793233369.098949,
+"f": {
+"detail": 0.2663,
+"standIn": false
+},
+"m": {
+"detail": 0.2711,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Snap_04-4561e4fa9fc090b9cce6cec65a4767bf3c00e83eff721f0fa322576539c13dba.webp",
+"use": "msz"
+},
+"Snap_05": {
+"at": 1793233369.498583,
+"f": {
+"detail": 0.2309,
+"standIn": false
+},
+"m": {
+"detail": 0.2362,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Snap_05-6bd1649ac2ef3a5ddd938327f272d7c8a7dce3df05423f92f02863370044a431.webp",
+"use": "msz"
+},
+"Snap_06": {
+"at": 1793233370.18664,
+"f": {
+"detail": 0.2412,
+"standIn": false
+},
+"m": {
+"detail": 0.2445,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Snap_06-a366248bd3fc4bdaf84407cef51eb80137511c9344f3404cb40f107c29bea0d8.webp",
+"use": "msz"
+},
+"Spectrum_01": {
+"at": 1793233344.56107,
+"f": {
+"detail": 0.2712,
+"standIn": false
+},
+"m": {
+"detail": 0.2709,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Spectrum_01-71a70136b8b0c95c14551c26ee5eb800f8971a1c393ef431d07b0a2a777d403a.webp",
+"use": "msz"
+},
+"Spectrum_02": {
+"at": 1793233343.710242,
+"f": {
+"detail": 0.2763,
+"standIn": false
+},
+"m": {
+"detail": 0.2768,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Spectrum_02-a1d5114923a414f6578893e7227b2ed6bf3ed70a787c06da62baa662d60dd8f9.webp",
+"use": "msz"
+},
+"SpiderManBrandNewDay_01": {
+"at": 1793233294.862812,
+"f": {
+"detail": 0.218,
+"standIn": false
+},
+"m": {
+"detail": 0.1821,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SpiderManBrandNewDay_01-5ac35b4a4d58769d8af9c6cc9efc319f22f8e2358242453931836ed4b37c9225.webp",
+"use": "msz"
+},
+"SpiderPunk_01": {
+"at": 1793233308.646039,
+"f": {
+"detail": 0.4126,
+"standIn": false
+},
+"m": {
+"detail": 0.4215,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SpiderPunk_01-f382ec0a9e45382cd2becd7ceb746961f3c80457db0a5e84195a383d630b11ca.webp",
+"use": "msz"
+},
+"Spiderman2099_01": {
+"at": 1793233355.589653,
+"f": {
+"detail": 0.2036,
+"standIn": false
+},
+"m": {
+"detail": 0.2058,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Spiderman2099_01-b2cfe4605babe71823371b396eb66cba5e34200348b160991f73b12d90d88bc9.webp",
+"use": "msz"
+},
+"Spiderman2099_02": {
+"at": 1793233355.187948,
+"f": {
+"detail": 0.22,
+"standIn": false
+},
+"m": {
+"detail": 0.221,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Spiderman2099_02-e2a9762ca187f7dc860c1280ec15b090ced83b5b5b5d98faa535da0b474a1654.webp",
+"use": "msz"
+},
+"SquirrelGirl_01": {
+"at": 1793233309.040887,
+"f": {
+"detail": 0.2361,
+"standIn": false
+},
+"m": {
+"detail": 0.236,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SquirrelGirl_01-62c304de74f6c9645ac201a018568353cbdd85f3348fac28a36657c0974d40ce.webp",
+"use": "msz"
+},
+"Starbrand_01": {
+"at": 1793233319.475801,
+"f": {
+"detail": 0.3021,
+"standIn": false
+},
+"m": {
+"detail": 0.3004,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Starbrand_01-f52e40a7b23fedb47d6385a0da5d218e39ad14651a75463c649080ee2b4682cc.webp",
+"use": "msz"
+},
+"Steampunk_01": {
+"at": 1793233334.655192,
+"f": {
+"detail": 0.3027,
+"standIn": false
+},
+"m": {
+"detail": 0.3019,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Steampunk_01-a53863c8fdaca1cdf57c162a810f441120302ad08320b319a1391378c2347a23.webp",
+"use": "msz"
+},
+"StegronKaiju_01": {
+"at": 1793233350.534563,
+"f": {
+"detail": 0.3009,
+"standIn": false
+},
+"m": {
+"detail": 0.3051,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/StegronKaiju_01-d8bc1153c3c26391f3207ada125c41dfbc9b65300519b2f2f93a4b4e4d059f58.webp",
+"use": "msz"
+},
+"Style_3099_01": {
+"at": 1793233336.008024,
+"f": {
+"detail": 0.2822,
+"standIn": false
+},
+"m": {
+"detail": 0.2783,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Style_3099_01-9285fc2af9fbd053903e39039ea766fc4ed2951ec2533e2794fae2ec5a416b26.webp",
+"use": "msz"
+},
+"SubMarinersReign_01": {
+"at": 1793233372.673993,
+"f": {
+"detail": 0.3654,
+"standIn": false
+},
+"m": {
+"detail": 0.3714,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SubMarinersReign_01-c1f0992871a3009bf55c378a7162b85180423bbcd908810ab6d568f5b2bc424a.webp",
+"use": "msz"
+},
+"SubMarinersReign_02": {
+"at": 1793233370.997483,
+"f": {
+"detail": 0.3688,
+"standIn": false
+},
+"m": {
+"detail": 0.3737,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SubMarinersReign_02-a97a597776c6c273b3f4543a50d002adc6605e9ab9decb78fb2300b721d6e9fe.webp",
+"use": "msz"
+},
+"SuperiorIronMan_01": {
+"at": 1793233290.087438,
+"f": {
+"detail": 0.0821,
+"standIn": true
+},
+"m": {
+"detail": 0.3237,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SuperiorIronMan_01-fea717567a91a092e852d2b7bac0c48e3af1bc5488c04204c57252c4630c40e2.webp",
+"use": "fixed"
+},
+"SuperiorIronMan_02": {
+"at": 1793233287.969337,
+"f": {
+"detail": 0.2071,
+"standIn": true
+},
+"m": {
+"detail": 0.3277,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/SuperiorIronMan_02-1491b85b8c25ddc5d58c11471b8cb576806a79a4d726b03f2a840972abc72f30.webp",
+"use": "fixed"
+},
+"Surtur_01": {
+"at": 1793233325.743391,
+"f": {
+"detail": 0.2929,
+"standIn": false
+},
+"m": {
+"detail": 0.2894,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Surtur_01-5d7c58c3a1b29c6dc2e4d295eb59a76a536c103104d5e1392af3ea59347ddd12.webp",
+"use": "msz"
+},
+"Symbiote_01": {
+"at": 1793233364.046608,
+"f": {
+"detail": 0.2856,
+"standIn": false
+},
+"m": {
+"detail": 0.2931,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Symbiote_01-4c77a01da5f385d681ff0e09dd3d0737ea8ab41646b5e5db3c781b10ac6027e6.webp",
+"use": "msz"
+},
+"Symbiote_02": {
+"at": 1793233364.443708,
+"f": {
+"detail": 0.2994,
+"standIn": false
+},
+"m": {
+"detail": 0.1757,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Symbiote_02-3b9d55027da0611795fd35e58d344ecf2616b1cbf21ca307ad5ca326bc99b2ce.webp",
+"use": "sf"
+},
+"TVA_01": {
+"at": 1793233347.635679,
+"f": {
+"detail": 0.3416,
+"standIn": false
+},
+"m": {
+"detail": 0.1912,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/TVA_01-d8e61a0c585998367538b9fac7da30659510f50edd9cfaa0bb04009bb181af94.webp",
+"use": "sf"
+},
+"TaoMandala_01": {
+"at": 1793233315.999493,
+"f": {
+"detail": 0.3367,
+"standIn": false
+},
+"m": {
+"detail": 0.3348,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/TaoMandala_01-4eaa4070507e263f36bafa88c1c25b4605772668fef5f3da882941772c711e6a.webp",
+"use": "msz"
+},
+"TaoMandala_02": {
+"at": 1793233315.58786,
+"f": {
+"detail": 0.3482,
+"standIn": false
+},
+"m": {
+"detail": 0.3492,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/TaoMandala_02-c6a07065674cc135d5955826f8454cc1ca2604fb281ffac0e48db8e597f82d02.webp",
+"use": "msz"
+},
+"Tarot_01": {
+"at": 1793233337.303126,
+"f": {
+"detail": 0.2952,
+"standIn": false
+},
+"m": {
+"detail": 0.2967,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Tarot_01-6554b08bdce9eabffffd9a09b1015b4e8b86dee6b1727c1e6c94ff48b4e5d1ff.webp",
+"use": "msz"
+},
+"TeamUp_01": {
+"at": 1793233323.632037,
+"f": {
+"detail": 0.289,
+"standIn": false
+},
+"m": {
+"detail": 0.2873,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/TeamUp_01-b0c90aecf1cbd4e1da1790b5d97eda8fca0eecdff5aea63d000e83f7438fbf7b.webp",
+"use": "msz"
+},
+"ThanosFracturedFrontier_01": {
+"at": 1793233292.532663,
+"f": {
+"detail": 0.0002,
+"standIn": true
+},
+"m": {
+"detail": 0.3529,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/ThanosFracturedFrontier_01-bbe2ab37b4ec710d114ccbf7c1ac9e8ac4c6710c456cd39f48dba94cad9e511f.webp",
+"use": "msz"
+},
+"TheThingFirstSteps_01": {
+"at": 1793233314.676312,
+"f": {
+"detail": 0.2966,
+"standIn": false
+},
+"m": {
+"detail": 0.3031,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/TheThingFirstSteps_01-52eaf694d881b690970fc7a2751b9564b777b42b9917afc862ee41467fb369da.webp",
+"use": "msz"
+},
+"TheWatcher_01": {
+"at": 1793233318.200248,
+"f": {
+"detail": 0.1368,
+"standIn": false
+},
+"m": {
+"detail": 0.1359,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/TheWatcher_01-cd1dc7b7af8270b1fd1face82bf09c189132ab2441e62eb0543820aaed209436.webp",
+"use": "msz"
+},
+"Thor_01": {
+"at": 1793233351.365334,
+"f": {
+"detail": 0.315,
+"standIn": false
+},
+"m": {
+"detail": 0.2658,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Thor_01-9d50df6d274e23d8287f7faa1784a642886252631146895175bde4cb90de8cf4.webp",
+"use": "msz"
+},
+"Thor_02": {
+"at": 1793233351.807292,
+"f": {
+"detail": 0.3001,
+"standIn": false
+},
+"m": {
+"detail": 0.2616,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Thor_02-b7d75c79dd883aa92f496d87ba5d43594d5eedd760e6fae87e000943217488dc.webp",
+"use": "msz"
+},
+"Thunderbolts_01": {
+"at": 1793233337.731746,
+"f": {
+"detail": 0.257,
+"standIn": false
+},
+"m": {
+"detail": 0.2614,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Thunderbolts_01-c4a2d9492b09e586533f9e5a584dfda2210578b417f024a503647ce7f56ffa35.webp",
+"use": "msz"
+},
+"Thunderbolts_02": {
+"at": 1793233336.870809,
+"f": {
+"detail": 0.2499,
+"standIn": false
+},
+"m": {
+"detail": 0.2712,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Thunderbolts_02-436834bcb8482fd506a9e436d2cacf3a28e09ee56c9070f30c33fcbb75460e9a.webp",
+"use": "msz"
+},
+"Ultron_01": {
+"at": 1793233304.028914,
+"f": {
+"detail": 0.2744,
+"standIn": false
+},
+"m": {
+"detail": 0.2752,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Ultron_01-232f09651aa5a50ae9fae1c8b489304d9f5df4c87b8cd560d800b226a167a1c6.webp",
+"use": "msz"
+},
+"UrbanAztec_01": {
+"at": 1793233297.831016,
+"f": {
+"detail": 0.0003,
+"standIn": true
+},
+"m": {
+"detail": 0.4592,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/UrbanAztec_01-da2f1d21f257573657c1e3669513432ad8011a8a00567b47375241b795db2678.webp",
+"use": "msz"
+},
+"VampireKillmonger_01": {
+"at": 1793233284.483057,
+"f": {
+"detail": 0.2346,
+"standIn": false
+},
+"m": {
+"detail": 0.2261,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/VampireKillmonger_01-4977e06faedc17240d876cc50c83ee3d8954c3711c99370d7176b623a2ddbd73.webp",
+"use": "msz"
+},
+"VampireKillmonger_02": {
+"at": 1793233284.083727,
+"f": {
+"detail": 0.2987,
+"standIn": false
+},
+"m": {
+"detail": 0.2957,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/VampireKillmonger_02-41786b2a9dc6088419a2099e0bc2c7a340b83cee8beebbd19e316ffbcf50d121.webp",
+"use": "msz"
+},
+"Vampire_01": {
+"at": 1793233282.837494,
+"f": {
+"detail": 0.2032,
+"standIn": false
+},
+"m": {
+"detail": 0.2098,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Vampire_01-d7da47b78bab8934d1dbe279ad9c10e17d06ecbebb8a60d615817241222b08d0.webp",
+"use": "msz"
+},
+"Venom_01": {
+"at": 1793233326.890371,
+"f": {
+"detail": 0.2479,
+"standIn": false
+},
+"m": {
+"detail": 0.2656,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Venom_01-2358f0ce1fc6c40d8d1b72f2b6b999f7cf3637f70a9606d62d20c15a55e3d075.webp",
+"use": "msz"
+},
+"Venom_02": {
+"at": 1793233326.517327,
+"f": {
+"detail": 0.2117,
+"standIn": false
+},
+"m": {
+"detail": 0.2248,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Venom_02-339be1777acadf4468f6b299c266b682714cc7a0d53c1c90bdba1e3b765b2d64.webp",
+"use": "msz"
+},
+"VivVision_01": {
+"at": 1793233310.726777,
+"f": {
+"detail": 0.3053,
+"standIn": false
+},
+"m": {
+"detail": 0.3128,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/VivVision_01-3b9d89c9a0e10693d11cd6e9cf81f7a551b3c0d4f0454d9c0c4d5adf91dc0bbe.webp",
+"use": "msz"
+},
+"VivVision_02": {
+"at": 1793233310.29946,
+"f": {
+"detail": 0.2919,
+"standIn": false
+},
+"m": {
+"detail": 0.2957,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/VivVision_02-e79f92aa85813c0fba7ac907ea4808e499936768c1178626581e74d9526c597b.webp",
+"use": "msz"
+},
+"Warbound_01": {
+"at": 1793233342.001754,
+"f": {
+"detail": 0.2345,
+"standIn": false
+},
+"m": {
+"detail": 0.2376,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Warbound_01-dbe723c3ced95bc020f3fbc2f807028803787e1f7e68d1f800f8dfb3550f3926.webp",
+"use": "msz"
+},
+"Warbound_02": {
+"at": 1793233341.578418,
+"f": {
+"detail": 0.2484,
+"standIn": false
+},
+"m": {
+"detail": 0.2376,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Warbound_02-3178cd7bc8320d3887aa310ceef1c18d8a680debb0ac78a01df5fec4700d196e.webp",
+"use": "msz"
+},
+"WeaponXHelmet_01": {
+"at": 1793233306.493045,
+"f": {
+"detail": 0.3152,
+"standIn": false
+},
+"m": {
+"detail": 0.2804,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/WeaponXHelmet_01-07b0cad589fa8a23b40decff1d9cb5a4a4ff71aa61d0d66ea7eefbd049aa2c76.webp",
+"use": "msz"
+},
+"WeaponXHelmet_02": {
+"at": 1793233306.088999,
+"f": {
+"detail": 0.319,
+"standIn": false
+},
+"m": {
+"detail": 0.291,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/WeaponXHelmet_02-131c83eca4dcb9cf979d75f133d3eb8a5e68e32cc72e484c4eff07b275084af3.webp",
+"use": "msz"
+},
+"WeaponXTank_01": {
+"at": 1793233304.457178,
+"f": {
+"detail": 0.3478,
+"standIn": false
+},
+"m": {
+"detail": 0.3153,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/WeaponXTank_01-701141bfba79baa16889e9775661ef5aa4ca002398439b2c1a1e66bfa20cc33d.webp",
+"use": "msz"
+},
+"Wolverine_01": {
+"at": 1793233331.665889,
+"f": {
+"detail": 0.2731,
+"standIn": false
+},
+"m": {
+"detail": 0.2684,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Wolverine_01-72b4b8706eaf4e3ad6c00fb5d39d360c65436601cd950768e972756cab48dc8b.webp",
+"use": "msz"
+},
+"X23_01": {
+"at": 1793233350.909474,
+"f": {
+"detail": 0.2441,
+"standIn": false
+},
+"m": {
+"detail": 0.2484,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/X23_01-4b5e1bbd7259a64025ccb9a1e02f2a3c5e5cd332d274e32b8dca551e1779f17d.webp",
+"use": "msz"
+},
+"XMen_01": {
+"at": 1793233359.561401,
+"f": {
+"detail": 0.2642,
+"standIn": false
+},
+"m": {
+"detail": 0.3519,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/XMen_01-e65fd01236c226edf99aa7cad3849926c8f8df12f37d1a424f02af2d2eacf148.webp",
+"use": "msz"
+},
+"XMen_02": {
+"at": 1793233358.739056,
+"f": {
+"detail": 0.2762,
+"standIn": false
+},
+"m": {
+"detail": 0.2837,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/XMen_02-3e8ec2109a4974f5c84253e71fc674d411673b12e6a5c55d3687bd34fff0d229.webp",
+"use": "msz"
+},
+"Xorn_01": {
+"at": 1793233316.991474,
+"f": {
+"detail": 0.3158,
+"standIn": false
+},
+"m": {
+"detail": 0.3221,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Xorn_01-e26962346c45963442c060e0a759a65c94f245f2bbfdad0978cf200b9efe2dd7.webp",
+"use": "msz"
+},
+"Xorn_02": {
+"at": 1793233316.383936,
+"f": {
+"detail": 0.2896,
+"standIn": false
+},
+"m": {
+"detail": 0.2922,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Xorn_02-d54f585661037c827727980113b1ddbd76c04889a306a31ac52e89e210336706.webp",
+"use": "msz"
+},
+"YoungAvengers_01": {
+"at": 1793233329.956633,
+"f": {
+"detail": 0.2183,
+"standIn": false
+},
+"m": {
+"detail": 0.222,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/YoungAvengers_01-7dd618e44318278884448d97da67668e38f54aecf83564bc2b2d5fb94652120e.webp",
+"use": "msz"
+},
+"YoungAvengers_02": {
+"at": 1793233329.069185,
+"f": {
+"detail": 0.2712,
+"standIn": false
+},
+"m": {
+"detail": 0.222,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/YoungAvengers_02-2d04e8b37c3c7b059918dd18b4b37d7b078bde2076dabf32be1fd5b56de2c3fe.webp",
+"use": "msz"
+},
+"ZombieCap_01": {
+"at": 1793233309.462087,
+"f": {
+"detail": 0.2749,
+"standIn": false
+},
+"m": {
+"detail": 0.2742,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/ZombieCap_01-b437d3e541c70c9b765c7293e20a856b361a49a02f40aef025d41332d697d59d.webp",
+"use": "msz"
+},
+"ZombieHorde_01": {
+"at": 1793233307.35128,
+"f": {
+"detail": 0.3478,
+"standIn": false
+},
+"m": {
+"detail": 0.3458,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/ZombieHorde_01-b246240c52a61bfd52665d4282149bf11e5177f496821dbac9add6cfd59e210a.webp",
+"use": "msz"
+},
+"ZombieHorde_02": {
+"at": 1793233306.947798,
+"f": {
+"detail": 0.0003,
+"standIn": true
+},
+"m": {
+"detail": 0.319,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/ZombieHorde_02-da2f1d21f257573657c1e3669513432ad8011a8a00567b47375241b795db2678.webp",
+"use": "msz"
+},
+"ZombieVenom_01": {
+"at": 1793233285.579864,
+"f": {
+"detail": 0.0435,
+"standIn": true
+},
+"m": {
+"detail": 0.104,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/ZombieVenom_01-d68fe6be3c47c7e7040206b45e46f9d3522d757d94f9e34c827fb5061a67b603.webp",
+"use": "fixed"
+},
+"Zombie_01": {
+"at": 1793233283.26796,
+"f": {
+"detail": 0.3298,
+"standIn": false
+},
+"m": {
+"detail": 0.3387,
+"standIn": false
+},
+"sf": "https://game-assets.snap.fan/card_back_images/Zombie_01-3a6abae40007dc40c64e02d73fc051512b216bed68e3b87d43bf09926445fc0d.webp",
+"use": "msz"
+}
+}
