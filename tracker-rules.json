@@ -1,6 +1,6 @@
 {
-  "v": 3,
-  "about": "How the SNAP Stat Android app's match tracker spots the end of a match. A frame counts when its words include every word of one 'end' group and none of the 'not' words, on 'frames' checks in a row. 'modes' are words that tell which game mode or event the player is in; the last one seen is passed along with the match. Tuned from the tracker log. 'screens' are other screens worth saving while you play (your alliance, event passes, the season pass, shops): each kind is saved when its words stay on screen for two checks, at most once per 'cooldownMin' minutes, and only if it changed.",
+  "v": 4,
+  "about": "How the SNAP Stat Android app's match tracker spots the end of a match. A frame counts when its words include every word of one 'end' group and none of the 'not' words, on 'frames' checks in a row. 'modes' are words that tell which game mode or event the player is in; the last one seen is passed along with the match, except on screens with a 'modeNot' word (the home screen lists every event that's on, so it doesn't count). 'screens' are other screens worth saving while you play (your alliance, event passes and shops, the season pass, the shop, the home screen): each kind is saved when its words stay on screen for its 'frames' checks (2 if not given), at most once per 'cooldownMin' minutes, and only if it changed. Words are matched in lowercase without accents. Tuned from the tracker log of October 28, 2026.",
   "intervalMs": 1500,
   "scale": 0.6,
   "frames": 2,
@@ -51,7 +51,8 @@
     ],
     "Deadpool's Diner": [
       "deadpool's diner",
-      "deadpools diner"
+      "deadpools diner",
+      "diner"
     ],
     "High Voltage": [
       "high voltage"
@@ -89,7 +90,9 @@
       ],
       "not": [
         "victory",
-        "defeat"
+        "defeat",
+        "matchmaking",
+        "end turn"
       ],
       "cooldownMin": 15
     },
@@ -103,6 +106,28 @@
           "premium",
           "event",
           "level"
+        ]
+      ],
+      "not": [
+        "victory",
+        "defeat",
+        "matchmaking",
+        "end turn",
+        "season pass"
+      ],
+      "cooldownMin": 20,
+      "frames": 1
+    },
+    {
+      "kind": "eventshop",
+      "any": [
+        [
+          "dinner items"
+        ],
+        [
+          "diner",
+          "items",
+          "sold"
         ],
         [
           "event shop"
@@ -111,7 +136,8 @@
       "not": [
         "victory",
         "defeat",
-        "season pass"
+        "matchmaking",
+        "end turn"
       ],
       "cooldownMin": 30
     },
@@ -121,11 +147,20 @@
         [
           "season pass",
           "level"
+        ],
+        [
+          "season pass",
+          "premium",
+          "free"
         ]
       ],
       "not": [
         "victory",
-        "defeat"
+        "defeat",
+        "matchmaking",
+        "end turn",
+        "featured location",
+        "missions"
       ],
       "cooldownMin": 60
     },
@@ -142,13 +177,73 @@
         [
           "spotlight",
           "cache"
+        ],
+        [
+          "ffers",
+          "shop",
+          "variant"
+        ],
+        [
+          "daily",
+          "ffer",
+          "variant"
+        ],
+        [
+          "gnature bundle"
+        ],
+        [
+          "special",
+          "ffer",
+          "shop"
         ]
       ],
       "not": [
         "victory",
-        "defeat"
+        "defeat",
+        "matchmaking",
+        "end turn"
       ],
       "cooldownMin": 60
+    },
+    {
+      "kind": "home",
+      "any": [
+        [
+          "season pass",
+          "missions",
+          "play"
+        ],
+        [
+          "season pass",
+          "featured location"
+        ]
+      ],
+      "not": [
+        "victory",
+        "defeat",
+        "matchmaking",
+        "end turn"
+      ],
+      "cooldownMin": 90
     }
+  ],
+  "modeNot": [
+    "season pass",
+    "missions",
+    "event pass",
+    "game modes",
+    "dinner items",
+    "featured location",
+    "collection",
+    "variant",
+    "avatar",
+    "border",
+    "dorder",
+    "sold",
+    "credits",
+    "emote",
+    "complete",
+    "offers",
+    "shop"
   ]
 }

@@ -213,7 +213,7 @@ class TrackerService : Service() {
         screenHits = if (s.kind == screenKind) screenHits + 1 else 1
         screenKind = s.kind
         val now = System.currentTimeMillis()
-        if (screenHits < 2 || now - (screenAt[s.kind] ?: 0L) < s.cooldownMin * 60_000L) return
+        if (screenHits < s.frames || now - (screenAt[s.kind] ?: 0L) < s.cooldownMin * 60_000L) return
         if (similarity(flat, screenText[s.kind] ?: "") > 0.85) return  // nothing new on it
         screenAt[s.kind] = now; screenText[s.kind] = flat; screenHits = 0
         if (ShotQueue.addBitmap(this, bmp, now, "tracker", "screen:" + s.kind)) {
