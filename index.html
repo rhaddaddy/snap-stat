@@ -607,6 +607,13 @@ details.clockmore > summary::-webkit-details-marker { display: none; }
 .clk .k { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 .clk b { font-size: 22px; line-height: 1.15; }
 .cd { font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Collectibles: nothing cut off, the boxes stacked on the right */
+.li.coll { align-items: flex-start; gap: 10px; }
+.li.coll .t, .li.coll .s { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+.li.coll .s + .s { margin-top: 2px; }
+.li.coll .collart { flex: none; width: 58px; display: flex; justify-content: center; }
+.li.coll .collart .pill { white-space: normal; text-align: center; line-height: 1.15; font-size: 11px; padding: 3px 7px; }
+.li.coll .collchk { flex: none; display: flex; flex-direction: column; gap: 8px; padding-top: 2px; }
 ul.clist { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 2px; }
 .cwrap.pick > .ct { outline: 3px solid var(--cube); outline-offset: 2px; }
 .muhint { border-color: color-mix(in srgb, var(--cube) 50%, var(--line)); margin-bottom: 8px; }
@@ -637,7 +644,7 @@ tr.me td { font-weight: 800; color: var(--cube); }
 </style>
 
 <style>html, body { margin: 0; } :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); } img { max-width: 100%; }</style>
-<script>window.SNAPSTAT_BUILD = "595f364160f4"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
+<script>window.SNAPSTAT_BUILD = "5c1231412cb0"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
 <script src="firebase-config.js"></script>
 <script type="module" src="firebase-init.js"></script>
 </head>
@@ -1787,16 +1794,30 @@ function collectibleItems(src) {
   return items;
 }
 function splitVariant(name) { const m = String(name).match(/^(.+?)\s*[-–—(]\s*(.+?)\)?$/); return m ? { card: m[1].trim(), label: m[2].trim() } : { card: String(name).trim(), label: "" }; }
-function findCollectible(it, srcName) {
-  if (it.kind === "card") return { owned: !!S.owned[keyOf(it.name)], wish: !!S.wishCards[keyOf(it.name)] };
-  if (it.kind === "variant") { const sv = splitVariant(it.name); const v = S.variants.find((x) => x.card === keyOf(sv.card) && (sv.label ? keyOf(x.name) === keyOf(sv.label) : x.source === srcName)); return { owned: !!(v && v.owned), wish: !!(v && v.wish), v }; }
-  if (COS[it.kind]) { const c = S.cosmetics.find((x) => x.kind === it.kind && keyOf(x.name) === keyOf(it.name)); return { owned: !!(c && c.owned), wish: !!(c && c.wish), c }; }
+// [when] is when the season or event started, to pick the right one of a card's season pass variants
+function findCollectible(it, srcName, when) {
+  if (it.kind === "card") { const k = keyOf(it.name); return { owned: !!S.owned[k], wish: !!S.wishCards[k] }; }
+  if (it.kind === "variant") { const v = collVariant(it, srcName, when); return { owned: !!(v && v.owned), wish: !!(v && v.wish), v }; }
+  if (COS[it.kind]) { const c = cosFind(it.kind, it.name); return { owned: !!(c && c.owned), wish: !!(c && c.wish), c }; }
   const k = keyOf(srcName) + ":" + keyOf(it.name); return { owned: !!S.collected[k], wish: false, k };
 }
-function setCollectible(it, srcName, field, val) {
+// A cosmetic by name, ignoring a trailing number ("Zombie Venom 01" is the "Zombie Venom" card back)
+const cosLoose = (n) => keyOf(String(n || "").replace(/\s*#?\d{1,3}$/, ""));
+function cosFind(kind, name) { const k = keyOf(name), l = cosLoose(name); return S.cosmetics.find((x) => x.kind === kind && keyOf(x.name) === k) || S.cosmetics.find((x) => x.kind === kind && cosLoose(x.name) === l) || null; }
+// A variant named like "Dracula - Season Pass": your own entry first, then the card data's variant of that name or
+// source (the one released closest to [when])
+function collVariant(it, srcName, when) {
+  const sv = splitVariant(it.name), ck = keyOf(sv.card), lab = keyOf(sv.label);
+  const mine = S.variants.find((x) => x.card === ck && !x.cat && (lab ? keyOf(x.name) === lab : x.source === srcName)); if (mine) return mine;
+  const list = (typeof allVariants === "function" ? allVariants() : S.variants).filter((x) => x.card === ck && (!lab || keyOf(x.name) === lab || keyOf(x.source) === lab || keyOf(x.artist) === lab || (x.source && keyOf(x.source) === keyOf(srcName))));
+  if (!list.length) return null;
+  const t = (x) => (x.release ? dayStart(x.release) : 0);
+  return list.sort((a, b) => (when ? Math.abs(t(a) - when) - Math.abs(t(b) - when) : t(b) - t(a)) || (b.owned ? 1 : 0) - (a.owned ? 1 : 0))[0];
+}
+function setCollectible(it, srcName, field, val, when) {
   if (it.kind === "card") { const k = keyOf(it.name); const tgt = field === "owned" ? S.owned : S.wishCards; if (val) tgt[k] = true; else delete tgt[k]; return; }
-  const f = findCollectible(it, srcName);
-  if (it.kind === "variant") { if (f.v) f.v[field] = val; else { const sv = splitVariant(it.name); S.variants.push({ id: uid(), card: keyOf(sv.card), name: sv.label || srcName, artist: "", rarity: "", source: srcName, release: "", owned: field === "owned" && val, wish: field === "wish" && val, favorite: false }); } return; }
+  const f = findCollectible(it, srcName, when);
+  if (it.kind === "variant") { if (f.v) { const real = f.v.virtual ? materializeVar(f.v.id) : S.variants.find((x) => x.id === f.v.id) || f.v; if (real) real[field] = val; } else { const sv = splitVariant(it.name); S.variants.push({ id: uid(), card: keyOf(sv.card), name: sv.label || srcName, artist: "", rarity: "", source: srcName, release: "", owned: field === "owned" && val, wish: field === "wish" && val, favorite: false }); } return; }
   if (COS[it.kind]) { if (f.c) f.c[field] = val; else S.cosmetics.push({ id: uid(), kind: it.kind, name: it.name, source: srcName, owned: field === "owned" && val, wish: field === "wish" && val }); return; }
   if (field === "owned") { if (val) S.collected[f.k] = true; else delete S.collected[f.k]; }
 }
@@ -1929,7 +1950,8 @@ function mergeSchedule(list, kind) {
     if (same) {
       // Players' edits win. Only empty fields are filled in.
       for (const f of ["passCard", "superCard", "link"]) if (!same[f] && x[f]) same[f] = x[f];
-      for (const f of ["cards", "variants"]) if (!arr(same[f]).length && arr(x[f]).length) same[f] = x[f];
+      for (const f of ["cards", "variants", "rewards"]) if (!arr(same[f]).length && arr(x[f]).length) same[f] = x[f];
+      if (!Object.keys(obj(same.sources)).length && Object.keys(obj(x.sources)).length) same.sources = x.sources;
       continue;
     }
     out.push({ ...x, id, auto: true });
@@ -2845,7 +2867,7 @@ function seasonHero() {
     return `<div class="season halftone halftone-dots"><span class="eyebrow">Season</span><span class="nm">${next ? "Next: " + esc(next.name) : "No season added"}</span><span class="muted small">${next ? "Starts " + esc(dateStr(next.start)) : "Add seasons to track your rank, pass progress and collectibles each season."}</span><div><button class="btn sm" data-a="go" data-to="seasons">Seasons</button></div></div>`;
   }
   const p = obj(S.passes[cs.id]); const of = num(cs.passLevels) || 50; const r = obj(S.ranks["s:" + cs.id]);
-  const items = collectibleItems(cs); const got = items.filter((it) => findCollectible(it, cs.name).owned).length;
+  const items = collectibleItems(cs); const got = items.filter((it) => findCollectible(it, cs.name, cs.startTs).owned).length;
   const bg = showArt() ? seasonArt(cs) : "";
   return `<button class="season halftone halftone-dots ${bg ? "has-art" : ""}" data-a="seasonOpen" data-id="${esc(cs.id)}" style="text-align:left;cursor:pointer">${bg ? imgTag(bg, "sbg") : ""}
     <div class="row between"><span class="eyebrow">Current season · ends in ${cdSpan(cs.endTs)}</span>${rankBadge(S.me.rank || r.end)}</div>
@@ -3778,7 +3800,7 @@ function vSeasons() {
     ${canEditShared() ? `<button class="btn snap" data-a="seasonNew">${ICON.plus} Add season</button>` : `<p class="muted small">Seasons fill in automatically. The app owner can add or fix them.</p>`}</section>`;
 }
 function seasonRow(s) {
-  const st = timeState(s); const p = obj(S.passes[s.id]); const r = obj(S.ranks["s:" + s.id]); const items = collectibleItems(s); const got = items.filter((it) => findCollectible(it, s.name).owned).length;
+  const st = timeState(s); const p = obj(S.passes[s.id]); const r = obj(S.ranks["s:" + s.id]); const items = collectibleItems(s); const got = items.filter((it) => findCollectible(it, s.name, s.startTs).owned).length;
   return `<button class="li" data-a="seasonOpen" data-id="${esc(s.id)}">${seasonPic(s, "sart")}<div class="grow"><div class="t">${esc(s.name)} ${st === "live" ? `<span class="pill live">Live</span>` : ""}</div>
     <div class="s">${esc(dateStr(s.start))}${s.end ? " – " + esc(dateStr(s.end)) : ""}${st === "live" ? " · ends in " + cdSpan(s.endTs) : st === "upcoming" ? " · starts in " + cdSpan(s.startTs) : ""}${items.length ? ` · ${got}/${items.length} collected` : ""}${p.level ? ` · pass ${num(p.level)}` : ""}${r.peak ? ` · peak ${esc(r.peak)}` : ""}</div></div><span class="muted">›</span></button>`;
 }
@@ -3788,7 +3810,7 @@ function seasonSheet() {
   const s = seasons().find((x) => x.id === se.id) || { ...se, startTs: dayStart(se.start), endTs: se.end ? dayEnd(se.end) : Infinity };
   const st = timeState(s); const p = obj(S.passes[s.id]); const r = obj(S.ranks["s:" + s.id]); const of = num(s.passLevels) || 50;
   const ms = realMatches().filter((m) => m.ts >= s.startTs && m.ts <= s.endTs); const stat = statsFor(ms);
-  const items = collectibleItems(s); const got = items.filter((it) => findCollectible(it, s.name).owned).length;
+  const items = collectibleItems(s); const got = items.filter((it) => findCollectible(it, s.name, s.startTs).owned).length;
   const evs = events().filter((e) => e.startTs <= s.endTs && e.endTs >= s.startTs);
   return `${sheetHead(esc(s.name), `${esc(dateStr(s.start))}${s.end ? " – " + esc(dateStr(s.end)) : ""} · ${st === "live" ? "ends in " + cdSpan(s.endTs) : st === "upcoming" ? "starts in " + cdSpan(s.startTs) : "ended"}`)}
     ${seasonPic(s, "shero")}
@@ -3802,17 +3824,16 @@ function seasonSheet() {
       <div class="seg">${Object.entries(PASS_TIERS).map(([k, l]) => `<button data-a="passTier" data-id="${esc(s.id)}" data-v="${k}" aria-pressed="${(p.tier || "free") === k}">${l}</button>`).join("")}</div>
       ${stat.games ? `<span class="small">You: ${stat.w}-${stat.l}-${stat.t} · ${stat.wr}% · ${signed(stat.cubes)} cubes</span>` : ""}</div>` : ""}
     <div class="sec-h"><h3>Collectibles</h3><span class="muted small">${got}/${items.length} collected</span></div>
-    ${items.length ? (st === "live" ? passCollectiblesHtml(s, items) : collectibleList(items, s.name)) : `<p class="muted small">No rewards listed. Edit the season to add them.</p>`}
+    ${items.length ? (st === "live" ? passCollectiblesHtml(s, items) : collectibleList(items, s.name, seasonCtx(s))) : `<p class="muted small">No rewards listed. Edit the season to add them.</p>`}
     ${evs.length ? `<h3>Events this season</h3><div class="list">${evs.map((e) => `<button class="li" data-a="eventOpen" data-id="${esc(e.id)}"><div class="grow"><div class="t">${esc(e.name)}</div><div class="s">${esc(EVENT_TYPES[e.type] || "Event")} · ${esc(dateStr(e.start))}${e.end ? " – " + esc(dateStr(e.end)) : ""}</div></div><span class="muted">›</span></button>`).join("")}</div>` : ""}
     ${st !== "upcoming" && ms.length ? `<button class="btn block" data-a="recapSeason" data-id="${esc(s.id)}">Make my ${esc(s.name)} recap picture</button>` : ""}
     ${s.notes ? `<p class="small muted" style="white-space:pre-wrap">${esc(s.notes)}</p>` : ""}${srcLink(s)}
     ${canEditShared() ? `<div class="row"><button class="btn" data-a="seasonEdit">Edit season info</button></div>` : ""}`;
 }
 let lastColl = { items: [], src: "" };
-function collectibleList(items, srcName) {
-  lastColl = { items, src: srcName };
-  return `<div class="list">${items.map((it, i) => { const f = findCollectible(it, srcName); return `<div class="li"><span class="pill ${f.owned ? "W" : "dim"}">${esc(KIND_TXT[it.kind] || "Reward")}</span><div class="grow"><div class="t">${esc(it.name)}${it.pass ? ` <span class="muted small">pass card</span>` : ""}</div></div>
-    <label class="check small"><input type="checkbox" data-coll="owned" data-i="${i}" ${f.owned ? "checked" : ""}> Got it</label>${it.kind !== "other" ? `<label class="check small"><input type="checkbox" data-coll="wish" data-i="${i}" ${f.wish ? "checked" : ""}> Want</label>` : ""}</div>`; }).join("")}</div>`;
+function collectibleList(items, srcName, ctx) {
+  ctx = ctx || { name: srcName, when: 0, season: null, events: [] };
+  return collRowsHtml(items.map((it) => ({ it, w: collWhere(it, ctx) })), ctx);
 }
 function linesOf(a) { return arr(a).join("\n"); }
 function seasonEditHtml() {
@@ -3834,7 +3855,7 @@ function vEvents() {
   return `<section class="sec">${backBar("Events")}
     <p class="muted small">Events and limited-time game modes with their dates, reward tracks and collectibles, plus your progress on each pass.${store.mode === "cloud" ? " Event info is shared with everyone using this app." : ""}</p>
     ${stateTabs("eventTab", counts)}
-    ${list.length ? `<div class="list">${list.map((e) => { const st = timeState(e); const pr = obj(S.eventProg[e.id]); const items = collectibleItems(e); const got = items.filter((it) => findCollectible(it, e.name).owned).length; return `<button class="li" data-a="eventOpen" data-id="${esc(e.id)}"><span class="pill ${st === "live" ? "live" : "dim"}">${st === "live" ? "LIVE" : esc(dayStr(e.startTs))}</span><div class="grow"><div class="t">${esc(e.name)}</div><div class="s">${esc(EVENT_TYPES[e.type] || "Event")} · ${st === "live" ? "ends in " + cdSpan(e.endTs) : st === "upcoming" ? "starts in " + cdSpan(e.startTs) : esc(dateStr(e.start))}${items.length ? ` · ${got}/${items.length} collected` : ""}${num(e.passLevels) ? ` · pass ${num(pr.level)}/${num(e.passLevels)}` : ""}</div></div><span class="muted">›</span></button>`; }).join("")}</div>`
+    ${list.length ? `<div class="list">${list.map((e) => { const st = timeState(e); const pr = obj(S.eventProg[e.id]); const items = collectibleItems(e); const got = items.filter((it) => findCollectible(it, e.name, e.startTs).owned).length; return `<button class="li" data-a="eventOpen" data-id="${esc(e.id)}"><span class="pill ${st === "live" ? "live" : "dim"}">${st === "live" ? "LIVE" : esc(dayStr(e.startTs))}</span><div class="grow"><div class="t">${esc(e.name)}</div><div class="s">${esc(EVENT_TYPES[e.type] || "Event")} · ${st === "live" ? "ends in " + cdSpan(e.endTs) : st === "upcoming" ? "starts in " + cdSpan(e.startTs) : esc(dateStr(e.start))}${items.length ? ` · ${got}/${items.length} collected` : ""}${num(e.passLevels) ? ` · pass ${num(pr.level)}/${num(e.passLevels)}` : ""}</div></div><span class="muted">›</span></button>`; }).join("")}</div>`
       : `<div class="empty"><span>${ui.eventTab === "current" ? "Nothing live right now in your list." : ui.eventTab === "upcoming" ? "No upcoming events added yet." : "No past events added yet."}</span>${store.provider === "firebase" && store.mode === "cloud" && canEditShared() && !seasons().length && !events().length ? `<button class="btn snap" data-a="loadSeed">Load season & event history</button>` : ""}</div>`}
     ${canEditShared() ? `<button class="btn snap" data-a="eventNew">${ICON.plus} Add event or mode</button>` : `<p class="muted small">Events fill in automatically. The app owner can add or fix them.</p>`}</section>`;
 }
@@ -3842,7 +3863,7 @@ let ee = null;
 function eventSheet() {
   if (ee.edit) return eventEditHtml();
   const e = events().find((x) => x.id === ee.id) || { ...ee, startTs: dayStart(ee.start), endTs: ee.end ? dayEnd(ee.end) : dayEnd(ee.start) };
-  const st = timeState(e); const pr = obj(S.eventProg[e.id]); const items = collectibleItems(e); const got = items.filter((it) => findCollectible(it, e.name).owned).length;
+  const st = timeState(e); const pr = obj(S.eventProg[e.id]); const items = collectibleItems(e); const got = items.filter((it) => findCollectible(it, e.name, e.startTs).owned).length;
   const ms = realMatches().filter((m) => (m.mode === "Event" || m.mode === "Limited-time mode") && m.ts >= e.startTs && m.ts <= e.endTs); const stat = statsFor(ms);
   return `${sheetHead(esc(e.name), `${esc(EVENT_TYPES[e.type] || "Event")} · ${esc(dateStr(e.start))}${e.end ? " – " + esc(dateStr(e.end)) : ""} · ${st === "live" ? "ends in " + cdSpan(e.endTs) : st === "upcoming" ? "starts in " + cdSpan(e.startTs) : "ended"}`)}
     ${e.shopUntil ? `<p class="small">Event shop open until ${esc(dateStr(e.shopUntil))}</p>` : ""}${e.desc ? `<p class="small" style="white-space:pre-wrap">${esc(e.desc)}</p>` : ""}${srcLink(e)}
@@ -3855,7 +3876,7 @@ function eventSheet() {
       ${stat.games ? `<span class="small">Logged event games: ${stat.w}-${stat.l}-${stat.t} · ${stat.wr}%</span>` : `<span class="muted small">Log games with mode “Event” or “Limited-time mode” during these dates to see your record here.</span>`}</div>` : ""}
     ${eventRecapHtml(e)}
     <div class="sec-h"><h3>Rewards & collectibles</h3><span class="muted small">${got}/${items.length} collected</span></div>
-    ${items.length ? collectibleList(items, e.name) : `<p class="muted small">No rewards listed. Edit the event to add them.</p>`}
+    ${items.length ? collectibleList(items, e.name, eventCtx(e)) : `<p class="muted small">No rewards listed. Edit the event to add them.</p>`}
     ${canEditShared() ? `<div class="row"><button class="btn" data-a="eventEdit">Edit event info</button></div>` : ""}`;
 }
 function eventEditHtml() {
@@ -4464,7 +4485,7 @@ const A = {
 
   tabState: (el) => { ui[el.dataset.k] = el.dataset.v; render(); },
   seasonNew: () => { se = { isNew: true, edit: true, id: uid(), name: "", start: localDate(Date.now()), end: "", passCard: "", passLevels: 50, cards: [], variants: [], rewards: [], notes: "" }; openSheet(seasonSheet); },
-  seasonOpen: (el) => { const s = seasons().find((x) => x.id === el.dataset.id); if (!s) return; se = { id: s.id, name: s.name, start: s.start, end: s.end || "", passCard: s.passCard || "", passLevels: s.passLevels || 50, cards: arr(s.cards), variants: arr(s.variants), rewards: arr(s.rewards), notes: s.notes || "" }; openSheet(seasonSheet); },
+  seasonOpen: (el) => { const s = seasons().find((x) => x.id === el.dataset.id); if (!s) return; try { collSync(seasonCtx(s), collectibleItems(s)); } catch { /* shown as is */ } se = { id: s.id, name: s.name, start: s.start, end: s.end || "", passCard: s.passCard || "", passLevels: s.passLevels || 50, cards: arr(s.cards), variants: arr(s.variants), rewards: arr(s.rewards), notes: s.notes || "" }; openSheet(seasonSheet); },
   seasonEdit: () => { se.edit = true; refreshSheet(); }, seasonView: () => { se.edit = false; refreshSheet(); },
   seasonSave: () => {
     if (!se.name.trim() || !se.start) { toast("Add a name and start date"); return; }
@@ -4475,7 +4496,7 @@ const A = {
   passStep: (el) => { const id = el.dataset.id; const s = seasons().find((x) => x.id === id); const p = (S.passes[id] = obj(S.passes[id])); p.level = clamp(num(p.level) + num(el.dataset.v), 0, num(s && s.passLevels) || 50); save(); refreshSheet(); render(); },
   passTier: (el) => { const id = el.dataset.id; (S.passes[id] = obj(S.passes[id])).tier = el.dataset.v; save(); refreshSheet(); render(); },
   eventNew: () => { ee = { isNew: true, edit: true, id: uid(), name: "", type: "mode", start: localDate(Date.now()), end: "", shopUntil: "", passLevels: 0, collectibles: [], desc: "" }; openSheet(eventSheet); },
-  eventOpen: (el) => { const e = events().find((x) => x.id === el.dataset.id); if (!e) return; ee = { id: e.id, name: e.name, type: e.type || "event", start: e.start, end: e.end || "", shopUntil: e.shopUntil || "", passLevels: num(e.passLevels), collectibles: arr(e.collectibles), desc: e.desc || "" }; openSheet(eventSheet); },
+  eventOpen: (el) => { const e = events().find((x) => x.id === el.dataset.id); if (!e) return; try { collSync(eventCtx(e), collectibleItems(e)); } catch { /* shown as is */ } ee = { id: e.id, name: e.name, type: e.type || "event", start: e.start, end: e.end || "", shopUntil: e.shopUntil || "", passLevels: num(e.passLevels), collectibles: arr(e.collectibles), desc: e.desc || "" }; openSheet(eventSheet); },
   eventEdit: () => { ee.edit = true; refreshSheet(); }, eventView: () => { ee.edit = false; refreshSheet(); },
   eventSave: () => {
     if (!ee.name.trim() || !ee.start) { toast("Add a name and start date"); return; }
@@ -4588,7 +4609,7 @@ document.addEventListener("change", (e) => {
   }
   if (d.deckvar) { const dk = deckEdit(); if (dk) { if (t.value) dk.variants[d.deckvar] = t.value; else delete dk.variants[d.deckvar]; save(); render(); } return; }
   if (d.deckchk) { const dk = deckEdit(); if (!dk) return; if (d.deckchk === "public") dk.public = t.checked; else S.me.featuredDeck = t.checked ? dk.id : S.me.featuredDeck === dk.id ? "" : S.me.featuredDeck; save(); render(); refreshSheet(); return; }
-  if (d.coll) { const it = lastColl.items[num(d.i)]; if (it) { setCollectible(it, lastColl.src, d.coll, t.checked); save(); render(); refreshSheet(); } return; }
+  if (d.coll) { const it = lastColl.items[num(d.i)]; if (it) { setCollectible(it, lastColl.src, d.coll, t.checked, lastColl.when); if (d.coll === "owned") { const k = collKey(lastColl.src, it); (S.collManual = obj(S.collManual))[k] = t.checked; if (!t.checked) delete obj(S.collAuto)[k]; } save(); render(); refreshSheet(); } return; }
   if (d.evchk) { (S.eventProg[d.id] = obj(S.eventProg[d.id]))[d.evchk] = t.checked; save(); return; }
   if (d.avsel) { if (t.value) { S.me[d.avsel] = { kind: "variant", ref: t.value }; save(); render(); toast(d.avsel === "banner" ? "Banner updated" : "Profile picture updated"); } return; }
   if (d.upload) { const f = t.files && t.files[0]; t.value = ""; if (f) uploadImage(f, d.upload); return; }
@@ -6495,7 +6516,7 @@ const SHOT_PROMPT = (roster, hint) => `You are reading a screenshot from the mob
 Valid card names (name cost/power): ${roster}
 Game modes and events: ${modeNames().join("; ")}
 ${/^screen:/.test(hint || "") ? `This picture was saved automatically while the player was on the game's ${SCREEN_NAMES[String(hint).slice(7)] || "menu"} screen. ${SCREEN_TIPS[String(hint).slice(7)] || ""}\n` : hint ? `Just before this, the player's screen mentioned "${String(hint).slice(0, 60)}". Use that for the game mode if the picture itself doesn't show the mode, except that a result with cubes won or lost is a Ranked match (or Conquest, with medals).\n` : ""}Reply as JSON:
-{"kind": "match" (end of a match, or the board during one) | "numbers" (home, profile, rank, shop, collection or season pass screens showing the player's numbers) | "deck" (a deck of cards) | "card" (one card's own screen: its upgrade level, boosters, splits, variants or Custom Card) | "collection" (the collection grid, with booster counts on the cards) | "split" (the result of an Infinity Split) | "variants" (one card's variants screen, showing which of its variants the player has) | "shop" (a shop screen: the Token Shop, Spotlight Caches, the shop's daily and special offers, a bundle or the Season Pass) | "event" (an event or limited-time mode's own pass, reward track or shop, like Deadpool's Diner's, with levels, XP, rewards, its currency and its collectibles) | "alliance" (any alliance screen: members, bounties, milestones or the alliance leaderboard) | "album" (the variant albums list, or one album with its variants) | "missions" (the Missions screen: daily missions, the weekly challenge or the season's chapters) | "pass" (the season pass reward track) | "other",
+{"kind": "match" (end of a match, or the board during one) | "numbers" (home, profile, rank, shop, collection or season pass screens showing the player's numbers) | "deck" (a deck of cards) | "card" (one card's own screen: its upgrade level, boosters, splits, variants or Custom Card) | "collection" (the collection grid, with booster counts on the cards) | "split" (the result of an Infinity Split) | "variants" (one card's variants screen, showing which of its variants the player has) | "shop" (a shop screen: the Token Shop, Spotlight Caches, the shop's daily and special offers, a bundle or the Season Pass) | "event" (an event or limited-time mode's own pass, reward track or shop, like Deadpool's Diner's, with levels, XP, rewards, its currency and its collectibles) | "alliance" (any alliance screen: members, bounties, milestones or the alliance leaderboard) | "album" (the variant albums list, or one album with its variants) | "missions" (the Missions screen: daily missions, the weekly challenge or the season's chapters) | "pass" (the season pass reward track) | "cosmetics" (the player's own avatars, titles, card backs or emotes to pick from, in their profile or collection) | "other",
  "match": {"result": "W" | "L" | "T" | "" (from the player's side at the bottom), "cubes": cubes won or lost as a positive number (0 if not shown), "medals": Conquest medals won or lost as a positive number (0 if none), "retreated": true if the player retreated, "oppRetreated": true if the opponent retreated, "snapped": true if the player snapped, "oppSnapped": true if the opponent snapped, "mode": one of the game modes and events above, or the mode or event name shown, or "", "oppName": "", "locations": [{"name": "", "my": bottom player's power, "opp": top player's power, "myCards": [{"card": "each of the player's cards here", "power": number}], "oppCards": [{"card": "each opponent card here", "power": number}]}] (left to right), "eventGain": {"name": "an event currency won this match, like Bubs", "amount": number written in full (+1.2K is 1200)}, "oppCards": ["card names on the top side"], "myCards": ["card names on the bottom side"], "turn": final turn number or null, "boosters": [{"card": "card name", "n": boosters this card earned, as shown on the results}]},
  "numbers": {"topLeft": {"amount": the number at the top left of the top bar or null, "icon": "credits" (blue crystal, blue box) | "tokens" (purple token, purple box) | "other"}, "topRight": {"amount": the number at the top right or null, "icon": "gold" | "other"}, "rank": rank number 1-99, or "Infinite", or null, "rankCubes": cubes toward the next rank (the 4 in 4/7) or null, "rankCubesNeed": cubes the next rank needs (the 7 in 4/7) or null, "collectionLevel": the Collection Level (in a green badge) or null, "clNextReward": "the next big Collection Level reward if shown, like 3000 Collector's Tokens", "clNextIn": Collection Levels until it or null, "credits": Credits (blue crystal icon) or null, "gold": Gold (gold bar icon) or null, "tokens": Collector's Tokens (purple token icon) or null, "passLevel": season pass level or null, "passXp": points toward the next season pass level or null, "passXpNext": points that level needs in all or null, "passTier": "free" | "premium" | "premium+" | "" (which season pass the player has, if you can tell), "rerollCoins": Split Reroll Coins or null, "wildBoosters": Wild Boosters or null, "medals": Conquest medals or null, "goldPassDays": days left on the Gold Pass if shown or null, "goldPassClaimIn": "time until the Gold Pass's daily gold can be claimed, as shown, or empty", "freeTokensClaimed": true if today's free Collector's Tokens show as claimed, false if they can be claimed, else null, "freeCreditsIn": "time until the shop's free credits can be claimed again, as shown, like 7h 22m, or empty"},
  "deck": {"name": "", "cards": ["card names"]},
@@ -6508,7 +6529,8 @@ ${/^screen:/.test(hint || "") ? `This picture was saved automatically while the 
  "alliance": {"name": "alliance name", "tab": "members" | "bounties" | "milestones" | "leaderboard" | "other", "teamPoints": the alliance's points this week or null, "myPoints": the player's own points this week or null, "nextMilestone": {"points": points needed or null, "reward": ""}, "resetsIn": "time left in the week as shown, like 2d 5h", "dropsLeft": bounty drops left this week or null, "myNext": points the player's next personal milestone needs or null, "members": [{"name": "", "role": "Leader" | "Officer" | "Member" | "", "points": alliance points this week or null, "cubes": cubes, or points from cubes on the contributors list, or null, "bounties": bounties done, or points from bounties on the contributors list, or null, "score": total points or score or null, "collectionLevel": Collection Level or null, "rank": "rank as shown, like Infinite or 75, or empty"}], "memberCount": how many members it has or null, "bounties": [{"text": "what to do, as written", "rarity": "Common" | "Epic" | "Legendary" | "", "points": points it gives or null, "progress": done so far or null, "goal": how many it needs or null, "mine": true if the player has it active}], "board": [{"rank": number, "name": "alliance name", "points": null, "cubes": null, "bounties": null, "mine": true if it's the player's alliance}]}}
  "album": {"name": "the album's name if one album is open, else empty", "have": variants collected or null, "of": variants in it or null, "rewards": [{"at": "like 6/12", "reward": "what it gives", "claimed": true if collected}], "cards": [{"card": "card name of each variant shown", "variant": "the variant's name or style if shown", "artist": "artist if shown", "owned": true if the player has it, false if it's greyed out or locked}], "albums": [{"name": "", "have": number, "of": number}] for the albums list},
  "missions": {"tab": "daily" | "season" | "other", "refreshIn": "time until new daily missions, as shown, or empty", "items": [{"text": "today's mission, as written", "progress": done so far or null, "goal": how many it needs or null, "reward": "what it gives, like 100 Season Pass XP", "done": true if it's complete or claimed}], "weekly": {"done": weekly challenge missions done or null, "of": how many it has or null, "points": the challenge's points so far or null, "pointsNext": points for its next reward or null, "endsIn": "time until the weekly challenge resets, if shown", "items": [{"text": "the mission without the HARD: label", "hard": true if marked HARD:, "progress": number or null, "goal": number or null, "reward": "", "done": true | false}]}, "chapters": [{"number": the chapter number, "name": "its name, like Insatiable Immortal", "complete": true if marked COMPLETE, "unlocksIn": "time until it unlocks if locked, as shown", "items": [{"text": "", "progress": number or null, "goal": number or null, "reward": "", "done": true | false, "unlocksIn": "if this mission is still locked"}]}]},
- "pass": {"level": season pass level or null, "xp": points toward the next level or null, "xpNext": points it needs or null, "tier": "free" | "premium" | "premium+" | "", "track": [{"level": number, "free": "the free reward at this level, or empty", "premium": "the premium reward at this level, or empty", "got": true if the player has reached it}], "spotlight": {"name": "the reward in the spotlight", "unlocksAt": level or null}},
+ "cosmetics": {"tab": "avatars" | "titles" | "cardbacks" | "emotes" | "", "items": [{"name": "each one's name as shown", "kind": "avatar" | "title" | "cardback" | "emote", "owned": true if the player has it, false if it's greyed out, locked or shows a price}]},
+ "pass": {"level": season pass level or null, "xp": points toward the next level or null, "xpNext": points it needs or null, "tier": "free" | "premium" | "premium+" | "", "track": [{"level": number, "free": "the free reward at this level, or empty", "premium": "the premium reward at this level, or empty", "got": true if the player has reached it or it shows as claimed}], "spotlight": {"name": "the reward in the spotlight", "unlocksAt": level or null}},
 If the screen also shows the player's own currencies along the top, or their Collection Level or season pass level, fill "numbers" too, whatever the kind. ${TOP_BAR} ${NOT_YOURS} An event's screens show the event's own currencies along the top instead (like Bubs): those go in "event", never in "numbers".
 Leave out sections that don't apply. Never guess numbers you can't read.`;
 async function fileToShot(file) { const img = await imageForAI(file); return { img, hash: shotHash(img.data), time: num(file.lastModified) || Date.now(), url: URL.createObjectURL(file) }; }
@@ -6595,6 +6617,7 @@ async function readOneShot(x) {
   if (kind === "album") { await applyShotAlbum(x, obj(r.album), s.time, s.img); return alsoNumbers(x, r.numbers, s.time); }
   if (kind === "missions") { applyShotMissions(x, obj(r.missions), s.time); return alsoNumbers(x, r.numbers, s.time); }
   if (kind === "pass") { applyShotPass(x, obj(r.pass), s.time); return alsoNumbers(x, r.numbers, s.time); }
+  if (kind === "cosmetics") { applyShotCosmetics(x, obj(r.cosmetics)); return alsoNumbers(x, r.numbers, s.time); }
   x.status = "Nothing to log in this one"; save();
 }
 /* ---------- Telling Credits, Collector's Tokens, Gold and Collection Level apart ---------- */
@@ -7729,7 +7752,7 @@ function wishHits(items) {
   return hits;
 }
 function applyShotShop(x, sh, time) {
-  const more = applyShopMore(sh, time || Date.now());
+  const more = applyShopMore(sh, time || Date.now()); setTimeout(collSyncNow, 0);
   const shop = String(sh.shop || "a shop").slice(0, 40), items = [...arr(sh.items), ...dailyAsItems(sh)].slice(0, 40);
   S.shopSeen = [{ ts: time || Date.now(), shop, items: items.map((it) => ({ card: String(obj(it).card || "").slice(0, 40), variant: String(obj(it).variant || obj(it).artist || "").slice(0, 60), price: String(obj(it).price || "").slice(0, 30), kind: String(obj(it).kind || "").slice(0, 10) })) }, ...arr(S.shopSeen).filter((s) => s.shop !== shop)].slice(0, 8);
   const hits = wishHits(items);
@@ -8487,7 +8510,7 @@ function numbersHtml() {
 function eventPassHtml(e, compact) {
   const pr = obj(S.eventProg[e.id]), levels = num(e.passLevels) || num(pr.levels);
   const lv = num(pr.level), xp = num(pr.xp), need = num(pr.xpNext);
-  const items = collectibleItems(e), got = items.filter((it) => findCollectible(it, e.name).owned).length;
+  const items = collectibleItems(e), got = items.filter((it) => findCollectible(it, e.name, e.startTs).owned).length;
   const nextMs = arr(pr.ms).filter((m) => !m.claimed && num(m.level) > lv).sort((a, b) => num(a.level) - num(b.level))[0];
   const body = `${levels || lv ? `<div class="row between small"><span>Level <b class="num">${lv}</b>${levels ? ` / ${levels}` : ""}${pr.tier ? ` · ${esc(PASS_TIERS[pr.tier] || "")}` : ""}</span>${need ? `<span class="num">${fmt(xp)} / ${fmt(need)} ${esc(pr.xpName || "XP")}</span>` : ""}</div>
       ${need ? progBar(xp, need, `${fmt(need - xp)} ${pr.xpName || "XP"} to level ${lv + 1}`) : levels ? passBar(lv, levels) : ""}
@@ -8530,12 +8553,13 @@ function applyShotEvent(x, e, time) {
   let got = 0;
   for (const c of arr(e.collectibles).slice(0, 30)) {
     const it = { kind: COS[c.kind] || c.kind === "card" || c.kind === "variant" ? c.kind : "other", name: String(obj(c).name || "").slice(0, 60) }; if (!it.name) continue;
-    if (c.owned && !findCollectible(it, ev.name).owned) { setCollectible(it, ev.name, "owned", true); got++; }
+    if (c.owned && !findCollectible(it, ev.name, ev.startTs).owned) { setCollectible(it, ev.name, "owned", true, ev.startTs); got++; }
   }
   if (got) done.push(`${got} collectible${got === 1 ? "" : "s"} ticked`);
   pr.at = time || Date.now(); pr.played = true;
   if (!done.length) { x.status = `${ev.name}: nothing I could read`; return; }
   x.status = `${ev.name} updated`; x.detail = done.join(" · "); x.undo = { type: "event", id: ev.id, before }; save();
+  collSyncNow();
 }
 
 /* ---------- Your alliance: bounties, milestones, members and the leaderboard ---------- */
@@ -9124,20 +9148,18 @@ function applyShotPass(x, p, time) {
   const sp = obj(p.spotlight); if (sp.name) tr.spotlight = { name: String(sp.name).slice(0, 60), at: nIn(sp.unlocksAt) };
   tr.at = time;
   if (!done.length) { x.status = "A season pass screen, but nothing I could read"; return; }
-  x.status = "Season pass updated"; x.detail = done.join(" · "); save();
+  x.status = "Season pass updated"; x.detail = done.join(" · "); save(); collSyncNow();
 }
-// The season's collectibles, in the order the pass gives them, with a lock on premium ones you can't get yet
+// The season's collectibles, in the order the pass gives them, with where to get each one and a lock on premium ones
 function passCollectiblesHtml(s, items) {
   const tr = obj(obj(S.passTrack)[s.id]), lv = obj(tr.levels), tier = obj(S.passes[s.id]).tier || "free", have = num(obj(S.passes[s.id]).level);
-  const where = (it) => { const k = keyOf(it.name.replace(/^.*?:\s*/, "")); if (!k) return null; for (const [L, r] of Object.entries(lv)) for (const side of ["free", "premium"]) { const rk = keyOf(obj(r)[side]); if (rk && (rk.includes(k) || (k.length > 5 && k.includes(rk)))) return { level: Number(L), side }; } return null; };
-  const rows = items.map((it) => ({ it, w: it.pass ? { level: 1, side: "premium" } : where(it) })).sort((a, b) => (a.w ? a.w.level : 999) - (b.w ? b.w.level : 999));
-  lastColl = { items: rows.map((r) => r.it), src: s.name };
+  const ctx = seasonCtx(s);
+  const rows = items.map((it) => ({ it, w: collWhere(it, ctx) })).sort((a, b) => (a.w.level || 999) - (b.w.level || 999));
   const known = Object.keys(lv).length;
-  return `<div class="list">${rows.map(({ it, w }, i) => { const f = findCollectible(it, s.name), locked = w && w.side === "premium" && tier === "free", reach = w && have >= w.level;
-    return `<div class="li"><span class="pill ${f.owned ? "W" : "dim"}">${esc(KIND_TXT[it.kind] || "Reward")}</span><div class="grow" style="min-width:0"><div class="t">${esc(it.name)}</div><div class="s">${w ? `Level ${w.level} · ${w.side === "premium" ? "Premium" : "Free"}${locked ? ` · ${ICON.lock} needs Premium` : reach && !f.owned ? " · reached, claim it" : ""}` : known ? "Not on the part of the track you've opened" : ""}</div></div>
-      <label class="check small"><input type="checkbox" data-coll="owned" data-i="${i}" ${f.owned ? "checked" : ""}> Got it</label>${it.kind !== "other" ? `<label class="check small"><input type="checkbox" data-coll="wish" data-i="${i}" ${f.wish ? "checked" : ""}> Want</label>` : ""}</div>`; }).join("")}</div>
+  return `${collRowsHtml(rows, ctx)}
     ${known ? `<details class="small"><summary>Every level's rewards you've opened (${known})</summary><div class="list" style="margin-top:6px">${Object.entries(lv).sort((a, b) => a[0] - b[0]).map(([L, r]) => `<div class="li"><span class="pill ${have >= L ? "W" : "dim"}">${L}</span><div class="grow small">${r.free ? esc(r.free) : `<span class="muted">—</span>`}</div><div class="grow small">${r.premium ? `${tier === "free" ? ICON.lock + " " : ""}${esc(r.premium)}` : ""}</div></div>`).join("")}</div></details>`
-      : `<p class="muted small">Open the season pass in the game with Track & play on (or screenshot it) and each collectible gets the level it unlocks at.</p>`}`;
+      : ""}
+    <p class="muted small">Ticks come from your collection, your season pass level and pass type, and your screenshots of events and shops. Open the season pass in the game with Track & play on to see the level of every reward, and screenshot your avatars, titles and card backs to tick the ones you have.</p>`;
 }
 
 /* ---------- Every screenshot read, kept on this device for review ---------- */
@@ -9550,6 +9572,131 @@ window.addEventListener("focus", () => { if (Date.now() - webUp.backAt > 5e3) ca
 webUp.backAt = Date.now(); setTimeout(() => checkWebUpdate(true), 4000);
 // Just updated: say so once
 try { const last = JSON.parse(sessionStorage.getItem(WEBUP_KEY) || "{}"); if (last.b && last.b === BUILD) { sessionStorage.removeItem(WEBUP_KEY); setTimeout(() => toast("SNAP Stat updated to the newest version"), 1200); } } catch { /* fine */ }
+/* ============ Collectibles: where each one comes from, and ticking the ones you have ============
+   For a season or event's cards, variants, avatars, titles and card backs this works out where to get each one
+   (the season pass level from your screenshots of the pass, the Premium or Premium+ pass, an event's reward track
+   or shop, the Collector's Token shop, a bundle, or what the season's announcement says), and ticks "Got it" when
+   your collection, your screenshots or your pass level show you have it. Anything you tick or untick yourself stays
+   that way. */
+const KIND_WORD = { variant: /variant/, avatar: /avatar|icon/, title: /title/, cardback: /cardback|back/, emote: /emote/, border: /border/ };
+const collKey = (src, it) => `${keyOf(src)}|${it.kind}|${keyOf(it.name)}`;
+// How well a reward's text (from a pass, a reward track or a shop) matches a collectible: 0 is no match
+function rewardScore(text, it) {
+  const rk = keyOf(text); if (!rk) return 0;
+  const base = it.kind === "variant" ? splitVariant(it.name).card : it.name.replace(/^.*?:\s*/, "");
+  const nk = it.kind === "cardback" ? cosLoose(base) : keyOf(base); if (!nk || nk.length < 3) return 0;
+  if (!(rk.includes(nk) || (nk.length > 5 && rk.length > 5 && nk.includes(rk)))) return 0;
+  let sc = 1;
+  for (const [kind, re] of Object.entries(KIND_WORD)) { if (!re.test(rk.replace(nk, ""))) continue; sc += kind === it.kind ? 2 : -3; }
+  if (it.kind === "variant" && !KIND_WORD.variant.test(rk)) sc -= 0.5; // "Dracula" alone is more likely the avatar
+  return sc > 0 ? sc : 0;
+}
+const best = (list, score) => { let top = null, sc = 0; for (const x of list) { const v = score(x); if (v > sc) { sc = v; top = x; } } return top; };
+
+// ctx: { name, when, season, events }. Returns { lines: [where to get it], level, side, locked, reached, why: proof you have it }
+function collWhere(it, ctx) {
+  const out = { lines: [], level: 0, side: "", locked: false, reached: false, why: "" };
+  const s = ctx.season, ck = it.kind === "card" ? keyOf(it.name) : it.kind === "variant" ? keyOf(splitVariant(it.name).card) : "";
+  if (s) {
+    const P = obj(S.passes[s.id]), tier = P.tier || "free", have = num(P.level), lv = obj(obj(obj(S.passTrack)[s.id]).levels);
+    // 1. The season pass track, from your screenshots of it
+    const hits = []; for (const [L, r] of Object.entries(lv)) for (const side of ["free", "premium"]) { const sc = rewardScore(obj(r)[side], it); if (sc) hits.push({ L: Number(L), side, sc }); }
+    const h = best(hits, (x) => x.sc + (x.side === "free" ? 0.1 : 0));
+    if (h) {
+      out.level = h.L; out.side = h.side; out.locked = h.side === "premium" && tier === "free"; out.reached = have >= h.L;
+      out.lines.push(`Season pass level ${h.L} · ${h.side === "premium" ? "Premium" : "Free"}${out.locked && !out.reached ? " (needs Premium)" : ""}`);
+      if (out.reached && !out.locked) out.why = `You've reached level ${h.L} on the pass`;
+    }
+    // 2. The Premium and Premium+ cards
+    if (it.kind === "card" && keyOf(s.passCard) === ck) { if (!h) out.lines.push("Season pass card · comes with Premium"); if (tier === "premium" || tier === "plus") out.why = out.why || "You have the Premium pass"; }
+    if (it.kind === "card" && keyOf(s.superCard) === ck) { if (!h) out.lines.push("Season pass · comes with Premium+"); if (tier === "plus") out.why = out.why || "You have Premium+"; }
+    // 3. What the season's announcement says
+    const said = Object.entries(obj(s.sources)).find(([n]) => keyOf(n) === keyOf(it.name) || (ck && keyOf(n) === ck && it.kind === "card")); if (said) out.lines.push(String(said[1]));
+    if (!h && it.kind === "variant" && /season ?pass/i.test(it.name)) out.lines.push("Season pass (open it with Track & play on to see the level)");
+  }
+  // 4. Events: their reward tracks and shops, from your screenshots, and the rewards they list
+  for (const e of arr(ctx.events)) {
+    const pr = obj(S.eventProg[e.id]);
+    const m = best(arr(pr.ms), (x) => rewardScore(x.reward, it));
+    if (m) { out.lines.push(`${e.name} reward track · level ${m.level}${m.premium ? " (premium)" : ""}`); if (m.claimed) out.why = out.why || `Claimed in ${e.name}`; }
+    const sh = best(arr(pr.shop), (x) => { const sc = rewardScore(x.name, it); return sc ? sc + (keyOf(x.kind) === it.kind ? 1 : 0) : 0; });
+    if (sh) { out.lines.push(`${e.name} shop${sh.price ? ` · ${fmt(sh.price)} ${sh.currency || ""}`.trimEnd() : ""}`); if (sh.sold) out.why = out.why || `Bought in the ${e.name} shop`; }
+    if (!m && !sh && collectibleItems(e).some((x) => x.kind === it.kind && keyOf(x.name) === keyOf(it.name))) out.lines.push(`${e.name} (${dateStr(e.start)}${e.end ? " – " + dateStr(e.end) : ""})`);
+  }
+  // 5. Shops: today's Collector's Token shop, bundles you've screenshotted and the shop list
+  const D = obj(S.dailyCards);
+  if (ck && D.day === gameDay()) { const d = arr(D.cards).find((x) => keyOf(x.card) === ck && (it.kind === "card" ? !x.variant : !!x.variant)); if (d) { out.lines.push(`In today's Collector's Token shop${d.price ? " · " + d.price : ""}${d.pinned ? " (pinned)" : ""}`); if (d.sold) out.why = out.why || "Bought in the Token shop"; } }
+  const b = best(Object.values(obj(S.gameBundles)).filter((x) => !x.endsAt || x.endsAt > Date.now()), (x) => Math.max(0, ...arr(x.contents).map((c) => rewardScore(c, it))));
+  if (b) { out.lines.push(`In the shop: ${b.name}${b.price ? " · " + b.price : ""}`); if (b.sold) out.why = out.why || `Bought in ${b.name}`; }
+  else if (ck && typeof autoOffers === "function") {
+    const v = it.kind === "variant" ? findCollectible(it, ctx.name, ctx.when).v : null;
+    const o = autoOffers().find((x) => x.cardKey === ck && (it.kind === "card" ? !x.variant : x.variant && (!v || !v.cat || x.cat === v.cat)));
+    if (o) out.lines.push(`${o.shop}${o.title ? ": " + o.title : ""} · ${offerPrice(o)}`);
+  }
+  // 6. Any card: its series
+  if (it.kind === "card" && !out.lines.length) { const c = card(ck); if (/series [1-5]/i.test(c.source || "")) out.lines.push(`${c.source} card${/[45]/.test(c.source) ? " · Collector's Token shop" : ""}`); }
+  if (!out.lines.length && s && it.kind !== "card") out.lines.push("Season reward · its level shows once you open the season pass with Track & play on");
+  return out;
+}
+
+// Ticks what your pass level, events and shops show you have. Returns true if anything changed.
+function collSync(ctx, items) {
+  S.collManual = obj(S.collManual); S.collAuto = obj(S.collAuto);
+  let changed = false;
+  for (const it of items) {
+    const key = collKey(ctx.name, it); if (S.collManual[key] === false) continue;
+    // An old hand-made "Season Pass" variant: move its tick onto the card data's variant
+    if (it.kind === "variant") {
+      const sv = splitVariant(it.name), old = S.variants.find((x) => x.card === keyOf(sv.card) && !x.cat && keyOf(x.name) === keyOf(sv.label) && x.source === ctx.name);
+      if (old) { const cands = allVariants().filter((x) => x.cat && x.card === old.card && keyOf(x.source) === keyOf(sv.label)); if (cands.length) { S.variants = S.variants.filter((x) => x !== old); const v = collVariant(it, ctx.name, ctx.when); if (v && old.owned) setCollectible(it, ctx.name, "owned", true, ctx.when); if (v && old.wish) setCollectible(it, ctx.name, "wish", true, ctx.when); changed = true; } }
+    }
+    const w = collWhere(it, ctx); if (!w.why) continue;
+    if (!findCollectible(it, ctx.name, ctx.when).owned) { setCollectible(it, ctx.name, "owned", true, ctx.when); changed = true; }
+    if (S.collAuto[key] !== w.why) { S.collAuto[key] = w.why; changed = true; }
+  }
+  if (changed) save();
+  return changed;
+}
+const seasonCtx = (s) => ({ name: s.name, when: s.startTs, season: s, events: events().filter((e) => e.startTs <= s.endTs && e.endTs >= s.startTs) });
+const eventCtx = (e) => ({ name: e.name, when: e.startTs, season: null, events: [e] });
+// After a screenshot of the pass, an event or a shop: tick what it shows for this season and the events on now
+function collSyncNow() {
+  try {
+    const cs = currentSeason(); if (cs) collSync(seasonCtx(cs), collectibleItems(cs));
+    for (const e of events().filter((x) => timeState(x) === "live")) collSync(eventCtx(e), collectibleItems(e));
+  } catch { /* not ready yet */ }
+}
+
+// The list itself: art, name, where to get it, and Got it / Want
+function collRowsHtml(rows, ctx) {
+  lastColl = { items: rows.map((r) => r.it), src: ctx.name, when: ctx.when };
+  return `<div class="list">${rows.map(({ it, w }, i) => {
+    const f = findCollectible(it, ctx.name, ctx.when), key = collKey(ctx.name, it), auto = obj(S.collAuto)[key];
+    const ac = it.kind === "avatar" ? cardByName(it.name) : null;
+    const ck = it.kind === "card" ? keyOf(it.name) : it.kind === "variant" ? keyOf(splitVariant(it.name).card) : ac ? ac.key : "";
+    const art = ck && !card(ck).unknown ? cardChip(ck, { noOwn: true, size: "xs", v: it.kind === "variant" ? f.v : null }) : "";
+    const how = f.owned ? (auto ? `✓ ${auto}` : it.kind === "card" || it.kind === "variant" ? "✓ In your collection" : "✓ You have it") : w.reached && w.locked ? `${ICON.lock} You're past level ${w.level}, but it needs Premium` : "";
+    return `<div class="li coll"><div class="collart">${art || `<span class="pill ${f.owned ? "W" : "dim"}">${esc(KIND_TXT[it.kind] || "Reward")}</span>`}</div>
+      <div class="grow"><div class="t">${esc(it.name.replace(/\s*[-–]\s*Season Pass$/i, ""))}</div><div class="s">${esc(KIND_TXT[it.kind] || "Reward")}${it.kind === "variant" && f.v && f.v.artist ? ` by ${esc(f.v.artist)}` : ""}</div>
+        ${w.lines.map((l) => `<div class="s">${esc(l)}</div>`).join("")}${how ? `<div class="s ${f.owned ? "pos" : ""}">${how}</div>` : ""}</div>
+      <div class="collchk"><label class="check small"><input type="checkbox" data-coll="owned" data-i="${i}" ${f.owned ? "checked" : ""}> Got it</label>${it.kind !== "other" ? `<label class="check small"><input type="checkbox" data-coll="wish" data-i="${i}" ${f.wish ? "checked" : ""}> Want</label>` : ""}</div></div>`; }).join("")}</div>`;
+}
+
+/* ---------- Screenshots of your avatars, titles, card backs or emotes ---------- */
+const COS_TABS = { avatars: "avatar", avatar: "avatar", titles: "title", title: "title", cardbacks: "cardback", cardback: "cardback", emotes: "emote", emote: "emote" };
+function applyShotCosmetics(x, c) {
+  const kind = COS_TABS[keyOf(c.tab)] || "";
+  let n = 0;
+  for (const i of arr(c.items).slice(0, 60)) {
+    const name = String(obj(i).name || "").trim().slice(0, 60), k = COS_TABS[keyOf(obj(i).kind)] || kind;
+    if (!name || !k || obj(i).owned !== true) continue;
+    let e = cosFind(k, name); if (!e) { e = { id: uid(), kind: k, name, source: "", owned: false, wish: false }; S.cosmetics.push(e); }
+    if (!e.owned) { e.owned = true; n++; }
+  }
+  if (!kind && !n) { x.status = "A cosmetics screen, but I couldn't tell which kind"; return; }
+  x.status = n ? `${n} ${(COS[kind] || "cosmetic").toLowerCase()}${n === 1 ? "" : "s"} ticked as yours` : `${COS[kind] || "Cosmetics"}: nothing new`;
+  save(); collSyncNow();
+}
 /* ============ Standalone (Firebase) sign-in and storage ============ */
 const FB_CFG_KEY = "snapstat.firebaseConfig", FB_SKIP_KEY = "snapstat.skipSignIn";
 function parseFirebaseConfig(text) {

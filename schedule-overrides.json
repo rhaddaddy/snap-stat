@@ -1,7 +1,7 @@
 {
-  "about": "Corrections to the schedule from snap.fan, checked by hand. update-schedule.mjs applies them every day. Dates are when the game's daily reset happens (12:00 PM Pacific, 11:00 AM in winter).",
+  "about": "Corrections to the schedule from snap.fan, checked by hand. A season's \"sources\" say where its cards and rewards come from (from the game's own announcement). update-schedule.mjs applies them every day. Dates are when the game's daily reset happens (12:00 PM Pacific, 11:00 AM in winter).",
   "seasons": {
-    "s-2026-10": { "name": "Vampires vs. Zombies", "start": "2026-10-06", "passCard": "Vampire Killmonger", "superCard": "Zombie Blade", "link": "https://marvelsnap.com/new-season-vampires-vs-zombies/" }
+    "s-2026-10": { "name": "Vampires vs. Zombies", "start": "2026-10-06", "passCard": "Vampire Killmonger", "superCard": "Zombie Blade", "link": "https://marvelsnap.com/new-season-vampires-vs-zombies/", "sources": {"Zombie Venom": "Seasonal SNAP Pack, from October 6 (Series 5)", "Vampire Enchantress": "Seasonal SNAP Pack, from October 13 (Series 5)", "Zombie Black Cat": "Seasonal SNAP Pack, from October 20 (Series 5)", "Vampire Deacon Frost": "Seasonal SNAP Pack, from October 27 (Series 5)", "Zombie Nova": "A limited-time event this season (Series 4)", "Vampire America Chavez": "A limited-time event this season (Series 4)"} }
   },
   "eventNames": { "High Stakes Tables": "Deadpool's Diner" },
   "dropEvents": ["High Stakes Tables Custom"],
