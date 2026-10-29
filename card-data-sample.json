@@ -53,7 +53,7 @@
    "power": 9,
    "ability": "",
    "flavor": "\"Foolish rabble! You are beneath me!\"",
-   "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/abomination.webp?v=1165",
+   "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/abomination.webp?v=1167",
    "alternate_art": "",
    "url": "https://marvelsnapzone.com/cards/abomination",
    "status": "released",
@@ -62,7 +62,7 @@
     {
      "cid": 1,
      "vid": 5605,
-     "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/1_166196504250.webp?v=1165",
+     "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/1_166196504250.webp?v=1167",
      "art_filename": "1_166196504250.webp",
      "rarity": "Rare",
      "rarity_slug": "rare",
@@ -83,7 +83,7 @@
     {
      "cid": 1,
      "vid": 5606,
-     "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/1_166196504260.webp?v=1165",
+     "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/1_166196504260.webp?v=1167",
      "art_filename": "1_166196504260.webp",
      "rarity": "Rare",
      "rarity_slug": "rare",
@@ -104,7 +104,7 @@
     {
      "cid": 1,
      "vid": 5607,
-     "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/1_166196504251.webp?v=1165",
+     "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/1_166196504251.webp?v=1167",
      "art_filename": "1_166196504251.webp",
      "rarity": "event",
      "rarity_slug": "event",
@@ -147,7 +147,7 @@
    "power": 5,
    "ability": "<span>On Reveal</span>: If the last card you played has an On Reveal, copy its text. (if able)",
    "flavor": "",
-   "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/absorbing-man.webp?v=1165",
+   "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/absorbing-man.webp?v=1167",
    "alternate_art": "",
    "url": "https://marvelsnapzone.com/cards/absorbing-man",
    "status": "released",
@@ -156,7 +156,7 @@
     {
      "cid": 2,
      "vid": 5280,
-     "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/2_166025533667.webp?v=1165",
+     "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/2_166025533667.webp?v=1167",
      "art_filename": "2_166025533667.webp",
      "rarity": "Rare",
      "rarity_slug": "rare",
@@ -177,7 +177,7 @@
     {
      "cid": 2,
      "vid": 5281,
-     "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/2_166025533670.webp?v=1165",
+     "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/2_166025533670.webp?v=1167",
      "art_filename": "2_166025533670.webp",
      "rarity": "Super Rare",
      "rarity_slug": "super-rare",
@@ -198,7 +198,7 @@
     {
      "cid": 2,
      "vid": 5282,
-     "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/2_166025533647.webp?v=1165",
+     "art": "https://marvelsnapzone.com/wp-content/themes/blocksy-child/assets/media/cards/2_166025533647.webp?v=1167",
      "art_filename": "2_166025533647.webp",
      "rarity": "Rare",
      "rarity_slug": "rare",
