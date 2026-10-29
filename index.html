@@ -2740,11 +2740,11 @@ function eventTimes(e) {
 }
 
 // What changes at each one. The daily reset is also one of the mission refreshes (19:00 UTC is in both).
-const DAILY_RESET_ITEMS = ["Free credits in the shop", "The shop's daily offer", "Free Collector's Tokens", "Gold Pass gold (if you have it)", "Free web shop credits", "Credit purchase limits", "New bundles and offers start, old ones leave", "Seasons, events and modes start and end"];
-const REFRESH_8H_ITEMS = ["2 new daily missions: 1 normal, 1 hard (up to 6 wait for you)", "New daily cards in the Collector's Token shop (your pinned card stays)", "The Token shop's Spotlight and variant slots"];
+const DAILY_RESET_ITEMS = ["The shop's daily offer", "Free Collector's Tokens", "Gold Pass gold (if you have it)", "Free web shop credits", "Credit purchase limits", "New bundles and offers start, old ones leave", "Seasons, events and modes start and end"];
+const REFRESH_8H_ITEMS = ["25 free credits in the shop", "2 new daily missions: 1 normal, 1 hard (up to 6 wait for you)", "New event missions", "Bonus boosters and free upgrades", "The cosmetics shop", "New daily cards in the Collector's Token shop (your pinned card stays)", "The Token shop's Spotlight and variant slots"];
 // Shorter versions for the Android notification at each one
-const DAILY_NOTE = ["Free shop credits", "the daily offer", "free Collector's Tokens", "Gold Pass gold"];
-const REFRESH_NOTE = ["2 new daily missions", "new Collector's Token shop cards"];
+const DAILY_NOTE = ["The daily offer", "free Collector's Tokens", "Gold Pass gold"];
+const REFRESH_NOTE = ["25 free credits", "2 new daily missions", "new event missions", "free upgrades", "a new cosmetics shop"];
 const REFRESH_NAME = "Mission refresh";
 function clockHtml() {
   const dr = nextDailyReset(), rf = next8hRefresh(), times = refreshTimes().slice().sort((a, b) => new Date(a).getHours() - new Date(b).getHours());
