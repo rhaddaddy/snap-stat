@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - run: pip install -q pillow numpy && pip install -q torch --index-url https://download.pytorch.org/whl/cpu && pip install -q transformers timm
+      - run: sudo apt-get install -y -q tesseract-ocr > /dev/null && pip install -q pillow numpy pytesseract
       - run: python3 scripts/probe_art.py || true
       - run: |
           git config user.email noreply@anthropic.com && git config user.name "SNAP Stat probe"
