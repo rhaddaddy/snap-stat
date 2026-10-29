@@ -644,7 +644,7 @@ tr.me td { font-weight: 800; color: var(--cube); }
 </style>
 
 <style>html, body { margin: 0; } :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); } img { max-width: 100%; }</style>
-<script>window.SNAPSTAT_BUILD = "5c1231412cb0"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
+<script>window.SNAPSTAT_BUILD = "4876163a63c1"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
 <script src="firebase-config.js"></script>
 <script type="module" src="firebase-init.js"></script>
 </head>
@@ -2904,6 +2904,7 @@ function homeParts() {
   const top = `${seasonHero()}
   ${!S.me.onboarded ? `<div class="panel stack halftone"><h3>Create your profile</h3><p class="muted small">Add your in-game name, country and alliance so friends can follow your stats.</p><div><button class="btn snap" data-a="onboard">Get started</button></div></div>` : ""}
   ${trackerHomeHtml()}
+  ${freshNudgeHtml()}
   ${clockHtml()}
   ${webshopHtml()}
   ${numbersHtml()}
@@ -3112,6 +3113,7 @@ function matchSheet() {
   ${mf.snapped ? `<label class="f">You snapped on turn<input type="number" id="mf-st" data-mf="snapTurn" value="${esc(mf.snapTurn || "")}" min="1" max="7" placeholder="Optional"></label><span></span>` : ""}
   <label class="check"><input type="checkbox" data-mfchk="retreated" ${mf.retreated ? "checked" : ""}> You retreated</label><label class="check"><input type="checkbox" data-mfchk="oppRetreated" ${mf.oppRetreated ? "checked" : ""}> They retreated</label></div>
   ${playByPlayHtml(mf)}
+  ${matchLooksHtml(mf)}
   ${mf.botWhy ? `<p class="small muted">Bot check: ${esc(BOT_TXT[mf.bot] || "Not sure")}, because they ${esc(mf.botWhy)}.</p>` : ""}
   ${mf.eventGain ? `<p class="small">+${fmt(mf.eventGain.amount)} ${esc(mf.eventGain.name)} from this match</p>` : ""}
   <label class="f">Opponent was<select id="mf-bot" data-mf="bot">${Object.entries(BOT_TXT).map(([k, v]) => `<option value="${k}" ${mf.bot === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
@@ -5457,7 +5459,7 @@ document.addEventListener("change", (e) => {
   if (d.bind && /^prices\./.test(d.bind)) { const b = $("#planner"); if (b) b.innerHTML = plannerInner(); }
 });
 
-function cardSheetExtras(k) { return cardImpactLine(k) + cardSheetExtrasBase(k) + cardBoardHtml(k); }
+function cardSheetExtras(k) { return myLookHtml(k) + cardImpactLine(k) + cardSheetExtrasBase(k) + cardBoardHtml(k); }
 function cardImpactLine(k) {
   const ms = realMatches().filter((m) => { const d = S.decks.find((x) => x.id === m.deckId); return d && d.cards.includes(k); });
   const v = cardImpact(ms, [k])[k]; if (v === undefined) return "";
@@ -5508,7 +5510,8 @@ function rivalStats(name) {
 }
 function rivalLine(name) {
   const r = rivalStats(name); if (!r || (!r.ms.length && !r.note)) return "";
-  return `<div class="note">${r.ms.length ? `You've played ${esc(r.name)} ${plural(r.ms.length, "time")}: ${r.st.w}-${r.st.l}${r.st.t ? "-" + r.st.t : ""}, ${signed(r.st.cubes)} cubes. ` : ""}${r.cards.length ? `They've played ${esc(r.cards.slice(0, 4).map(([c]) => c).join(", "))}. ` : ""}${r.note ? `Your note: “${esc(r.note)}” ` : ""}<button class="btn sm ghost" data-a="rivalOpen" data-v="${esc(r.name)}">${r.note ? "Edit note" : "Add a note"}</button></div>`;
+  const usual = r.ms.length ? oppUsual(r.ms) : "";
+  return `<div class="note">${usual ? `<div class="small" style="margin-bottom:4px">${r.ms.length > 1 ? "Usually" : "Last time"}: ${esc(usual)}</div>` : ""}${r.ms.length ? `You've played ${esc(r.name)} ${plural(r.ms.length, "time")}: ${r.st.w}-${r.st.l}${r.st.t ? "-" + r.st.t : ""}, ${signed(r.st.cubes)} cubes. ` : ""}${r.cards.length ? `They've played ${esc(r.cards.slice(0, 4).map(([c]) => c).join(", "))}. ` : ""}${r.note ? `Your note: “${esc(r.note)}” ` : ""}<button class="btn sm ghost" data-a="rivalOpen" data-v="${esc(r.name)}">${r.note ? "Edit note" : "Add a note"}</button></div>`;
 }
 function rivalsHtml() {
   const by = {}; realMatches().forEach((m) => { const k = keyOf(m.oppName); if (k) (by[k] = by[k] || []).push(m); });
@@ -6484,12 +6487,15 @@ const shots = { items: [], busy: false };
 function shotHash(s) { let h = 2166136261; for (let i = 0; i < s.length; i += 7) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36) + s.length.toString(36); }
 // Game modes to choose from: the standard ones plus events and limited-time modes running around now
 const modeNames = () => [...new Set([...MODES.filter((m) => !["Other", "Event", "Limited-time mode"].includes(m)), ...events().filter((e) => e.endTs > Date.now() - 30 * DAY && e.startTs < Date.now() + 7 * DAY).map((e) => String(e.name))])];
-const SCREEN_NAMES = { alliance: "alliance", event: "event pass", eventshop: "event shop", seasonpass: "season pass", shop: "shop (offers and bundles)", shopcurrency: "shop's Credits and Gold", shoptokens: "shop's Collector's Token", shopmedals: "Conquest medal shop", home: "home", albums: "variant albums", missions: "missions", card: "card upgrade", split: "card split result", collectionlevel: "Collection Level" };
+const SCREEN_NAMES = { reward: "reward pop-up", cosmetics: "avatars, titles, card backs or emotes", collection: "collection", alliance: "alliance", event: "event pass", eventshop: "event shop", seasonpass: "season pass", shop: "shop (offers and bundles)", shopcurrency: "shop's Credits and Gold", shoptokens: "shop's Collector's Token", shopmedals: "Conquest medal shop", home: "home", albums: "variant albums", missions: "missions", card: "card upgrade", split: "card split result", collectionlevel: "Collection Level" };
 // What each screen's top bar shows, so its numbers aren't mixed up (an event's currencies aren't Credits).
 const TOP_BAR = "MARVEL SNAP's top bar shows two of the player's currencies. Top right, beside a gold bar in an orange box, is always Gold. Top left is Credits when its icon is a blue crystal shard in a blue box (the home screen and the shop's Offers tab), and Collector's Tokens when its icon is a purple token in a purple box (the shop's Cards tab). Put the top-left one in \"topLeft\" with its icon, and the top-right one in \"topRight\".";
 const HOME_TIPS = "On the home screen: the number in the green badge under the player's picture (like 33,706) is the Collection Level; the small number at the right end of the Season Pass bar is the season pass level; the big number in the circle beside PLAY is the rank, and the one under it (like 4/7) is cubes toward the next rank.";
 const NOT_YOURS = "Numbers inside offers, bundles, packs and price buttons (like 3,600, 500, 1,200 or 6,000) are things for sale, not the player's.";
 const SCREEN_TIPS = {
+  reward: "Read it as \"reward\": list everything the pop-up shows the player got. " + NOT_YOURS,
+  cosmetics: "Read it as \"cosmetics\": every avatar, title, card back or emote shown, and whether the player has it (locked, greyed-out or priced ones they don't). Leave \"numbers\" out.",
+  collection: "Read it as \"collection\": each card in the grid with the booster number on it.",
   home: "Read it as \"numbers\". " + TOP_BAR + " " + HOME_TIPS + " Collector's Tokens aren't shown on the home screen.",
   shop: "Read it as \"shop\". " + TOP_BAR + " " + NOT_YOURS + " Put each bundle or special offer in \"bundles\" with its price, everything in it and the time it has left.",
   shopcurrency: "Read it as \"shop\" (Credits and Gold offers, the Gold Pass and the free credits). " + TOP_BAR + " " + NOT_YOURS + " A red \"Available In 5h 17m\" on the free credits is \"freeCreditsIn\"; \"329 DAYS LEFT\" is \"goldPassDays\", and a timer under the Gold Pass's gold (like 13h 17m) is \"goldPassClaimIn\".",
@@ -6509,15 +6515,15 @@ const SCREEN_TIPS = {
 // another screen (the Collector's Token tab's tokens, say, where the home screen has credits) can't land in the wrong place.
 const CG = ["credits", "gold"];
 const SCREEN_NUMS = { home: [...CG, "collectionLevel", "passLevel", "rank", "rankCubes", "rankCubesNeed"], shop: CG, shopcurrency: [...CG, "goldPassDays", "goldPassClaimIn", "freeCreditsIn"], shoptokens: ["tokens", "gold", "freeTokensClaimed"], shopmedals: ["medals", "gold"],
-  seasonpass: [...CG, "passLevel", "passXp", "passXpNext", "passTier"], collectionlevel: ["collectionLevel", "clNextReward", "clNextIn"], albums: CG, missions: CG, card: CG, split: CG, event: [], eventshop: [], alliance: [] };
+  seasonpass: [...CG, "passLevel", "passXp", "passXpNext", "passTier"], collectionlevel: ["collectionLevel", "clNextReward", "clNextIn"], albums: CG, missions: CG, card: CG, split: CG, event: [], eventshop: [], alliance: [] , reward: CG, cosmetics: [], collection: CG };
 // The kinds each saved screen can be; anything else the reader says is set aside.
-const SCREEN_KINDS = { home: ["numbers"], shop: ["shop", "numbers", "variants"], shopcurrency: ["shop", "numbers"], shoptokens: ["shop", "numbers"], shopmedals: ["shop", "numbers"], seasonpass: ["pass", "numbers"], collectionlevel: ["numbers"], event: ["event"], eventshop: ["event", "shop"], alliance: ["alliance"], missions: ["missions"], albums: ["album"], card: ["card", "split", "variants"], split: ["split"] };
+const SCREEN_KINDS = { reward: ["reward", "variants", "card", "numbers"], cosmetics: ["cosmetics"], collection: ["collection", "card", "numbers"], home: ["numbers"], shop: ["shop", "numbers", "variants"], shopcurrency: ["shop", "numbers"], shoptokens: ["shop", "numbers"], shopmedals: ["shop", "numbers"], seasonpass: ["pass", "numbers"], collectionlevel: ["numbers"], event: ["event"], eventshop: ["event", "shop"], alliance: ["alliance"], missions: ["missions"], albums: ["album"], card: ["card", "split", "variants"], split: ["split"] };
 const SHOT_PROMPT = (roster, hint) => `You are reading a screenshot from the mobile game MARVEL SNAP. Decide what screen it shows and pull out everything visible that's listed below.
 Valid card names (name cost/power): ${roster}
 Game modes and events: ${modeNames().join("; ")}
 ${/^screen:/.test(hint || "") ? `This picture was saved automatically while the player was on the game's ${SCREEN_NAMES[String(hint).slice(7)] || "menu"} screen. ${SCREEN_TIPS[String(hint).slice(7)] || ""}\n` : hint ? `Just before this, the player's screen mentioned "${String(hint).slice(0, 60)}". Use that for the game mode if the picture itself doesn't show the mode, except that a result with cubes won or lost is a Ranked match (or Conquest, with medals).\n` : ""}Reply as JSON:
-{"kind": "match" (end of a match, or the board during one) | "numbers" (home, profile, rank, shop, collection or season pass screens showing the player's numbers) | "deck" (a deck of cards) | "card" (one card's own screen: its upgrade level, boosters, splits, variants or Custom Card) | "collection" (the collection grid, with booster counts on the cards) | "split" (the result of an Infinity Split) | "variants" (one card's variants screen, showing which of its variants the player has) | "shop" (a shop screen: the Token Shop, Spotlight Caches, the shop's daily and special offers, a bundle or the Season Pass) | "event" (an event or limited-time mode's own pass, reward track or shop, like Deadpool's Diner's, with levels, XP, rewards, its currency and its collectibles) | "alliance" (any alliance screen: members, bounties, milestones or the alliance leaderboard) | "album" (the variant albums list, or one album with its variants) | "missions" (the Missions screen: daily missions, the weekly challenge or the season's chapters) | "pass" (the season pass reward track) | "cosmetics" (the player's own avatars, titles, card backs or emotes to pick from, in their profile or collection) | "other",
- "match": {"result": "W" | "L" | "T" | "" (from the player's side at the bottom), "cubes": cubes won or lost as a positive number (0 if not shown), "medals": Conquest medals won or lost as a positive number (0 if none), "retreated": true if the player retreated, "oppRetreated": true if the opponent retreated, "snapped": true if the player snapped, "oppSnapped": true if the opponent snapped, "mode": one of the game modes and events above, or the mode or event name shown, or "", "oppName": "", "locations": [{"name": "", "my": bottom player's power, "opp": top player's power, "myCards": [{"card": "each of the player's cards here", "power": number}], "oppCards": [{"card": "each opponent card here", "power": number}]}] (left to right), "eventGain": {"name": "an event currency won this match, like Bubs", "amount": number written in full (+1.2K is 1200)}, "oppCards": ["card names on the top side"], "myCards": ["card names on the bottom side"], "turn": final turn number or null, "boosters": [{"card": "card name", "n": boosters this card earned, as shown on the results}]},
+{"kind": "match" (end of a match, or the board during one) | "numbers" (home, profile, rank, shop, collection or season pass screens showing the player's numbers) | "deck" (a deck of cards) | "card" (one card's own screen: its upgrade level, boosters, splits, variants or Custom Card) | "collection" (the collection grid, with booster counts on the cards) | "split" (the result of an Infinity Split) | "variants" (one card's variants screen, showing which of its variants the player has) | "shop" (a shop screen: the Token Shop, Spotlight Caches, the shop's daily and special offers, a bundle or the Season Pass) | "event" (an event or limited-time mode's own pass, reward track or shop, like Deadpool's Diner's, with levels, XP, rewards, its currency and its collectibles) | "alliance" (any alliance screen: members, bounties, milestones or the alliance leaderboard) | "album" (the variant albums list, or one album with its variants) | "missions" (the Missions screen: daily missions, the weekly challenge or the season's chapters) | "pass" (the season pass reward track) | "cosmetics" (the player's own avatars, titles, card backs or emotes to pick from, in their profile or collection) | "reward" (a pop-up showing what the player just got: a new card, variant, avatar, title, card back, emote, or what a cache, pack or reward gave) | "other",
+ "match": {"result": "W" | "L" | "T" | "" (from the player's side at the bottom), "cubes": cubes won or lost as a positive number (0 if not shown), "medals": Conquest medals won or lost as a positive number (0 if none), "retreated": true if the player retreated, "oppRetreated": true if the opponent retreated, "snapped": true if the player snapped, "oppSnapped": true if the opponent snapped, "mode": one of the game modes and events above, or the mode or event name shown, or "", "oppName": "", "locations": [{"name": "", "my": bottom player's power, "opp": top player's power, "myCards": [{"card": "each of the player's cards here", "power": number, "variant": "its art variant if you can tell (the artist or style, like Kael Ngu, Pixel or Baby), else empty", "border": "its border if it has a special one, else empty", "finish": "its finish if it has one (like Ink, Gold, Foil, Prism or Glitch), else empty", "flare": "its flare if one is showing (like Glimmer, Comic, Kirby or Sparkle), else empty"}], "oppCards": [{"card": "each opponent card here", "power": number, "variant": "its art variant if you can tell (the artist or style, like Kael Ngu, Pixel or Baby), else empty", "border": "its border if it has a special one, else empty", "finish": "its finish if it has one (like Ink, Gold, Foil, Prism or Glitch), else empty", "flare": "its flare if one is showing (like Glimmer, Comic, Kirby or Sparkle), else empty"}]}] (left to right), "me": {"avatar": "the player's avatar at the bottom: the character or name if you can tell, else empty", "title": "the player's title if shown", "cardback": "the player's card back (on their deck pile or cards in hand): its name or the character on it, else empty", "emotes": ["any emote the player is showing"]}, "opp": {"avatar": "the opponent's avatar at the top: the character or name", "title": "the opponent's title if shown", "cardback": "the opponent's card back: its name or the character on it", "emotes": ["each emote the opponent is showing, by its name or what it shows"]}, "eventGain": {"name": "an event currency won this match, like Bubs", "amount": number written in full (+1.2K is 1200)}, "oppCards": ["card names on the top side"], "myCards": ["card names on the bottom side"], "turn": final turn number or null, "boosters": [{"card": "card name", "n": boosters this card earned, as shown on the results}]},
  "numbers": {"topLeft": {"amount": the number at the top left of the top bar or null, "icon": "credits" (blue crystal, blue box) | "tokens" (purple token, purple box) | "other"}, "topRight": {"amount": the number at the top right or null, "icon": "gold" | "other"}, "rank": rank number 1-99, or "Infinite", or null, "rankCubes": cubes toward the next rank (the 4 in 4/7) or null, "rankCubesNeed": cubes the next rank needs (the 7 in 4/7) or null, "collectionLevel": the Collection Level (in a green badge) or null, "clNextReward": "the next big Collection Level reward if shown, like 3000 Collector's Tokens", "clNextIn": Collection Levels until it or null, "credits": Credits (blue crystal icon) or null, "gold": Gold (gold bar icon) or null, "tokens": Collector's Tokens (purple token icon) or null, "passLevel": season pass level or null, "passXp": points toward the next season pass level or null, "passXpNext": points that level needs in all or null, "passTier": "free" | "premium" | "premium+" | "" (which season pass the player has, if you can tell), "rerollCoins": Split Reroll Coins or null, "wildBoosters": Wild Boosters or null, "medals": Conquest medals or null, "goldPassDays": days left on the Gold Pass if shown or null, "goldPassClaimIn": "time until the Gold Pass's daily gold can be claimed, as shown, or empty", "freeTokensClaimed": true if today's free Collector's Tokens show as claimed, false if they can be claimed, else null, "freeCreditsIn": "time until the shop's free credits can be claimed again, as shown, like 7h 22m, or empty"},
  "deck": {"name": "", "cards": ["card names"]},
  "card": {"card": "card name", "variant": "variant name if shown, else empty", "rarity": "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Ultra" | "Infinity" | "", "boosters": this card's boosters or null, "splits": number of Infinity Splits if shown or null, "finish": "split finish if shown", "flare": "split flare if shown", "border": "border name if shown", "masteryLevel": Character Mastery level or null},
@@ -6529,6 +6535,7 @@ ${/^screen:/.test(hint || "") ? `This picture was saved automatically while the 
  "alliance": {"name": "alliance name", "tab": "members" | "bounties" | "milestones" | "leaderboard" | "other", "teamPoints": the alliance's points this week or null, "myPoints": the player's own points this week or null, "nextMilestone": {"points": points needed or null, "reward": ""}, "resetsIn": "time left in the week as shown, like 2d 5h", "dropsLeft": bounty drops left this week or null, "myNext": points the player's next personal milestone needs or null, "members": [{"name": "", "role": "Leader" | "Officer" | "Member" | "", "points": alliance points this week or null, "cubes": cubes, or points from cubes on the contributors list, or null, "bounties": bounties done, or points from bounties on the contributors list, or null, "score": total points or score or null, "collectionLevel": Collection Level or null, "rank": "rank as shown, like Infinite or 75, or empty"}], "memberCount": how many members it has or null, "bounties": [{"text": "what to do, as written", "rarity": "Common" | "Epic" | "Legendary" | "", "points": points it gives or null, "progress": done so far or null, "goal": how many it needs or null, "mine": true if the player has it active}], "board": [{"rank": number, "name": "alliance name", "points": null, "cubes": null, "bounties": null, "mine": true if it's the player's alliance}]}}
  "album": {"name": "the album's name if one album is open, else empty", "have": variants collected or null, "of": variants in it or null, "rewards": [{"at": "like 6/12", "reward": "what it gives", "claimed": true if collected}], "cards": [{"card": "card name of each variant shown", "variant": "the variant's name or style if shown", "artist": "artist if shown", "owned": true if the player has it, false if it's greyed out or locked}], "albums": [{"name": "", "have": number, "of": number}] for the albums list},
  "missions": {"tab": "daily" | "season" | "other", "refreshIn": "time until new daily missions, as shown, or empty", "items": [{"text": "today's mission, as written", "progress": done so far or null, "goal": how many it needs or null, "reward": "what it gives, like 100 Season Pass XP", "done": true if it's complete or claimed}], "weekly": {"done": weekly challenge missions done or null, "of": how many it has or null, "points": the challenge's points so far or null, "pointsNext": points for its next reward or null, "endsIn": "time until the weekly challenge resets, if shown", "items": [{"text": "the mission without the HARD: label", "hard": true if marked HARD:, "progress": number or null, "goal": number or null, "reward": "", "done": true | false}]}, "chapters": [{"number": the chapter number, "name": "its name, like Insatiable Immortal", "complete": true if marked COMPLETE, "unlocksIn": "time until it unlocks if locked, as shown", "items": [{"text": "", "progress": number or null, "goal": number or null, "reward": "", "done": true | false, "unlocksIn": "if this mission is still locked"}]}]},
+ "reward": {"from": "what gave it, like Spotlight Cache, Collector's Reserve, Collection Level 3,000 or Season Pass level 12", "items": [{"kind": "card" | "variant" | "avatar" | "title" | "cardback" | "emote" | "border" | "credits" | "gold" | "tokens" | "boosters" | "other", "card": "the card's name, for a card or variant", "name": "the variant's name or artist, or the cosmetic's name", "amount": number or null}]},
  "cosmetics": {"tab": "avatars" | "titles" | "cardbacks" | "emotes" | "", "items": [{"name": "each one's name as shown", "kind": "avatar" | "title" | "cardback" | "emote", "owned": true if the player has it, false if it's greyed out, locked or shows a price}]},
  "pass": {"level": season pass level or null, "xp": points toward the next level or null, "xpNext": points it needs or null, "tier": "free" | "premium" | "premium+" | "", "track": [{"level": number, "free": "the free reward at this level, or empty", "premium": "the premium reward at this level, or empty", "got": true if the player has reached it or it shows as claimed}], "spotlight": {"name": "the reward in the spotlight", "unlocksAt": level or null}},
 If the screen also shows the player's own currencies along the top, or their Collection Level or season pass level, fill "numbers" too, whatever the kind. ${TOP_BAR} ${NOT_YOURS} An event's screens show the event's own currencies along the top instead (like Bubs): those go in "event", never in "numbers".
@@ -6552,7 +6559,7 @@ const aiBusyErr = (e) => !!e && (e.status === 429 || e.status >= 500 || e.reach 
 // Reads one screenshot, waiting and trying again (up to 3 times) when the AI is busy. "retry" means it's still unread.
 async function readShotItem(x) {
   for (let tries = 0; ; tries++) {
-    try { await readOneShot(x); await shotLogSave(x); return "ok"; }
+    try { await readOneShot(x); noteSeen(x); await shotLogSave(x); return "ok"; }
     catch (e) {
       if (!aiBusyErr(e)) { x.status = "Couldn't read this one"; x.detail = e && e.message ? e.message : ""; await shotLogSave(x); return "ok"; }
       if (tries >= 2) { x.status = "The AI is busy, so this one waits"; x.detail = x.native ? "I'll read it next time you open SNAP Stat." : "Share it again in a few minutes."; return "retry"; }
@@ -6618,6 +6625,7 @@ async function readOneShot(x) {
   if (kind === "missions") { applyShotMissions(x, obj(r.missions), s.time); return alsoNumbers(x, r.numbers, s.time); }
   if (kind === "pass") { applyShotPass(x, obj(r.pass), s.time); return alsoNumbers(x, r.numbers, s.time); }
   if (kind === "cosmetics") { applyShotCosmetics(x, obj(r.cosmetics)); return alsoNumbers(x, r.numbers, s.time); }
+  if (kind === "reward") { applyShotReward(x, obj(r.reward)); return alsoNumbers(x, r.numbers, s.time); }
   x.status = "Nothing to log in this one"; save();
 }
 /* ---------- Telling Credits, Collector's Tokens, Gold and Collection Level apart ---------- */
@@ -6674,7 +6682,7 @@ function sortTopBar(n, raw, hint, colour) {
 function applyShotMatch(x, mm, time, hint, meta) {
   const res = ["W", "L", "T"].includes(mm.result) ? mm.result : mm.retreated ? "L" : mm.oppRetreated ? "W" : "";
   const plays = [...new Set(arr(mm.myCards).map((n) => (fuzzyCard(n) || {}).key).filter(Boolean))];
-  const d = S.decks.find((dk) => plays.length >= 3 && plays.filter((k) => dk.cards.includes(k)).length >= Math.min(4, plays.length));
+  const d = S.decks.find((dk) => plays.length >= 3 && plays.filter((k) => dk.cards.includes(k)).length >= Math.min(4, plays.length)) || deckByLooks(obj(mm.me));
   const locs = arr(mm.locations).slice(0, 3).map((l) => ({ name: String(l.name || "").slice(0, 40), my: num(l.my), opp: num(l.opp) }));
   const pickMode = (v) => { const kv = keyOf(v || ""); return kv ? [...modeNames(), ...MODES].find((mo) => keyOf(mo) === kv) || null : null; };
   const mag = clamp(Math.abs(num(mm.cubes)), 0, 8), medals = Math.abs(Math.round(num(mm.medals)));
@@ -6689,11 +6697,13 @@ function applyShotMatch(x, mm, time, hint, meta) {
   if (!res) { x.status = "Couldn't tell who won"; x.detail = "Tap Check to fill it in."; }
   const bot = applyAutoBot(m, meta, mm);
   attachTurns(m, meta, mm);
+  const gotLooks = applyMatchLooks(m, mm);
   const eg = obj(mm.eventGain); if (eg.name && nIn(eg.amount)) m.eventGain = { name: String(eg.name).slice(0, 20), amount: nIn(eg.amount) };
   putMatch(m); onMatchSaved(m);
   const boosters = applyMatchBoosters(m, mm.boosters);
   x.matchId = m.id; x.undo = { type: "match", id: m.id };
   if (res) { x.status = `Logged: ${res === "W" ? "win" : res === "L" ? "loss" : "tie"}${m.cubes ? " " + signed(m.cubes) : ""}${m.oppName ? " vs " + m.oppName : ""}`; x.detail = [mode !== "Ranked" ? mode : "", m.medals ? `${signed(m.medals)} medals` : "", d ? d.name : "", locs.map((l) => `${l.name} ${l.my}–${l.opp}`).join(", "), boosters ? `+${boosters} boosters` : "", m.eventGain ? `+${fmt(m.eventGain.amount)} ${m.eventGain.name}` : "", arr(m.turns).length ? `play-by-play for ${m.turns.length} turn${m.turns.length === 1 ? "" : "s"}` : "", bot && m.bot !== "unsure" ? (m.bot === "likely" ? "probably a bot" : "probably a person") : ""].filter(Boolean).join(" · "); }
+  if (gotLooks && gotLooks.length) x.detail = [x.detail, `Ticked: ${gotLooks.slice(0, 3).join(", ")}${gotLooks.length > 3 ? ` and ${gotLooks.length - 3} more` : ""}`].filter(Boolean).join(" · ");
   save();
 }
 // A shop, event or alliance screen that also shows your currencies along the top: those update too.
@@ -7255,6 +7265,7 @@ function applyShotCard(x, cc) {
     if (Number(cc.masteryLevel) >= 1) { p.ml = clamp(Math.round(Number(cc.masteryLevel)), 1, 30); progLogAdd({ k, a: "mastery", n: p.ml }); done.push(`Mastery ${p.ml}`); }
     if (cc.border) { const bd = String(cc.border).slice(0, 40); if (!p.borders.includes(bd)) { p.borders.push(bd); progLogAdd({ k, a: "border", border: bd }); done.push(`${bd} border`); } }
   });
+  { const vn = String(cc.variant || "").trim(), v0 = vn ? matchVariant(k, vn, vn) : null; if (noteLook(k, { v: v0 ? (v0.virtual ? "cat:" + v0.cat : v0.id) : "", vname: vn, border: cc.border, finish: cc.finish, flare: cc.flare }, "card")) done.push("Custom Card saved"); }
   if (!done.length) { x.status = `${c.name}: nothing I could read`; return; }
   x.status = `Updated ${c.name}`; x.detail = done.join(" · "); x.undo = { type: "prog", items: [before], tag }; x.cardKey = k; save();
 }
@@ -7889,7 +7900,7 @@ function vSettingsTab() {
     data: () => `<section class="sec"><h2>Bring your data in</h2><div class="panel stack small">
         <p>MARVEL SNAP doesn't let other apps read your account, so SNAP Stat brings things in from these instead.</p>
         <div class="grid2"><button class="btn" data-a="svOpen">Import from SnapVault</button><button class="btn" data-a="importOpen">Paste a deck code</button></div>
-        <label class="btn">Import a game collection file<input type="file" accept=".json,application/json,text/plain" data-collfile="1" hidden></label>
+        <label class="btn">Import the game's files<input type="file" accept=".json,application/json,text/plain" data-collfile="1" multiple hidden></label><button class="btn ghost" data-a="sweepOpen">Update everything</button>
         <span class="muted">If you also play MARVEL SNAP on a PC, the game keeps your whole collection in a file called <b>CollectionState.json</b> (in <code>AppData\\LocalLow\\Second Dinner\\SNAP\\Standalone\\States</code>). Choose it here to tick every card and variant you own.</span></div></section>
       ${sfPanel()}
       <section class="sec"><h2>Backup</h2><div class="row"><button class="btn" data-a="csvMatches">Matches spreadsheet</button><button class="btn" data-a="csvCollection">Collection spreadsheet</button></div><div class="row"><button class="btn" data-a="backupCopy">${ICON.copy} Copy backup</button>${store.downloads ? `<button class="btn" data-a="backupSave">Save backup file</button>` : ""}<button class="btn" data-a="restoreOpen">Restore</button></div>
@@ -8142,6 +8153,7 @@ function deckLookHtml(d) {
     <button class="btn sm" data-a="dkcOpen">Icon: ${esc(card(d.cover || d.cards[0] || "").name || "none")}</button>
     <button class="btn sm" data-a="dkBackOpen">Card back: ${esc(b ? b.name : cardBacks().length ? "none" : "loading…")}</button>
     <button class="btn sm" data-a="dkBorderOpen">Border: ${esc(d.coverBorder ? borderName(d.coverBorder) || "custom" : "Standard")}</button></div></div>
+    ${deckSeenHtml(d)}
     ${deckTagsEdit(d)}`;
 }
 let dkb = { q: "", own: false, lim: 60 };
@@ -8199,24 +8211,41 @@ function pctBar(a, b) { return `<div class="bar"><i style="width:${b ? Math.roun
 /* ---------- The PC game's collection file ---------- */
 /* MARVEL SNAP on PC keeps your collection in CollectionState.json. Every card in it has a CardDefId (the card) and, for a
    variant, an ArtVariantDefId like "Abomination_03". Decks are lists of CardDefIds with a name. Nothing leaves the phone. */
-function readCollectionFile(text) {
+function readCollectionFile(text, fileName) {
   let j; try { j = JSON.parse(String(text || "").replace(/^﻿/, "")); } catch { return null; }
-  const cards = new Set(), vars = new Set(), decks = [];
-  const walk = (o, depth) => {
+  const fname = String(fileName || ""), isColl = !fname || /collection/i.test(fname), isProfile = /profile/i.test(fname);
+  const cards = new Set(), vars = new Set(), decks = [], looks = {}, cos = { cardback: new Set(), avatar: new Set(), title: new Set(), emote: new Set() };
+  const keys = {}, defs = {};
+  const COS_KEY = { cardback: /^card ?backs?(def)?(id)?s?$/i, avatar: /^avatars?(def)?(id)?s?$/i, title: /^titles?(def)?(id)?s?$/i, emote: /^emotes?(def)?(id)?s?$/i };
+  const cosKind = (k) => Object.keys(COS_KEY).find((c) => COS_KEY[c].test(String(k).replace(/_/g, ""))) || "";
+  const PRIVATE = /account|token|auth|email|device|session|password|secret|steam|platform|ip$/i;
+  const walk = (o, depth, parentKey) => {
     if (!o || typeof o !== "object" || depth > 40) return;
-    if (Array.isArray(o)) { o.forEach((x) => walk(x, depth + 1)); return; }
+    if (Array.isArray(o)) { const ck = cosKind(parentKey); o.forEach((x) => { if (typeof x === "string" && ck) cos[ck].add(x); else walk(x, depth + 1, parentKey); }); return; }
     const id = typeof o.CardDefId === "string" ? o.CardDefId : "";
     if (id && /^[A-Za-z0-9]+$/.test(id)) {
       cards.add(id);
       const v = typeof o.ArtVariantDefId === "string" ? o.ArtVariantDefId : "";
       if (/^[A-Za-z0-9]+_\d{1,3}$/.test(v)) vars.add(v);
+      // The look a card has on: its variant, finish, flare and border (a favourite or Custom Card)
+      const fav = Object.entries(o).some(([k, x]) => /favou?rite|custom|selected|equipped/i.test(k) && x === true);
+      const fin = String(o.SurfaceEffectDefId || o.FinishDefId || ""), fl = String(o.RevealEffectDefId || o.CardRevealEffectDefId || o.FlareDefId || ""), bd = String(o.BorderDefId || o.CardBorderDefId || "");
+      if (fav && (v || fin || fl || bd)) looks[id] = { v, finish: fin, flare: fl, border: bd };
     }
     if (typeof o.Name === "string" && Array.isArray(o.Cards) && o.Cards.length >= 6 && o.Cards.length <= 12 && o.Cards.every((c) => c && typeof c.CardDefId === "string"))
-      decks.push({ name: o.Name.slice(0, 60), cards: o.Cards.map((c) => c.CardDefId), vars: o.Cards.map((c) => (typeof c.ArtVariantDefId === "string" ? c.ArtVariantDefId : "")) });
-    for (const [k, v] of Object.entries(o)) if (v && typeof v === "object" && k !== "$ref") walk(v, depth + 1);
+      decks.push({ name: o.Name.slice(0, 60), cards: o.Cards.map((c) => c.CardDefId), vars: o.Cards.map((c) => (typeof c.ArtVariantDefId === "string" ? c.ArtVariantDefId : "")), back: typeof o.CardBackDefId === "string" ? o.CardBackDefId : "" });
+    for (const [k, v] of Object.entries(o)) {
+      if (k === "$ref" || PRIVATE.test(k)) continue;
+      keys[k] = (keys[k] || 0) + 1;
+      if (typeof v === "string" && /DefId$/i.test(k)) { (defs[k] = defs[k] || new Set()).size < 4 && defs[k].add(v.slice(0, 40)); const ck = cosKind(k.replace(/DefId$/i, "")); if (ck && !/deck/i.test(parentKey || "")) cos[ck].add(v); }
+      if (v && typeof v === "object") walk(v, depth + 1, k);
+    }
   };
-  walk(j, 0);
-  return cards.size ? { cards: [...cards], vars: [...vars], decks } : null;
+  walk(j, 0, "");
+  const summary = { file: fname.slice(0, 60), keys: Object.entries(keys).sort((a, b) => b[1] - a[1]).slice(0, 80).map(([k, n]) => `${k}×${n}`), defIds: Object.fromEntries(Object.entries(defs).slice(0, 40).map(([k, v]) => [k, [...v]])) };
+  // Only the collection file says what you own; the profile file says what you have on
+  const cosOk = isColl || isProfile;
+  return { cards: isColl ? [...cards] : [], vars: isColl ? [...vars] : [], decks: isColl ? decks : [], looks: isColl ? looks : {}, cos: cosOk ? Object.fromEntries(Object.entries(cos).map(([k, v]) => [k, [...v].slice(0, 2000)])) : {}, summary, any: cards.size > 0 || Object.values(cos).some((x) => x.size) };
 }
 // The game's card ID (CardDefId) → the card.
 function cardByDefId(id) { id = String(id || ""); if (!id) return null; return allCards().find((c) => c.catId === id) || cardByCode(cardCode(id)) || cardByCode(id) || null; }
@@ -8228,23 +8257,39 @@ function variantByDefId(def) {
   return allVariants().find((v) => v.card === c.key && v.cat && catOrder(v) === n) || null;
 }
 let collImp = null;
-function applyCollectionFile(text) {
-  const r = readCollectionFile(text);
-  if (!r) { toast("That doesn't look like a MARVEL SNAP collection file."); return; }
-  let cardsNew = 0, varsNew = 0, unknown = 0;
-  for (const id of r.cards) { const c = cardByDefId(id); if (!c) { unknown++; continue; } if (!S.owned[c.key]) { S.owned[c.key] = true; cardsNew++; } }
-  for (const id of r.vars) { const v = variantByDefId(id); if (v && setVarOwned(v, true, "file")) varsNew++; }
-  const have = new Set(S.decks.map((d) => keyOf(d.name)));
-  collImp = { cards: r.cards.length, cardsNew, vars: r.vars.length, varsNew, unknown, decks: r.decks.filter((d) => !have.has(keyOf(d.name))) };
-  S.collFileAt = Date.now();
-  save(); render(); openSheet(collImpSheet);
+// One or more of the game's files (CollectionState.json, ProfileState.json and the rest from its States folder)
+function applyCollectionFile(text, fileName) { return applyGameFiles([{ text, name: fileName || "CollectionState.json" }]); }
+function applyGameFiles(files) {
+  const rs = files.map((f) => ({ f, r: readCollectionFile(f.text, f.name) })).filter((x) => x.r);
+  if (!rs.some((x) => x.r.any)) { toast("Those don't look like MARVEL SNAP's files."); return; }
+  let cardsNew = 0, varsNew = 0, unknown = 0, cosNew = 0, looksNew = 0, cards = 0, vars = 0, cosN = 0;
+  const have = new Set(S.decks.map((d) => keyOf(d.name))), decks = [];
+  for (const { r } of rs) {
+    cards += r.cards.length; vars += r.vars.length;
+    for (const id of r.cards) { const c = cardByDefId(id); if (!c) { unknown++; continue; } if (!S.owned[c.key]) { S.owned[c.key] = true; cardsNew++; } }
+    for (const id of r.vars) { const v = variantByDefId(id); if (v && setVarOwned(v, true, "file")) varsNew++; }
+    for (const [id, L] of Object.entries(r.looks)) { const c = cardByDefId(id); if (!c) continue; const v = L.v ? variantByDefId(L.v) : null; if (noteLook(c.key, { v: v ? (v.virtual ? "cat:" + v.cat : v.id) : "", vname: v ? v.name : "", finish: prettyDef(L.finish), flare: prettyDef(L.flare), border: prettyDef(L.border) }, "file")) looksNew++; }
+    for (const [kind, ids] of Object.entries(r.cos)) for (const id of ids) {
+      cosN++;
+      const e = kind === "emote" && typeof emoteById === "function" ? emoteById(id) : null;
+      if (markCosmetic(kind, e ? e.name : prettyDef(id), kind === "avatar" || kind === "title")) cosNew++;
+    }
+    for (const d of r.decks) if (!have.has(keyOf(d.name))) decks.push(d);
+  }
+  if (cosN) (S.seen = obj(S.seen)).cosfile = Date.now();
+  collImp = { cards, cardsNew, vars, varsNew, unknown, decks, cos: cosN, cosNew, looksNew, files: rs.map((x) => x.r.summary) };
+  if (cards) S.collFileAt = Date.now();
+  save(); collSyncNow(); render(); openSheet(collImpSheet);
 }
+function gameFilesSummary() { return JSON.stringify(arr(obj(collImp).files), null, 1).slice(0, 20000); }
 function collImpSheet() {
   const r = collImp; if (!r) return "";
   return `${sheetHead("Collection file read", "From MARVEL SNAP on PC")}
     <div class="kpis">${`<div class="kpi"><b class="num">${fmt(r.cards)}</b><span>cards in the file${r.cardsNew ? ` · ${fmt(r.cardsNew)} newly ticked` : ""}</span></div><div class="kpi"><b class="num">${fmt(r.vars)}</b><span>variants${r.varsNew ? ` · ${fmt(r.varsNew)} newly ticked` : ""}</span></div>`}</div>
     ${r.unknown ? `<p class="muted small">${r.unknown} card${r.unknown === 1 ? "" : "s"} in the file aren't in SNAP Stat's card list yet. They'll be picked up after the next daily card update if you read the file again.</p>` : ""}
     <p class="muted small">Variants you ticked or unticked yourself weren't changed.</p>
+    ${r.cos || r.looksNew ? `<p class="small">${r.cos ? `${fmt(r.cos)} avatars, titles, card backs and emotes in the files${r.cosNew ? ` · ${fmt(r.cosNew)} newly ticked` : ""}. ` : ""}${r.looksNew ? `${fmt(r.looksNew)} Custom Card${r.looksNew === 1 ? "" : "s"} saved.` : ""}</p>` : `<p class="muted small">No avatars, titles, card backs or Custom Cards found in ${arr(r.files).length > 1 ? "these files" : "this file"}. Try the other files in the same folder (like ProfileState.json), or copy the summary below and send it to Claude to look at.</p>`}
+    <button class="btn sm ghost" data-a="gameFilesCopy">Copy what's in the files, for Claude</button><span class="muted small">Only the names of what's stored and the game's own IDs, never your account details.</span>
     ${r.decks.length ? `<h3>Decks in the file</h3><div class="list">${r.decks.map((d, i) => `<div class="li"><div class="grow"><div class="t">${esc(d.name)}</div><div class="s">${d.cards.map((id) => esc((cardByDefId(id) || { name: id }).name)).join(", ")}</div></div><button class="btn sm" data-a="collDeck" data-i="${i}">${d.added ? "Added" : "Add"}</button></div>`).join("")}</div>
       ${r.decks.length > 1 ? `<button class="btn block" data-a="collDeck" data-i="all">Add all ${r.decks.length} decks</button>` : ""}` : ""}
     <button class="btn snap block" data-a="close">Done</button>`;
@@ -8254,13 +8299,14 @@ function addCollDeck(d) {
   const keys = d.cards.map((id) => (cardByDefId(id) || {}).key).filter(Boolean); if (keys.length < 6) return false;
   const nd = newDeck(d.name, keys, keys.length === 12 ? "active" : "draft");
   d.vars.forEach((def, i) => { const v = def && variantByDefId(def); const k = (cardByDefId(d.cards[i]) || {}).key; if (v && k) nd.variants[k] = v.cat ? "cat:" + v.cat : v.id; });
+  if (d.back) { const b = pickByName(cardBacks(), prettyDef(d.back), (x) => x.name) || cardBacks().find((x) => lookKey(x.id) === lookKey(d.back)); if (b) nd.back = b.id; }
   d.added = true; return true;
 }
 document.addEventListener("change", async (e) => {
   const t = e.target; if (!t || !t.dataset || !t.dataset.collfile) return;
-  const f = t.files && t.files[0]; t.value = ""; if (!f) return;
-  if (f.size > 40e6) { toast("That file is too big to be a collection file."); return; }
-  try { applyCollectionFile(await f.text()); } catch { toast("Couldn't read that file."); }
+  const fs = [...(t.files || [])].slice(0, 12); t.value = ""; if (!fs.length) return;
+  if (fs.some((f) => f.size > 40e6)) { toast("One of those files is too big to be the game's."); return; }
+  try { applyGameFiles(await Promise.all(fs.map(async (f) => ({ text: await f.text(), name: f.name })))); } catch { toast("Couldn't read those files."); }
 });
 
 /* ---------- Typing in these sheets ---------- */
@@ -8292,6 +8338,7 @@ Object.assign(A, {
   cbWish: (el) => { const b = cardBackById(el.dataset.id); if (!b) return; setBack(b, "wish", !(backCos(b) || {}).wish); render(); },
   cbF: (el) => { cbv.f = el.dataset.v; cbv.lim = 60; render(); },
   cbMore: () => { cbv.lim += 60; render(); },
+  gameFilesCopy: () => copyText(gameFilesSummary(), "Copied. Paste it in your chat with Claude."),
   collDeck: (el) => {
     if (!collImp) return;
     const list = el.dataset.i === "all" ? collImp.decks : [collImp.decks[num(el.dataset.i)]].filter(Boolean);
@@ -8463,7 +8510,8 @@ function trackerHomeHtml() {
       : `${play ? "Starts the tracker and opens MARVEL SNAP for you." : "Watches for the end of each match while you play."} Your matches${play ? ", alliance screens, event passes and shops" : ""} are saved as you play and read when you come back.`}</span>
     <div class="row">${i.tracking ? `${i.snap ? `<button class="btn snap" data-a="natPlay">Open MARVEL SNAP</button>` : ""}<button class="btn" data-a="natTrack" data-v="0">Stop tracking</button>` : `<button class="btn snap" data-a="natPlay">${play ? "Track & play" : "Start tracking"}</button>`}</div>
     ${q ? `<p class="note">${fmt(q)} picture${q === 1 ? "" : "s"} waiting to be read. ${canReadShots() ? `<button class="btn sm" data-a="natPull">Read now</button>` : "Add an AI key in Settings › AI to read them."}</p>` : ""}
-    ${!aiOn() ? `<span class="muted">Add your AI key in Settings › AI so what it saves can be read.</span>` : ""}</div></section>`;
+    ${!aiOn() ? `<span class="muted">Add your AI key in Settings › AI so what it saves can be read.</span>` : ""}
+    ${obj(S.sweep).at ? "" : `<button class="linkbtn small" data-a="sweepOpen">Update everything: a quick walk through the game ›</button>`}</div></section>`;
 }
 
 /* ---------- The web shop and its free daily credits ---------- */
@@ -9439,7 +9487,7 @@ function eventShopHtml(pr) {
 // so comparing one turn's picture with the next shows what each of you played, where, and the Power each location has.
 const TURN_PROMPT = (roster, hint) => `This is a MARVEL SNAP match in progress, just after the player (at the bottom) ended turn ${String(hint).slice(5) || "?"}. Read the board.
 Valid card names (name cost/power): ${roster}
-Reply as JSON: {"turn": the turn number shown (3/6 is 3) or null, "energy": the energy left in the player's energy circle or null, "locations": [{"name": "location name, or empty if not revealed yet", "my": the player's Power here (bottom number), "opp": the opponent's Power here (top number), "myCards": [{"card": "card name, from its art", "power": its Power}], "oppCards": [{"card": "", "power": number}]}] (exactly three, left to right), "hand": ["card names in the player's hand"], "oppName": "the opponent's name at the top if shown", "snapped": true if the cube shows the stakes were raised}
+Reply as JSON: {"turn": the turn number shown (3/6 is 3) or null, "energy": the energy left in the player's energy circle or null, "locations": [{"name": "location name, or empty if not revealed yet", "my": the player's Power here (bottom number), "opp": the opponent's Power here (top number), "myCards": [{"card": "card name, from its art", "power": its Power, "variant": "its art variant if you can tell (artist or style), else empty", "finish": "its finish if it has one (like Ink or Gold), else empty", "flare": "its flare if showing, else empty", "border": "a special border, else empty"}], "oppCards": [{"card": "", "power": number, "variant": "", "finish": "", "flare": "", "border": ""}]}] (exactly three, left to right), "me": {"avatar": "the player's avatar: the character on it if you can tell", "cardback": "the player's card back on their deck pile: its name or the character on it"}, "opp": {"avatar": "the opponent's avatar", "title": "the opponent's title if shown", "cardback": "the opponent's card back if shown", "emotes": ["any emote the opponent is showing"]}, "hand": ["card names in the player's hand"], "oppName": "the opponent's name at the top if shown", "snapped": true if the cube shows the stakes were raised}
 List only cards you can see. Never guess.`;
 function applyTurnShot(x, t, time, hint, meta) {
   const sess = String(obj(meta).session || ""), n = num(obj(meta).turn) || num(t.turn) || num(String(hint).slice(5));
@@ -9450,12 +9498,17 @@ function applyTurnShot(x, t, time, hint, meta) {
   const e = (L[sess] = obj(L[sess])); e.at = time || Date.now(); e.turns = obj(e.turns);
   e.turns[n] = { locs, energy: nIn(t.energy), hand: arr(t.hand).map((h) => { const c = fuzzyCard(h); return c ? c.key : ""; }).filter(Boolean).slice(0, 10), at: time };
   if (t.oppName) e.oppName = String(t.oppName).slice(0, 40);
+  e.me = mergeWho(e.me, t.me); e.opp = mergeWho(e.opp, t.opp);
   x.status = `Turn ${n} of a match`; x.detail = locs.map((l) => `${l.name || "?"} ${l.my ?? "?"}–${l.opp ?? "?"}`).join(" · ");
   // A match already logged from an earlier end picture gets the new turn too
-  const m = realMatches().find((mm) => mm.session === sess); if (m) { attachTurns(m, { session: sess }, null); putMatch(m); }
+  const m = realMatches().find((mm) => mm.session === sess); if (m) { attachTurns(m, { session: sess }, null); applyMatchLooks(m, null); putMatch(m); }
   save();
 }
-function turnCards(list) { return arr(list).map((c) => { const f = fuzzyCard(obj(c).card); return f ? { k: f.key, p: nIn(obj(c).power) } : null; }).filter(Boolean).slice(0, 8); }
+function turnCards(list) {
+  return arr(list).map((c) => { const o = obj(c), f = fuzzyCard(o.card); if (!f) return null; const x = { k: f.key, p: nIn(o.power) };
+    for (const [from, to] of [["variant", "v"], ["border", "b"], ["finish", "fi"], ["flare", "fl"]]) { const t = lookWord(o[from]); if (t) x[to] = t.slice(0, 40); }
+    return x; }).filter(Boolean).slice(0, 8);
+}
 // What appeared on one side between two boards: [{k, p, loc}]
 function boardDiff(a, b, side) {
   const out = [];
@@ -9634,7 +9687,7 @@ function collWhere(it, ctx) {
     if (o) out.lines.push(`${o.shop}${o.title ? ": " + o.title : ""} · ${offerPrice(o)}`);
   }
   // 6. Any card: its series
-  if (it.kind === "card" && !out.lines.length) { const c = card(ck); if (/series [1-5]/i.test(c.source || "")) out.lines.push(`${c.source} card${/[45]/.test(c.source) ? " · Collector's Token shop" : ""}`); }
+  if (it.kind === "card" && !out.lines.length) { const c = card(ck), sr = typeof seriesOf === "function" ? String(seriesOf(c) || "") : String(c.source || ""); if (/series [1-5]/i.test(sr)) out.lines.push(`${sr} card${/[45]/.test(sr) ? " · Collector's Token shop" : ""}`); }
   if (!out.lines.length && s && it.kind !== "card") out.lines.push("Season reward · its level shows once you open the season pass with Track & play on");
   return out;
 }
@@ -9686,17 +9739,249 @@ function collRowsHtml(rows, ctx) {
 const COS_TABS = { avatars: "avatar", avatar: "avatar", titles: "title", title: "title", cardbacks: "cardback", cardback: "cardback", emotes: "emote", emote: "emote" };
 function applyShotCosmetics(x, c) {
   const kind = COS_TABS[keyOf(c.tab)] || "";
+  if (kind) (S.seen = obj(S.seen))["cos:" + kind] = Date.now();
   let n = 0;
   for (const i of arr(c.items).slice(0, 60)) {
     const name = String(obj(i).name || "").trim().slice(0, 60), k = COS_TABS[keyOf(obj(i).kind)] || kind;
     if (!name || !k || obj(i).owned !== true) continue;
-    let e = cosFind(k, name); if (!e) { e = { id: uid(), kind: k, name, source: "", owned: false, wish: false }; S.cosmetics.push(e); }
-    if (!e.owned) { e.owned = true; n++; }
+    if (markCosmetic(k, name, true)) n++;
   }
   if (!kind && !n) { x.status = "A cosmetics screen, but I couldn't tell which kind"; return; }
   x.status = n ? `${n} ${(COS[kind] || "cosmetic").toLowerCase()}${n === 1 ? "" : "s"} ticked as yours` : `${COS[kind] || "Cosmetics"}: nothing new`;
   save(); collSyncNow();
 }
+/* ============ Custom Cards, avatars, titles, card backs and emotes, from your screenshots and matches ============
+   - Your Custom Cards: the variant, border, finish and flare you use on each card, from its screen in the game and
+     from what you play in matches. Playing a variant means you own it, so it's ticked too.
+   - Your opponents: their avatar, title, card back, the emotes they send and their Custom Cards, kept with each match.
+   - Your decks: the card back and avatar you had on in each match are kept with the deck you played, and they help
+     tell which deck it was when the cards seen don't. */
+
+/* ---------- Matching names the AI read to the game's lists ---------- */
+const LOOK_NOISE = /\b(card ?backs?|avatars?|titles?|emotes?|variants?|borders?|finish|flare|the|new)\b/gi;
+const lookKey = (s) => keyOf(String(s || "").replace(LOOK_NOISE, " "));
+function pickByName(list, name, nameOf) {
+  const k = lookKey(name); if (!k || k.length < 3) return null;
+  let hit = list.filter((x) => lookKey(nameOf(x)) === k);
+  if (!hit.length && k.length > 5) hit = list.filter((x) => { const n = lookKey(nameOf(x)); return n.length > 4 && (n.includes(k) || k.includes(n)); });
+  if (hit.length > 1) hit.sort((a, b) => Math.abs(lookKey(nameOf(a)).length - k.length) - Math.abs(lookKey(nameOf(b)).length - k.length));
+  return hit[0] || null;
+}
+// Ticks a cosmetic you have. [create] adds one the game's lists don't know (only from your own cosmetics screens).
+function markCosmetic(kind, name, create) {
+  name = String(name || "").trim().slice(0, 60); if (!name || !COS[kind]) return false;
+  if (kind === "cardback" && typeof cardBacks === "function") {
+    const b = pickByName(cardBacks(), name, (x) => x.name) || cardBacks().find((x) => lookKey(x.id) === lookKey(name));
+    if (b) { const c = backCos(b); if (c && c.owned) return false; setBack(b, "owned", true); return true; }
+  }
+  if (kind === "emote" && typeof emoteCatalog === "function") {
+    const e = pickByName(emoteCatalog(), name, (x) => x.name);
+    if (e) { let c = emoteCos(e); if (!c) { c = { id: uid(), kind: "emote", name: e.name, source: "", owned: false, wish: false, ref: e.id }; S.cosmetics.push(c); } if (c.owned) return false; c.owned = true; return true; }
+  }
+  if (kind === "title" && typeof titleCatalog === "function") { const t = pickByName(titleCatalog(), name, (x) => x); if (t) { name = t; create = true; } else if (!create) return false; }
+  let c = cosFind(kind, name);
+  if (!c) { if (!create) return false; c = { id: uid(), kind, name, source: "", owned: false, wish: false }; S.cosmetics.push(c); }
+  if (c.owned) return false; c.owned = true; return true;
+}
+// "ZombieVenom_01" → "Zombie Venom 01"
+const prettyDef = (id) => String(id || "").replace(/^(CardBack|Avatar|Title|Emote|Border)_?/i, "").replace(/_/g, " ").replace(/([a-z])([A-Z0-9])/g, "$1 $2").replace(/\s+/g, " ").trim();
+
+/* ---------- Your Custom Cards ---------- */
+const LOOK_F = ["vname", "border", "finish", "flare"];
+const lookWord = (s) => { const t = String(s || "").trim().slice(0, 40); return /^(none|no|n\/a|null|unknown|standard|default|base)$/i.test(t) ? "" : t; };
+function noteLook(k, look, src) {
+  const c = card(k); if (!c || c.unknown || c.custom) return false;
+  const L = (S.looks = obj(S.looks)), old = obj(L[k]);
+  const n = { v: look.v || "", vname: lookWord(look.vname), border: lookWord(look.border), finish: lookWord(look.finish), flare: lookWord(look.flare) };
+  if (!n.v && !LOOK_F.some((f) => n[f])) return false;
+  // The same variant keeps what was read before and isn't shown now; a different one starts fresh (you changed it)
+  const same = (!n.v || !old.v || n.v === old.v) && (!n.vname || !old.vname || keyOf(n.vname) === keyOf(old.vname));
+  const out = same ? { v: n.v || old.v || "", ...Object.fromEntries(LOOK_F.map((f) => [f, n[f] || old[f] || ""])) } : n;
+  const changed = ["v", ...LOOK_F].some((f) => (out[f] || "") !== (old[f] || ""));
+  L[k] = { ...out, at: Date.now(), src: src || old.src || "" };
+  return changed;
+}
+function lookText(L) { L = obj(L); const v = L.v ? variantAny(L.v) : null; return [v ? `${v.name || "variant"}${byArtist(v)}` : L.vname ? `${L.vname} variant` : "", L.border ? `${L.border} border` : "", L.finish ? `${L.finish} finish` : "", L.flare ? `${L.flare} flare` : ""].filter(Boolean).join(" · "); }
+const LOOK_SRC = { card: "from its screen in the game", match: "from one of your matches", file: "from your PC collection file", reward: "from a reward screen" };
+function myLookHtml(k) {
+  const L = obj(obj(S.looks)[k]); const t = lookText(L); if (!t) return "";
+  return `<div class="panel stack small" style="gap:4px"><div class="row between"><b>Your Custom Card in the game</b><button class="btn sm ghost" data-a="lookClear" data-k="${esc(k)}">Clear</button></div><span>${esc(t)}</span><span class="muted">${esc(LOOK_SRC[L.src] || "")}${L.at ? ` · ${esc(ago(L.at) === "now" ? "just now" : ago(L.at) + " ago")}` : ""}. Screenshot the card in the game after you change it.</span></div>`;
+}
+Object.assign(A, { lookClear: (el) => { delete obj(S.looks)[el.dataset.k]; save(); refreshSheet(); toast("Cleared"); } });
+
+/* ---------- What a match picture shows about you and your opponent ---------- */
+const NO_COLLECTION_MODES = /draft|sealed/i; // modes where you play cards you don't own
+function whoOf(o) { o = obj(o); const out = {}; for (const f of ["avatar", "title", "cardback"]) { const v = lookWord(String(o[f] || "").replace(f === "cardback" ? /\s*card ?back$/i : f === "avatar" ? /\s*avatar$/i : /\s*title$/i, "")); if (v) out[f] = v.slice(0, 50); } const em = arr(o.emotes).map((e) => lookWord(e)).filter(Boolean).slice(0, 6); if (em.length) out.emotes = em; return out; }
+function mergeWho(...list) { const out = {}; for (const w of list.map(whoOf)) { for (const f of ["avatar", "title", "cardback"]) if (w[f] && !out[f]) out[f] = w[f]; if (w.emotes) out.emotes = [...new Set([...arr(out.emotes), ...w.emotes])].slice(0, 8); } return out; }
+// Cards with a look from the end screen ({card, variant, border, finish, flare}) or a turn picture ({k, v, b, fi, fl})
+function looksOf(list) {
+  const out = {};
+  for (const x of arr(list)) {
+    const o = obj(x), c = o.k ? card(o.k) : fuzzyCard(o.card); if (!c || c.unknown) continue;
+    const L = { vname: lookWord(o.v || o.variant), border: lookWord(o.b || o.border), finish: lookWord(o.fi || o.finish), flare: lookWord(o.fl || o.flare) };
+    if (!LOOK_F.some((f) => L[f])) continue;
+    const old = obj(out[c.key]); out[c.key] = Object.fromEntries(LOOK_F.map((f) => [f, old[f] || L[f]]));
+  }
+  return out;
+}
+function applyMatchLooks(m, mm) {
+  mm = obj(mm); const log = m.session ? obj(obj(S.turnLog)[m.session]) : {};
+  const me = mergeWho(mm.me, log.me, m.me), opp = mergeWho(mm.opp, log.opp, m.opp);
+  const mine = [], theirs = [];
+  for (const l of arr(mm.locations)) { mine.push(...arr(obj(l).myCards)); theirs.push(...arr(obj(l).oppCards)); }
+  for (const s of Object.values(obj(log.turns))) for (const l of arr(obj(s).locs)) { mine.push(...arr(l.myCards)); theirs.push(...arr(l.oppCards)); }
+  const myLooks = { ...obj(m.looks), ...looksOf(mine) }, oppLooks = { ...obj(obj(m.opp).looks), ...looksOf(theirs) };
+  if (Object.keys(me).length) m.me = me;
+  if (Object.keys(opp).length || Object.keys(oppLooks).length) m.opp = { ...opp, ...(Object.keys(oppLooks).length ? { looks: oppLooks } : {}) };
+  if (Object.keys(myLooks).length) m.looks = myLooks;
+  const d = S.decks.find((x) => x.id === m.deckId) || null, own = !NO_COLLECTION_MODES.test(m.mode || "");
+  const got = [];
+  if (own) {
+    for (const [k, L] of Object.entries(myLooks)) {
+      const v = L.vname ? matchVariant(k, L.vname, L.vname) : null;
+      if (v) { if (setVarOwned(v, true, "match")) got.push(`${card(k).name} ${v.name || "variant"}`); if (d) { d.variants = obj(d.variants); if (!d.variants[k]) d.variants[k] = v.cat ? "cat:" + v.cat : v.id; } }
+      noteLook(k, { ...L, v: v ? (v.virtual ? "cat:" + v.cat : v.id) : "" }, "match");
+    }
+    // What you had on is yours
+    if (me.cardback && markCosmetic("cardback", me.cardback, false)) got.push(`${me.cardback} card back`);
+    if (me.title && markCosmetic("title", me.title, false)) got.push(`the ${me.title} title`);
+    if (me.avatar && markCosmetic("avatar", me.avatar, false)) got.push(`${me.avatar} avatar`);
+    for (const e of arr(me.emotes)) if (markCosmetic("emote", e, false)) got.push(`${e} emote`);
+  }
+  // Your deck's card back and avatar
+  if (d && (me.cardback || me.avatar)) {
+    d.seen = { ...obj(d.seen), ...(me.cardback ? { back: me.cardback } : {}), ...(me.avatar ? { avatar: me.avatar } : {}), at: Date.now() };
+    if (!d.back && me.cardback && typeof cardBacks === "function") { const b = pickByName(cardBacks(), me.cardback, (x) => x.name); if (b) d.back = b.id; }
+  }
+  return got;
+}
+// The deck whose card back (and avatar) matches what a match showed, when the cards seen didn't say
+function deckByLooks(me) {
+  me = whoOf(me); const back = lookKey(me.cardback), av = lookKey(me.avatar); if (!back) return null;
+  const near = (a, b) => !!a && !!b && (a === b || (a.length > 4 && b.length > 4 && (a.includes(b) || b.includes(a))));
+  const ranked = S.decks.filter((d) => d.status !== "retired" && d.cards.length >= 6).map((d) => {
+    const s = obj(d.seen), bk = d.back && typeof cardBackById === "function" ? lookKey((cardBackById(d.back) || {}).name) : "";
+    let n = near(bk, back) || near(lookKey(s.back), back) ? 2 : 0; if (n && av && near(lookKey(s.avatar), av)) n++;
+    return { d, n };
+  }).filter((x) => x.n >= 2).sort((a, b) => b.n - a.n);
+  if (!ranked.length || (ranked[1] && ranked[1].n === ranked[0].n)) return null;
+  return ranked[0].d;
+}
+
+/* ---------- Showing it ---------- */
+function whoLine(w) { w = obj(w); return [w.avatar ? `${w.avatar} avatar` : "", w.title ? `“${w.title}”` : "", w.cardback ? `${w.cardback} card back` : "", arr(w.emotes).length ? `emotes: ${w.emotes.join(", ")}` : ""].filter(Boolean).join(" · "); }
+function looksChips(looks, deck) {
+  return Object.entries(obj(looks)).slice(0, 12).map(([k, L]) => `<div class="li" style="padding:6px 0;border:0;gap:8px">${cardChip(k, { noOwn: true, size: "xs", deck })}<div class="grow small"><b>${esc(card(k).name)}</b><div class="muted">${esc(lookText(L))}</div></div></div>`).join("");
+}
+function matchLooksHtml(m) {
+  const me = whoLine(m.me), opp = whoLine(m.opp), mine = Object.keys(obj(m.looks)).length, theirs = Object.keys(obj(obj(m.opp).looks)).length;
+  if (!me && !opp && !mine && !theirs) return "";
+  const deck = S.decks.find((d) => d.id === m.deckId) || null;
+  return `<details class="panel small"><summary><b>Avatars, card backs and Custom Cards</b></summary><div class="stack" style="gap:6px;margin-top:8px">
+    ${opp ? `<div><span class="eyebrow">${esc(m.oppName || "Them")}</span><div>${esc(opp)}</div></div>` : ""}
+    ${theirs ? `<div><span class="eyebrow">Their Custom Cards</span>${looksChips(m.opp.looks, null)}</div>` : ""}
+    ${me ? `<div><span class="eyebrow">You</span><div>${esc(me)}</div></div>` : ""}
+    ${mine ? `<div><span class="eyebrow">Your Custom Cards</span>${looksChips(m.looks, deck)}</div>` : ""}
+    <span class="muted">Read from the tracker's pictures, so check anything that looks off.</span></div></details>`;
+}
+// What an opponent usually has on, over every match with them
+function oppUsual(ms) {
+  const count = (f) => { const c = {}; for (const m of ms) { const v = obj(m.opp)[f]; if (v) c[v] = (c[v] || 0) + 1; } return Object.entries(c).sort((a, b) => b[1] - a[1])[0]; };
+  const em = {}; for (const m of ms) for (const e of arr(obj(m.opp).emotes)) em[e] = (em[e] || 0) + 1;
+  const out = [];
+  const av = count("avatar"), ti = count("title"), cb = count("cardback");
+  if (av) out.push(`${av[0]} avatar`); if (ti) out.push(`“${ti[0]}”`); if (cb) out.push(`${cb[0]} card back`);
+  const ems = Object.entries(em).sort((a, b) => b[1] - a[1]).slice(0, 3); if (ems.length) out.push(`sends ${ems.map(([e, n]) => (n > 1 ? `${e} (${n}×)` : e)).join(", ")}`);
+  const looks = {}; for (const m of ms) Object.assign(looks, obj(obj(m.opp).looks));
+  const lk = Object.entries(looks).slice(0, 3).map(([k, L]) => `${card(k).name} (${lookText(L)})`); if (lk.length) out.push(`Custom Cards: ${lk.join("; ")}`);
+  return out.join(" · ");
+}
+function deckSeenHtml(d) {
+  const s = obj(d.seen); if (!s.back && !s.avatar) return "";
+  return `<span class="muted small">Seen in your matches with this deck: ${esc([s.back ? `${s.back} card back` : "", s.avatar ? `${s.avatar} avatar` : ""].filter(Boolean).join(" · "))}. SNAP Stat uses the card back to tell this deck apart when the cards it sees don't.</span>`;
+}
+
+/* ---------- Reward pop-ups: a new card, variant, avatar, title, card back or emote ---------- */
+function applyShotReward(x, r) {
+  const got = [];
+  for (const i of arr(r.items).slice(0, 20)) {
+    const o = obj(i), kind = String(o.kind || "").toLowerCase().replace(/\s/g, "");
+    if (kind === "card") { const c = fuzzyCard(o.card || o.name); if (c && !c.unknown && !S.owned[c.key]) { S.owned[c.key] = true; got.push(c.name); } }
+    else if (kind === "variant") { const c = fuzzyCard(o.card); const v = c ? matchVariant(c.key, o.name || "", o.name || "") : null; if (v && setVarOwned(v, true, "reward")) got.push(`${c.name} ${v.name || "variant"}`); }
+    else if (COS[kind === "cardback" ? "cardback" : kind]) { if (markCosmetic(kind, o.name, true)) got.push(`${o.name} ${COS[kind].toLowerCase()}`); }
+  }
+  const from = String(r.from || "").slice(0, 60);
+  if (!got.length) { x.status = `A reward screen${from ? ` (${from})` : ""}: nothing new to tick`; save(); return; }
+  x.status = `Ticked as yours: ${got.slice(0, 4).join(", ")}${got.length > 4 ? ` and ${got.length - 4} more` : ""}`; x.detail = from; save(); collSyncNow();
+}
+if (typeof OWN_BY !== "undefined") Object.assign(OWN_BY, { match: "seen in one of your matches", reward: "from a reward screen" });
+/* ============ Update everything: a guided sweep through the game, and how fresh each part is ============
+   Each part of your data remembers when a screenshot last updated it. The sweep lists the game's screens in order,
+   ticks each one as its picture is read (from Track & play or a screenshot you take), and shows what changed. */
+const SWEEP = [
+  { k: "numbers", label: "Home screen", how: "The game's home screen", why: "Credits, Gold, Collection Level and pass level", days: 1 },
+  { k: "collection", label: "Your cards", how: "Collection › Cards: scroll to the end, taking a screenshot of each screenful", why: "Cards you own and their boosters", days: 14 },
+  { k: "variants", label: "Variants", how: "Tap a card, then its Variants, for any card you've got something new for", why: "Variants you own", days: 30 },
+  { k: "album", label: "Albums", how: "Collection › Albums, and open each one you're working on", why: "Album progress and variants", days: 14 },
+  { k: "cos:avatar", label: "Avatars", how: "Your profile's Avatars", why: "Avatars you own", days: 30 },
+  { k: "cos:title", label: "Titles", how: "Your profile's Titles", why: "Titles you own", days: 30 },
+  { k: "cos:cardback", label: "Card backs", how: "Your Card Backs", why: "Card backs you own", days: 30 },
+  { k: "cos:emote", label: "Emotes", how: "Your Emotes", why: "Emotes you own", days: 30 },
+  { k: "pass", label: "Season pass", how: "The season pass, scrolled to the end of its track", why: "Your pass level and every reward's level", days: 3 },
+  { k: "missions", label: "Missions", how: "Missions: today's, the weekly challenge and the season chapters", why: "Mission progress", days: 1 },
+  { k: "shop", label: "Shop", how: "The shop's Offers, Cards and Credits tabs", why: "Bundles, daily cards and free credits", days: 1 },
+  { k: "alliance", label: "Alliance", how: "Your alliance's Bounties, Members and Leaderboard", why: "Bounties and points", days: 3 },
+];
+const agoTxt = (t) => (ago(t) === "now" ? "just now" : ago(t) + " ago");
+// When a screenshot last updated something, by the kind it was read as
+function noteSeen(x) {
+  if (!x || !x.kind || x.dupe || /couldn't|nothing|already read|but no|but i couldn't|isn't|doesn't/i.test(String(x.status || ""))) return;
+  (S.seen = obj(S.seen))[x.kind] = Date.now();
+}
+// The newest time anything updated a part, including the other places that keep a time
+function seenAt(k) {
+  const cs = typeof currentSeason === "function" ? currentSeason() : null;
+  const other = { numbers: num(S.walletAt), collection: num(S.collFileAt), variants: num(S.collFileAt), pass: cs ? num(obj(obj(S.passTrack)[cs.id]).at) : 0, missions: num(obj(obj(S.gameMissions).daily).at), shop: num(obj(S.dailyCards).at), alliance: num(obj(S.allianceData).at) }[k] || 0;
+  return Math.max(num(obj(S.seen)[k]), other);
+}
+const staleOf = (st) => { const t = seenAt(st.k); return t && Date.now() - t > st.days * DAY; };
+function sweepCounts() {
+  const cos = (kind) => S.cosmetics.filter((c) => c.kind === kind && c.owned).length;
+  return { cards: Object.keys(S.owned).filter((k) => S.owned[k]).length, variants: S.variants.filter((v) => v.owned).length, avatars: cos("avatar"), titles: cos("title"), cardbacks: cos("cardback"), emotes: cos("emote"), looks: Object.keys(obj(S.looks)).length, cl: num(S.me.colLevel), credits: num(S.wallet.credits), gold: num(S.wallet.gold) };
+}
+const SWEEP_LBL = { cards: "cards", variants: "variants", avatars: "avatars", titles: "titles", cardbacks: "card backs", emotes: "emotes", looks: "Custom Cards", cl: "Collection Level", credits: "credits", gold: "gold" };
+function sweepChanges() {
+  const b = obj(obj(S.sweep).before), now = sweepCounts();
+  return Object.keys(SWEEP_LBL).map((k) => ({ k, d: num(now[k]) - num(b[k]) })).filter((x) => x.d);
+}
+function sweepSheet() {
+  const sw = obj(S.sweep), on = !!sw.at;
+  const done = on ? SWEEP.filter((st) => seenAt(st.k) >= sw.at).length : 0;
+  const rows = SWEEP.map((st, i) => {
+    const t = seenAt(st.k), now = on && t >= sw.at, old = staleOf(st);
+    return `<div class="li" style="align-items:flex-start"><span class="pill ${now ? "W" : old ? "live" : "dim"}" style="min-width:26px;text-align:center">${now ? "✓" : i + 1}</span><div class="grow" style="min-width:0"><div class="t" style="white-space:normal">${esc(st.label)}</div><div class="s" style="white-space:normal">${esc(st.how)}</div>
+      <div class="s" style="white-space:normal">${now ? "Done" : t ? `Last updated ${esc(agoTxt(t))}${old ? " · getting old" : ""}` : "Never read yet"}</div></div></div>`;
+  }).join("");
+  const ch = on ? sweepChanges() : [];
+  return `${sheetHead("Update everything", on ? `${done} of ${SWEEP.length} done` : "Walk through the game once and everything here catches up")}
+    ${on ? "" : `<p class="small">${NATIVE ? "Tap <b>Start</b>: Track & play opens MARVEL SNAP and saves each screen you visit." : "Open each screen below in MARVEL SNAP and take a screenshot, then share them to SNAP Stat."} Go through the list in order. For any screen that doesn't tick, take a screenshot (Power + Volume down) and it's read the next time you open SNAP Stat.</p>`}
+    <div class="row">${on ? `${NATIVE ? `<button class="btn snap" data-a="natPlay">Open MARVEL SNAP</button>` : ""}<button class="btn" data-a="sweepEnd">Finish</button>` : `<button class="btn snap" data-a="sweepStart">Start</button>`}</div>
+    ${on ? `<div class="panel small stack" style="gap:4px"><b>What's changed since you started</b>${ch.length ? ch.map((x) => `<span>${x.d > 0 ? "+" : ""}${fmt(x.d)} ${esc(SWEEP_LBL[x.k])}</span>`).join("") : `<span class="muted">Nothing yet. Pictures are read when you come back to SNAP Stat.</span>`}</div>` : ""}
+    <div class="list">${rows}</div>
+    <p class="muted small">Tip: a reward pop-up (a new card, variant, avatar or card back) ticks what you got too, and every match you play ticks the variants, card back and avatar you used.</p>`;
+}
+// A short line on Home when a part you've read before is getting old
+function freshNudgeHtml() {
+  const sw = obj(S.sweep);
+  if (sw.at) { const done = SWEEP.filter((st) => seenAt(st.k) >= sw.at).length; return `<section class="sec"><button class="panel row between nowrap" data-a="sweepOpen" style="width:100%;text-align:left"><span class="small"><b>Updating everything</b> · ${done} of ${SWEEP.length} done</span><span class="muted">›</span></button></section>`; }
+  const old = SWEEP.filter(staleOf); if (!old.length) return "";
+  return `<section class="sec"><button class="panel row between nowrap" data-a="sweepOpen" style="width:100%;text-align:left"><span class="small" style="white-space:normal"><b>Getting old:</b> ${old.slice(0, 4).map((st) => `${esc(st.label)} (${esc(ago(seenAt(st.k)))})`).join(", ")}${old.length > 4 ? ` and ${old.length - 4} more` : ""}</span><span class="pill dim">Update</span></button></section>`;
+}
+Object.assign(A, {
+  sweepOpen: () => openSheet(sweepSheet),
+  sweepStart: async () => { S.sweep = { at: Date.now(), before: sweepCounts() }; save(); refreshSheet(); render(); if (NATIVE) { try { await A.natPlay(); } catch { /* the button is there */ } } },
+  sweepEnd: () => { const ch = sweepChanges(); S.sweep = null; save(); closeSheet(); render(); toast(ch.length ? `Updated: ${ch.slice(0, 4).map((x) => `${x.d > 0 ? "+" : ""}${fmt(x.d)} ${SWEEP_LBL[x.k]}`).join(", ")}` : "Nothing new this time"); },
+});
 /* ============ Standalone (Firebase) sign-in and storage ============ */
 const FB_CFG_KEY = "snapstat.firebaseConfig", FB_SKIP_KEY = "snapstat.skipSignIn";
 function parseFirebaseConfig(text) {

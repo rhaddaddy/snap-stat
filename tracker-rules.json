@@ -1,6 +1,6 @@
 {
-  "v": 10,
-  "about": "How the SNAP Stat Android app's match tracker spots the end of a match. A frame counts when its words include every word of one 'end' group and none of the 'not' words, on 'frames' checks in a row. 'modes' are words that tell which game mode or event the player is in; the last one seen is passed along with the match, except on screens with a 'modeNot' word (the home screen lists every event that's on, so it doesn't count). 'screens' are other screens worth saving while you play (your alliance, event passes and shops, the season pass, the shop, the home screen): each kind is saved when its words stay on screen for its 'frames' checks (2 if not given). Every new page of it counts (scrolling a list, another tab): up to 'maxPer' pictures per 'cooldownMin' minutes, at least 'minGapSec' seconds apart, skipping pages whose words match one already saved by more than 'same'. Words are matched in lowercase without accents. 'modeReset' words (the home screen) forget the last mode, so a ranked match isn't taken for an event's. Tuned from the tracker logs of October 28, 2026 (six sessions).",
+  "v": 11,
+  "about": "How the SNAP Stat Android app's match tracker spots the end of a match. A frame counts when its words include every word of one 'end' group and none of the 'not' words, on 'frames' checks in a row. 'modes' are words that tell which game mode or event the player is in; the last one seen is passed along with the match, except on screens with a 'modeNot' word (the home screen lists every event that's on, so it doesn't count). 'screens' are other screens worth saving while you play (your alliance, event passes and shops, the season pass, the shop, the home screen): each kind is saved when its words stay on screen for its 'frames' checks (2 if not given). Every new page of it counts (scrolling a list, another tab): up to 'maxPer' pictures per 'cooldownMin' minutes, at least 'minGapSec' seconds apart, skipping pages whose words match one already saved by more than 'same'. Words are matched in lowercase without accents. 'modeReset' words (the home screen) forget the last mode, so a ranked match isn't taken for an event's. Tuned from the tracker logs of October 28, 2026 (six sessions). v11 (October 29) also saves reward pop-ups (a new card, variant, avatar, title, card back or emote), your avatars, titles, card backs and emotes, and your collection's card grid.",
   "intervalMs": 1200,
   "scale": 0.7,
   "frames": 2,
@@ -567,6 +567,168 @@
       "maxPer": 3,
       "minGapSec": 600,
       "same": 0.97
+    },
+    {
+      "kind": "reward",
+      "any": [
+        [
+          "new card"
+        ],
+        [
+          "new variant"
+        ],
+        [
+          "new avatar"
+        ],
+        [
+          "new title"
+        ],
+        [
+          "new card back"
+        ],
+        [
+          "new emote"
+        ],
+        [
+          "you received"
+        ],
+        [
+          "you got"
+        ],
+        [
+          "rewards",
+          "tap to continue"
+        ],
+        [
+          "collector's reserve",
+          "rewards"
+        ],
+        [
+          "cache",
+          "rewards"
+        ],
+        [
+          "reward",
+          "claimed"
+        ]
+      ],
+      "not": [
+        "victory",
+        "defeat",
+        "end turn",
+        "matchmaking",
+        "retreat",
+        "season pass",
+        "daily missions"
+      ],
+      "cooldownMin": 10,
+      "frames": 1,
+      "maxPer": 8,
+      "minGapSec": 2,
+      "same": 0.5
+    },
+    {
+      "kind": "cosmetics",
+      "any": [
+        [
+          "avatars",
+          "equip"
+        ],
+        [
+          "titles",
+          "equip"
+        ],
+        [
+          "card backs",
+          "equip"
+        ],
+        [
+          "emotes",
+          "equip"
+        ],
+        [
+          "select avatar"
+        ],
+        [
+          "select title"
+        ],
+        [
+          "select card back"
+        ],
+        [
+          "choose avatar"
+        ],
+        [
+          "avatars",
+          "titles"
+        ],
+        [
+          "card backs",
+          "emotes"
+        ],
+        [
+          "avatar",
+          "owned"
+        ],
+        [
+          "title",
+          "owned"
+        ]
+      ],
+      "not": [
+        "victory",
+        "defeat",
+        "end turn",
+        "matchmaking",
+        "token shop",
+        "offers",
+        "season pass",
+        "buy"
+      ],
+      "cooldownMin": 30,
+      "maxPer": 12,
+      "minGapSec": 3,
+      "same": 0.45
+    },
+    {
+      "kind": "collection",
+      "any": [
+        [
+          "collection",
+          "sort"
+        ],
+        [
+          "collection",
+          "filter"
+        ],
+        [
+          "collection",
+          "series"
+        ],
+        [
+          "collection",
+          "boosters",
+          "cards"
+        ],
+        [
+          "cards",
+          "collected",
+          "series"
+        ]
+      ],
+      "not": [
+        "victory",
+        "defeat",
+        "end turn",
+        "matchmaking",
+        "albums",
+        "variants",
+        "upgrade"
+      ],
+      "cooldownMin": 60,
+      "maxPer": 12,
+      "minGapSec": 3,
+      "same": 0.45
     }
   ],
   "modeNot": [
