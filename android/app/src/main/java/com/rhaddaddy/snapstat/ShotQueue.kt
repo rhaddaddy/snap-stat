@@ -103,22 +103,30 @@ object ShotQueue {
 
 /** A short, readable log of what the app and the tracker saw, so tracking can be tuned from a copy of it. Kept across restarts. */
 object TrackerLog {
+    /** Enough for a whole play session, so the tracker's rules can be tuned from it. */
+    private const val MAX = 800
     private val lines = ArrayDeque<String>()
     private val fmt = java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.US)
     private var file: File? = null
+    private var appended = 0
 
     @Synchronized
     fun attach(ctx: Context) {
         if (file != null) return
         val f = File(ctx.filesDir, "log.txt"); file = f
-        try { if (f.exists()) f.readLines().takeLast(200).forEach { lines.addLast(it) } } catch (_: Exception) {}
+        try { if (f.exists()) f.readLines().filter { it.isNotBlank() }.takeLast(MAX).forEach { lines.addLast(it) } } catch (_: Exception) {}
     }
 
     @Synchronized
     fun add(line: String) {
-        lines.addLast("${fmt.format(java.util.Date())} ${line.take(300)}")
-        while (lines.size > 200) lines.removeFirst()
-        try { file?.writeText(lines.joinToString("\n")) } catch (_: Exception) {}
+        val l = "${fmt.format(java.util.Date())} ${line.take(300)}"
+        lines.addLast(l)
+        while (lines.size > MAX) lines.removeFirst()
+        // Add to the end of the file, and rewrite it now and then so it doesn't keep growing
+        try {
+            val f = file ?: return
+            if (++appended > MAX / 2) { f.writeText(lines.joinToString("\n") + "\n"); appended = 0 } else f.appendText(l + "\n")
+        } catch (_: Exception) {}
     }
 
     @Synchronized
