@@ -20,7 +20,7 @@ async function download(url = SOURCE) {
   let last;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; SNAP-Stat-card-updater/1.0)", Accept: "application/json,text/plain,*/*" } });
+      const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; SNAP-Stat-card-updater/1.0)", Accept: "application/json,text/plain,*/*" }, signal: AbortSignal.timeout(60000) });
       if (!res.ok) throw new Error(`Marvel Snap Zone answered ${res.status} ${res.statusText}`);
       const text = await res.text();
       try { return JSON.parse(text); } catch { throw new Error("Marvel Snap Zone didn't send JSON. It started with: " + text.slice(0, 200)); }

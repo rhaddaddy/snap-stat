@@ -16,7 +16,7 @@ const started = Date.now();
 async function get(path) {
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const res = await fetch(BASE + path, { headers: { "User-Agent": UA, Accept: "text/html,*/*" } });
+      const res = await fetch(BASE + path, { headers: { "User-Agent": UA, Accept: "text/html,*/*" }, signal: AbortSignal.timeout(45000) });
       if (res.status === 404) return null;
       if (!res.ok) throw new Error(`${path} answered ${res.status}`);
       return await res.text();

@@ -10,7 +10,7 @@ const today = new Date().toISOString().slice(0, 10);
 const strip = (s) => String(s ?? "").replace(/<[^>]*>/g, " ").replace(/&amp;/g, "&").replace(/&#0?39;|&apos;|&#8217;|’/g, "'").replace(/&quot;/g, '"').replace(/&nbsp;/g, " ").replace(/&#8211;|&ndash;/g, "–").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n))).replace(/\s+/g, " ").trim();
 const looksLikeCode = (c) => /^[A-Za-z0-9]{5,24}$/.test(c) && (/[0-9]/.test(c) || /^[A-Z0-9]+$/.test(c));
 async function get(url) {
-  try { const r = await fetch(url, { headers: { "User-Agent": UA, Accept: "text/html" } }); return r.ok ? await r.text() : ""; } catch { return ""; }
+  try { const r = await fetch(url, { headers: { "User-Agent": UA, Accept: "text/html" }, signal: AbortSignal.timeout(45000) }); return r.ok ? await r.text() : ""; } catch { return ""; }
 }
 const found = new Map(); // CODE -> { code, reward, active: Set(sources), expired: Set(sources) }
 const note = (code, src, status, reward = "") => {
