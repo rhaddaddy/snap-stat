@@ -1,5 +1,7 @@
 {
- "anim": [],
+ "anim": [
+  "MetallicSilver"
+ ],
  "still": [
   "WebPink",
   "MetalChainsGold",
@@ -82,7 +84,6 @@
   "MatteRed",
   "MetallicCopper",
   "MetallicGold",
-  "MetallicSilver",
   "NeonBlue",
   "NeonGreen",
   "NeonPurple",
