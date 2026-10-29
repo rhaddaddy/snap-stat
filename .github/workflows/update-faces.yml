@@ -18,6 +18,8 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+      - name: Start from the newest results (another run may have just saved some)
+        run: git pull -q --rebase origin main || true
       - name: Match the game's face portraits against the art
         run: pip install --quiet pillow numpy opencv-python-headless && FACE_BUDGET_MIN=45 python3 scripts/update-faces.py match
       - name: Look for heads where the portrait was drawn separately

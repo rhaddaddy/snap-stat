@@ -15,7 +15,9 @@ UA = {"User-Agent": "Mozilla/5.0 (compatible; SNAP-Stat-faces/1.0; +https://gith
 HOST = "https://static.marvelsnap.pro/"
 MODE = sys.argv[1] if len(sys.argv) > 1 else "match"
 BUDGET = float(os.environ.get("FACE_BUDGET_MIN", "40")) * 60
-MATCH_OK = 0.72
+MATCH_OK = 0.72   # a match this good is used…
+MATCH_SURE = 0.8  # …and below this the head finder checks it too
+EXPAND = 1.2      # the game's portraits are cropped tight; show a little more so the whole face fits
 T0 = time.time()
 
 def get(u):
@@ -27,6 +29,15 @@ except Exception: prev = {}
 try: work = json.load(open("faces-log.json"))  # how each was found, and the ones that weren't (tried again after 30 days)
 except Exception: work = {}
 faces, how, misses = dict(prev.get("faces") or {}), dict(work.get("how") or {}), dict(work.get("misses") or {})
+def widen(b, k=EXPAND):
+    cx, cy, w, h = (b[0] + b[2]) / 2, (b[1] + b[3]) / 2, (b[2] - b[0]) * k, (b[3] - b[1]) * k
+    cy += (b[3] - b[1]) * (k - 1) * 0.25  # tight portraits sit the face low, so open up a little more below
+    return [round(cx - w / 2, 4), round(cy - h / 2, 4), round(cx + w / 2, 4), round(cy + h / 2, 4)] + list(b[4:5])
+if work.get("v", 1) < 2:  # once: widen the matches found before, and have the head finder check the less certain ones
+    for i, h in how.items():
+        if h.startswith("m:") and i in faces:
+            faces[i] = widen(faces[i])
+            if float(h[2:]) < MATCH_SURE: misses[i] = {"at": datetime.now(timezone.utc).timestamp(), "why": "check"}
 
 cd = json.load(open("card-data.json"))
 ids = []
@@ -37,7 +48,7 @@ for c in cd.get("cards", []):
 now = datetime.now(timezone.utc).timestamp()
 
 def save():
-    json.dump({"how": dict(sorted(how.items())), "misses": dict(sorted(misses.items()))}, open("faces-log.json", "w"), separators=(",", ":"))
+    json.dump({"v": 2, "how": dict(sorted(how.items())), "misses": dict(sorted(misses.items()))}, open("faces-log.json", "w"), separators=(",", ":"))
     body = {"source": "Face portraits and art from Marvel Snap Zone (static.marvelsnap.pro)", "faces": dict(sorted(faces.items()))}
     if {k: v for k, v in prev.items() if k != "updated"} == body: return False
     body["updated"] = datetime.now(timezone.utc).isoformat()
@@ -79,7 +90,7 @@ def match(i):
     box = [x - TB[0] * pw, y - TB[1] * ph, x - TB[0] * pw + pw, y - TB[1] * ph + ph]
     ar = art.width / art.height
     if sc < MATCH_OK: return i, None, f"miss:{sc:.2f}"
-    return i, [round(v, 4) for v in box] + [round(ar, 3)], f"m:{sc:.2f}"
+    return i, widen([round(v, 4) for v in box] + [round(ar, 3)]), f"m:{sc:.2f}"
 
 if MODE == "match":
     todo = [i for i in ids if i not in faces and not (i in misses and now - float(misses[i].get("at", 0)) < 30 * 86400)]
@@ -88,7 +99,9 @@ if MODE == "match":
     with ThreadPoolExecutor(6) as ex:
         for i, box, why in ex.map(match, todo):
             n += 1
-            if box: faces[i] = box; how[i] = why; misses.pop(i, None)
+            if box:
+                faces[i] = box; how[i] = why; misses.pop(i, None)
+                if float(why[2:]) < MATCH_SURE: misses[i] = {"at": now, "why": "check"}
             elif why != "noart": misses[i] = {"at": now, "why": why}
             if n % 200 == 0: print(n, "matched so far,", round(time.time() - T0), "s"); save()
             if time.time() - T0 > BUDGET: print("Out of time; the rest next run."); break
@@ -102,7 +115,9 @@ if MODE == "dino":
     except Exception as e: print("No head finder:", e); save(); sys.exit(0)
     proc = AutoProcessor.from_pretrained("IDEA-Research/grounding-dino-tiny")
     model = AutoModelForZeroShotObjectDetection.from_pretrained("IDEA-Research/grounding-dino-tiny"); torch.set_num_threads(4)
+    # Separately drawn portraits first, then the less certain matches
     todo = [i for i, m in misses.items() if not m.get("dino") and i not in faces and str(m.get("why", "")) != "noart"]
+    todo += [i for i, m in misses.items() if not m.get("dino") and m.get("why") == "check"]
     print(len(todo), "for the head finder")
     for k, i in enumerate(todo):
         if time.time() - T0 > BUDGET: print("Out of time; the rest next run."); break
@@ -128,6 +143,7 @@ if MODE == "dino":
         cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
         faces[i] = [round(cx - pw / 2, 4), round(cy - ph * 0.46, 4), round(cx + pw / 2, 4), round(cy + ph * 0.54, 4), round(im.width / im.height, 3)]
         how[i] = f"d:{s:.2f}"
+        if misses.get(i, {}).get("why") == "check": misses.pop(i, None)
         if (k + 1) % 25 == 0: print(k + 1, "heads looked for,", round(time.time() - T0), "s"); save()
     print("faces:", len(faces))
 print("saved" if save() else "No changes.")
