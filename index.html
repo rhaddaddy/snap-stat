@@ -6371,7 +6371,9 @@ async function readShots(files) {
 async function readOneShot(x) {
   const s = await fileToShot(x.file); x.url = s.url;
   const seen = arr(S.shotSeen); if (seen.includes(s.hash)) { x.status = "Already read this screenshot"; return; }
-  const hint = x.file && x.file.snapHint ? String(x.file.snapHint) : "";
+  let hint = x.file && x.file.snapHint ? String(x.file.snapHint) : "";
+  // Before Android 1.10 the tracker also picked up event names from the home screen, so its game mode guess can't be trusted.
+  if (hint && !/^screen:/.test(hint) && NATIVE && verCmp(String(natInfo().version || "0"), "1.10") < 0) hint = "";
   const r = obj(await store.sample.json(SHOT_PROMPT(cardRoster(), hint), { images: [s.img], modelTier: "default" }));
   S.shotSeen = [...seen, s.hash].slice(-200);
   const kind = String(r.kind || "");
