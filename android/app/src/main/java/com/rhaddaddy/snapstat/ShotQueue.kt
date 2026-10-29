@@ -25,7 +25,7 @@ object ShotQueue {
     fun count(ctx: Context): Int = items(ctx).size
 
     private fun items(ctx: Context): List<File> =
-        (dir(ctx).listFiles() ?: emptyArray()).filter { it.isFile && !it.name.endsWith(".tmp") && !it.name.endsWith(".hint") }.sortedBy { it.name }
+        (dir(ctx).listFiles() ?: emptyArray()).filter { it.isFile && !it.name.endsWith(".tmp") && !it.name.endsWith(".hint") && !it.name.endsWith(".meta") }.sortedBy { it.name }
 
     private fun nameFor(time: Long, source: String, ext: String): String {
         val rnd = (100000..999999).random()
@@ -34,11 +34,12 @@ object ShotQueue {
 
     private fun trim(ctx: Context) {
         val all = items(ctx)
-        if (all.size > MAX_ITEMS) all.take(all.size - MAX_ITEMS).forEach { it.delete(); File(it.path + ".hint").delete() }
+        if (all.size > MAX_ITEMS) all.take(all.size - MAX_ITEMS).forEach { it.delete(); File(it.path + ".hint").delete(); File(it.path + ".meta").delete() }
     }
 
     /** Shrinks a picture to at most 1600 pixels on its long side and saves it as a JPEG. */
-    fun addBitmap(ctx: Context, bmp: Bitmap, time: Long, source: String, hint: String = ""): Boolean {
+    /** [meta] is a short JSON note from the tracker about the picture (how quickly the opponent played, say). */
+    fun addBitmap(ctx: Context, bmp: Bitmap, time: Long, source: String, hint: String = "", meta: String = ""): Boolean {
         val scale = MAX_SIDE.toFloat() / max(bmp.width, bmp.height)
         val out = if (scale < 1f) Bitmap.createScaledBitmap(bmp, (bmp.width * scale).toInt(), (bmp.height * scale).toInt(), true) else bmp
         val f = File(dir(ctx), nameFor(time, source, "jpg"))
@@ -46,10 +47,16 @@ object ShotQueue {
         tmp.outputStream().use { out.compress(Bitmap.CompressFormat.JPEG, 85, it) }
         if (out !== bmp) out.recycle()
         if (hint.isNotBlank()) File(f.path + ".hint").writeText(hint.take(80))
+        if (meta.isNotBlank()) File(f.path + ".meta").writeText(meta.take(2000))
         val ok = tmp.renameTo(f)
         trim(ctx)
         return ok
     }
+
+    /** A small JSON file for the web app, like your web shop progress. */
+    fun addJson(ctx: Context, text: String, source: String): Boolean = try {
+        val f = File(dir(ctx), nameFor(System.currentTimeMillis(), source, "json")); f.writeText(text.take(20_000)); trim(ctx); true
+    } catch (e: Exception) { false }
 
     fun addUri(ctx: Context, uri: Uri, time: Long, source: String, mime: String?): Boolean {
         return try {
@@ -83,11 +90,12 @@ object ShotQueue {
         val bytes = try { f.readBytes() } catch (e: Exception) { f.delete(); return "" }
         return JSONObject()
             .put("id", f.name)
-            .put("name", if (json) "snapvault-${parts.getOrNull(0)}.json" else "${parts.getOrNull(1) ?: "shot"}-${parts.getOrNull(0)}.jpg")
+            .put("name", if (json) "${if (parts.getOrNull(1) == "webshop") "webshop" else "snapvault"}-${parts.getOrNull(0)}.json" else "${parts.getOrNull(1) ?: "shot"}-${parts.getOrNull(0)}.jpg")
             .put("type", if (json) "application/json" else "image/jpeg")
             .put("time", parts.getOrNull(0)?.toLongOrNull() ?: f.lastModified())
             .put("source", parts.getOrNull(1) ?: "")
             .put("hint", File(f.path + ".hint").takeIf { it.exists() }?.readText() ?: "")
+            .put("meta", File(f.path + ".meta").takeIf { it.exists() }?.readText() ?: "")
             .put("b64", Base64.encodeToString(bytes, Base64.NO_WRAP))
             .toString()
     }
@@ -96,6 +104,7 @@ object ShotQueue {
         if (id.contains("/") || id.contains("..")) return
         File(dir(ctx), id).delete()
         File(dir(ctx), "$id.hint").delete()
+        File(dir(ctx), "$id.meta").delete()
     }
 
     fun jpegBytes(bmp: Bitmap): ByteArray = ByteArrayOutputStream().also { bmp.compress(Bitmap.CompressFormat.JPEG, 85, it) }.toByteArray()

@@ -8,6 +8,7 @@
 #   promo-codes.json      web shop promo codes and whether they still work (Dexerto, Popverse)
 #   art.json              each season's key art and every card back (Marvel Snap Zone, checked against snap.fan; fixed pictures in cardbacks/)
 #   borders.json          every Custom Card border, with flat (and moving) frames in borders/ (Marvel Snap Zone, snap.fan)
+#   webshop.json          the web shop's bundles, prices and Web Points track (the shop's public catalog)
 name: Update card data
 
 on:
@@ -29,6 +30,7 @@ on:
       - "scripts/update-borders.py"
       - "scripts/update-promos.mjs"
       - "scripts/update-art.py"
+      - "scripts/update-webshop.mjs"
       - "schedule-overrides.json"
 
 permissions:
@@ -67,6 +69,9 @@ jobs:
       - name: Check promo codes
         run: node scripts/update-promos.mjs
         continue-on-error: true
+      - name: Download the web shop's bundles
+        run: node scripts/update-webshop.mjs
+        continue-on-error: true
       - name: Download Custom Card borders
         run: pip install --quiet pillow numpy && python3 scripts/update-borders.py
         continue-on-error: true
@@ -78,7 +83,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
           git add card-data.json card-data-sample.json
-          for f in schedule.json balance-history.json variant-details.json albums.json packs.json borders.json promo-codes.json art.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          for f in schedule.json balance-history.json variant-details.json albums.json packs.json borders.json promo-codes.json art.json webshop.json; do if [ -f "$f" ]; then git add "$f"; fi; done
           if [ -d borders ]; then git add -A borders; fi
           if [ -d cardbacks ]; then git add -A cardbacks; fi
           if git diff --cached --quiet; then

@@ -113,6 +113,8 @@ class Bridge(private val act: MainActivity) {
 
     // ---- Pictures waiting for the web app ----
     @JavascriptInterface fun queueCount(): Int = ShotQueue.count(ctx)
+    /** MARVEL SNAP's web shop inside SNAP Stat, so your Web Points and claimed rewards are kept (see WebShopActivity). */
+    @JavascriptInterface fun openWebShop(): Boolean = try { act.runOnUiThread { act.startActivity(Intent(act, WebShopActivity::class.java)) }; true } catch (e: Exception) { false }
     @JavascriptInterface fun next(): String = ShotQueue.next(ctx)
     @JavascriptInterface fun done(id: String) = ShotQueue.done(ctx, id)
 

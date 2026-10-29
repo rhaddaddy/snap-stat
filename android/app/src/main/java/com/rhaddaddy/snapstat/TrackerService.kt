@@ -36,6 +36,7 @@ class TrackerService : Service() {
         private const val CH_DONE = "captured"
         private const val ID_RUN = 1
         private const val ID_DONE = 2
+        private const val ID_BOT = 3
         private const val ACTION_STOP = "com.rhaddaddy.snapstat.STOP"
 
         @Volatile var running = false
@@ -85,6 +86,18 @@ class TrackerService : Service() {
     private var screenKind = ""
     private var screenHits = 0
     private var shotsSaved = 0
+    // The bot check: how long you wait for the opponent after ending each turn ("PLAYING...").
+    // A bot ends its turns at once; a person usually takes a while on some of them.
+    private var turnState = ""
+    private var turnStart = 0L
+    private var waitStart = 0L
+    private var yourTime = 0L
+    private var botFast = 0
+    private var botSlow = 0
+    private var botMaxWait = 0L
+    private var botTold = false
+    private var matchSeenAt = 0L
+    private val playing = Regex("playing\\.{1,3}")
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -188,13 +201,16 @@ class TrackerService : Service() {
             if (!match) rules.modeIn(flat)?.let { if (it != lastMode) TrackerLog.add("Mode: $it"); lastMode = it; lastModeAt = System.currentTimeMillis() }
             // Note the screen's words whenever they change, for tuning the rules
             if (flat.isNotEmpty() && similarity(flat, lastText) < 0.6) { TrackerLog.add("${if (match) "END" else "saw"}: $flat"); lastText = flat }
+            if (!match) watchTurns(flat.lowercase())
             hits = if (match) hits + 1 else 0
             if (!match) saveScreen(flat, bmp)
             if (hits >= rules.frames) {
                 hits = 0
                 cooldownUntil = System.currentTimeMillis() + rules.cooldownSec * 1000L
                 val hint = if (System.currentTimeMillis() - lastModeAt < 20 * 60_000L) lastMode else ""
-                if (ShotQueue.addBitmap(this, bmp, System.currentTimeMillis(), "tracker", hint)) {
+                val meta = if (botFast + botSlow > 0) org.json.JSONObject().put("bot", org.json.JSONObject().put("fast", botFast).put("slow", botSlow).put("maxWait", (botMaxWait / 1000).toInt()).put("told", botTold)).toString() else ""
+                resetTurns()
+                if (ShotQueue.addBitmap(this, bmp, System.currentTimeMillis(), "tracker", hint, meta)) {
                     captured++
                     TrackerLog.add("Saved the end of a match")
                     notifyCaptured()
@@ -230,6 +246,45 @@ class TrackerService : Service() {
             getSystemService(NotificationManager::class.java).notify(ID_RUN, runningNote())
             onQueued?.invoke()
         }
+    }
+
+    private fun resetTurns() { turnState = ""; turnStart = 0L; waitStart = 0L; yourTime = 0L; botFast = 0; botSlow = 0; botMaxWait = 0L; botTold = false }
+
+    private fun watchTurns(t: String) {
+        val now = System.currentTimeMillis()
+        if (t.contains("searching for") || (matchSeenAt > 0 && now - matchSeenAt > 3 * 60_000L)) { if (botFast + botSlow > 0 || t.contains("searching for")) resetTurns(); matchSeenAt = 0L }
+        val inMatch = t.contains("retreat") || t.contains("end turn") || playing.containsMatchIn(t)
+        if (!inMatch) return
+        matchSeenAt = now
+        val state = if (playing.containsMatchIn(t)) "wait" else if (t.contains("end turn")) "turn" else return
+        if (state == turnState) return
+        if (state == "turn") {
+            // The opponent finished: how long did you wait, on a turn you played quickly yourself?
+            if (turnState == "wait" && waitStart > 0) {
+                val w = now - waitStart
+                // A long wait means a person was thinking; a short one only counts if you didn't take ages yourself
+                if (w >= 12_000L) botSlow++ else if (w <= 6_000L && yourTime in 1..30_000L) botFast++
+                botMaxWait = maxOf(botMaxWait, w)
+            }
+            turnStart = now
+        } else {
+            yourTime = if (turnStart > 0) now - turnStart else 0L
+            waitStart = now
+        }
+        turnState = state
+        if (!botTold && botFast >= 4 && botSlow == 0) { botTold = true; notifyBot() }
+    }
+
+    private fun notifyBot() {
+        TrackerLog.add("Bot check: the opponent answered $botFast quick turns right away")
+        val b = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(this, CH_DONE) else @Suppress("DEPRECATION") Notification.Builder(this)
+        getSystemService(NotificationManager::class.java).notify(ID_BOT, b.setSmallIcon(R.drawable.ic_notify)
+            .setContentTitle("Your opponent might be a bot")
+            .setContentText("They've answered every turn right away. SNAP Stat checks again when the match ends.")
+            .setAutoCancel(true)
+            .setTimeoutAfter(5 * 60_000L)
+            .setContentIntent(openApp())
+            .build())
     }
 
     private fun similarity(a: String, b: String): Double {
