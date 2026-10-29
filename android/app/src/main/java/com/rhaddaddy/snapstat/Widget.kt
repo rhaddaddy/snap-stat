@@ -114,6 +114,10 @@ object ResetClock {
 
     fun nextDaily(ctx: Context, now: Long): Long = nextAt(listOf(resetHour(clock(ctx))), now)
 
+    /** The game's day (the one that started at the last reset), like "2026-10-28". */
+    fun gameDay(ctx: Context, now: Long): String =
+        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date(now - resetHour(clock(ctx)) * 3_600_000L))
+
     fun schedule(ctx: Context) {
         val at = nextAt(refreshHours(clock(ctx)), System.currentTimeMillis())
         val pi = PendingIntent.getBroadcast(ctx, 7, Intent(ctx, ResetAlarm::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -133,7 +137,9 @@ object ResetClock {
         val daily = h == resetHour(st)
         val items = { k: String, def: String -> st?.optJSONObject("clock")?.optJSONArray(k)?.let { a -> (0 until a.length()).joinToString(", ") { a.optString(it) } } ?: def }
         val tag = "reset:" + java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date(now)) + ":" + h
-        if (daily && prefs.optBoolean("resetDaily")) Alerts.show(ctx, "MARVEL SNAP's daily reset", items("daily", "Daily free credits, Gold Pass claim, Collector's Shop free tokens and a new daily shop") + " are ready.", tag, "#home")
+        val web = prefs.optBoolean("webshop", true)
+        if (daily && prefs.optBoolean("resetDaily")) Alerts.show(ctx, "MARVEL SNAP's daily reset", items("daily", "Daily free credits, Gold Pass claim, Collector's Shop free tokens and a new daily shop") + " are ready." + if (web) " Tap to claim your free web shop credits." else "", tag, if (web) "#webshop" else "#home")
+        else if (daily && web) Alerts.show(ctx, "Free web shop credits", "Today's free credits are waiting in the web shop. Tap to claim them.", "webshop:$tag", "#webshop")
         else if (prefs.optBoolean("reset8h")) Alerts.show(ctx, "8-hour refresh", items("refresh", "Missions, free credits, Collector's Shop cards, shop cosmetics and bonus boosters") + " just refreshed.", tag, "#home")
     }
 }

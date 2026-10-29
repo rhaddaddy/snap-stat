@@ -4,6 +4,11 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 
+/** Another screen worth saving while you play (your alliance, an event pass, a shop…), and how to spot it. */
+data class Screen(val kind: String, val groups: List<List<String>>, val not: List<String>, val cooldownMin: Int) {
+    fun matches(t: String): Boolean = not.none { it.isNotBlank() && t.contains(it) } && groups.any { g -> g.isNotEmpty() && g.all { t.contains(it) } }
+}
+
 /**
  * How the tracker spots the end of a match, from tracker-rules.json on the SNAP Stat website.
  * The web app passes the newest copy in, so these can be tuned without a new app.
@@ -25,7 +30,12 @@ data class Rules(
     val not: List<String> = emptyList(),
     /** Words that tell which game mode or event is on screen, like "conquest" or an event's name. */
     val modes: Map<String, List<String>> = emptyMap(),
+    /** Other screens to save for SNAP Stat to read, each no more often than its cooldown. */
+    val screens: List<Screen> = emptyList(),
 ) {
+    /** The kind of screen [text] shows, if it's one of [screens]. */
+    fun screenIn(text: String): Screen? { val t = text.lowercase(); return screens.firstOrNull { it.matches(t) } }
+
     /** The mode whose words appear in [text], preferring the longest match. */
     fun modeIn(text: String): String? {
         val t = text.lowercase()
@@ -72,6 +82,13 @@ data class Rules(
                     }.filter { it.isNotEmpty() },
                     not = if (j.has("not")) words(j.optJSONArray("not")) else d.not,
                     modes = j.optJSONObject("modes")?.let { m -> m.keys().asSequence().associateWith { words(m.optJSONArray(it)) }.filterValues { it.isNotEmpty() } } ?: d.modes,
+                    screens = j.optJSONArray("screens")?.let { a -> (0 until a.length()).mapNotNull { i ->
+                        val s = a.optJSONObject(i) ?: return@mapNotNull null
+                        val kind = s.optString("kind").replace(Regex("[^A-Za-z0-9_-]"), "").take(24)
+                        val any = s.optJSONArray("any")
+                        val groups = if (any == null) emptyList() else (0 until any.length()).map { k -> val g = any.opt(k); if (g is JSONArray) words(g) else listOf(g.toString().lowercase().trim()) }.filter { it.isNotEmpty() }
+                        if (kind.isEmpty() || groups.isEmpty()) null else Screen(kind, groups, words(s.optJSONArray("not")), s.optInt("cooldownMin", 20).coerceIn(2, 24 * 60))
+                    } } ?: d.screens,
                 )
             } catch (e: Exception) {
                 null

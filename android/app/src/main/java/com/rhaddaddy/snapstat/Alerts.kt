@@ -159,6 +159,12 @@ object Alerts {
             val g = td.optInt("games"); val t = td.optInt("t"); val cubes = td.optInt("cubes")
             once("daily:$today", "Your day in MARVEL SNAP", "$g game${if (g > 1) "s" else ""} · ${td.optInt("w")}-${td.optInt("l")}${if (t > 0) "-$t" else ""} · ${if (cubes > 0) "+" else ""}$cubes cubes", "#home")
         }
+        // The web shop's free credits: a second nudge later in the game's day if they haven't been claimed
+        val web = st.optJSONObject("webshop")
+        if (prefs.optBoolean("webshop", true) && web != null) {
+            val gd = ResetClock.gameDay(ctx, now); val left = ResetClock.nextDaily(ctx, now) - now
+            if (web.optString("claimed") != gd && left in 3_600_000L..(14 * 3_600_000L)) once("webshop-late:$gd", "Free web shop credits", "You haven't claimed today's free web shop credits yet. Tap to open the web shop.", "#webshop")
+        }
         val season = st.optJSONObject("season")
         if (prefs.optBoolean("season") && season != null && season.optString("end") == tomorrow)
             once("season:${season.optString("id")}", "The season ends tomorrow", "${season.optString("name")}: finish your pass and climb while you can.", "#seasons")

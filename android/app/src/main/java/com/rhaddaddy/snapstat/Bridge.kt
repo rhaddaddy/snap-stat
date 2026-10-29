@@ -145,6 +145,8 @@ class Bridge(private val act: MainActivity) {
 
     // ---- Match tracker ----
     @JavascriptInterface fun startTracker() { act.runOnUiThread { act.startTracker() } }
+    /** Starts the tracker if it isn't running, then opens MARVEL SNAP. */
+    @JavascriptInterface fun trackAndPlay() { act.runOnUiThread { act.trackAndPlay() } }
     @JavascriptInterface fun stopTracker() { TrackerService.stop(ctx) }
     @JavascriptInterface fun setRules(json: String): Boolean = Rules.save(ctx, json)
     @JavascriptInterface fun log(): String = TrackerLog.text()

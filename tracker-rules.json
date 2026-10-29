@@ -1,6 +1,6 @@
 {
-  "v": 2,
-  "about": "How the SNAP Stat Android app's match tracker spots the end of a match. A frame counts when its words include every word of one 'end' group and none of the 'not' words, on 'frames' checks in a row. 'modes' are words that tell which game mode or event the player is in; the last one seen is passed along with the match. Tuned from the tracker log.",
+  "v": 3,
+  "about": "How the SNAP Stat Android app's match tracker spots the end of a match. A frame counts when its words include every word of one 'end' group and none of the 'not' words, on 'frames' checks in a row. 'modes' are words that tell which game mode or event the player is in; the last one seen is passed along with the match. Tuned from the tracker log. 'screens' are other screens worth saving while you play (your alliance, event passes, the season pass, shops): each kind is saved when its words stay on screen for two checks, at most once per 'cooldownMin' minutes, and only if it changed.",
   "intervalMs": 1500,
   "scale": 0.6,
   "frames": 2,
@@ -62,5 +62,93 @@
     "Draft": [
       "draft"
     ]
-  }
+  },
+  "screens": [
+    {
+      "kind": "alliance",
+      "any": [
+        [
+          "alliance",
+          "bounties"
+        ],
+        [
+          "alliance",
+          "members"
+        ],
+        [
+          "alliance",
+          "leaderboard"
+        ],
+        [
+          "bounty",
+          "alliance points"
+        ],
+        [
+          "alliance points"
+        ]
+      ],
+      "not": [
+        "victory",
+        "defeat"
+      ],
+      "cooldownMin": 15
+    },
+    {
+      "kind": "event",
+      "any": [
+        [
+          "event pass"
+        ],
+        [
+          "premium",
+          "event",
+          "level"
+        ],
+        [
+          "event shop"
+        ]
+      ],
+      "not": [
+        "victory",
+        "defeat",
+        "season pass"
+      ],
+      "cooldownMin": 30
+    },
+    {
+      "kind": "seasonpass",
+      "any": [
+        [
+          "season pass",
+          "level"
+        ]
+      ],
+      "not": [
+        "victory",
+        "defeat"
+      ],
+      "cooldownMin": 60
+    },
+    {
+      "kind": "shop",
+      "any": [
+        [
+          "token shop"
+        ],
+        [
+          "collector's tokens",
+          "shop"
+        ],
+        [
+          "spotlight",
+          "cache"
+        ]
+      ],
+      "not": [
+        "victory",
+        "defeat"
+      ],
+      "cooldownMin": 60
+    }
+  ]
 }

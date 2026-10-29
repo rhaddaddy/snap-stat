@@ -2,6 +2,7 @@
 # both from Marvel Snap Zone. The pictures stay on their servers; this only lists where they are.
 #   seasons:   { "2026-09": { "img": ..., "title": "Axis: Inversion", "link": ... } }   keyed by the month the season starts
 #   cardbacks: [ { "id": "ArthurPendragon_01", "name": ..., "added": ..., "img": ... } ]
+#   titles:    [ "+5 Energy IRL", ... ]   every title's name, from snap.fan
 # Run by .github/workflows/update-cards.yml.
 import html, json, os, re, sys, urllib.request
 from datetime import datetime, timezone
@@ -167,7 +168,18 @@ if have_cv and backs:
     json.dump(checked, open("cardbacks/checked.json", "w"), indent=0, sort_keys=True)
     print("card back pictures:", tally)
 
-body = {"source": "Marvel Snap Zone (marvelsnapzone.com)", "seasons": dict(sorted(seasons.items())), "cardbacks": backs}
+# ---------- Titles (the phrases you collect and show on your profile) ----------
+# snap.fan lists every title's name on one page. Keep the old list if the page can't be read.
+titles = list(prev.get("titles") or [])
+try:
+    page = get("https://snap.fan/titles/")
+    found = [clean(t) for t in re.findall(r'data-title-name="[^"]*">(.*?)</li>', page, re.S)]
+    found = sorted({t for t in found if 0 < len(t) <= 60}, key=lambda t: t.lower())
+    if len(found) >= 200: titles = found
+    print("titles:", len(found))
+except Exception as e: print("titles page", e)
+
+body = {"source": "Marvel Snap Zone (marvelsnapzone.com)", "seasons": dict(sorted(seasons.items())), "cardbacks": backs, "titles": titles}
 if {k: v for k, v in prev.items() if k != "updated"} == body: print("No changes."); sys.exit(0)
 body["updated"] = datetime.now(timezone.utc).isoformat()
 json.dump(body, open("art.json", "w"), ensure_ascii=False, separators=(",", ":"))

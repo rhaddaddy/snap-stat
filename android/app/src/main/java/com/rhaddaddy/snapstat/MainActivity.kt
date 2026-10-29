@@ -62,8 +62,10 @@ class MainActivity : ComponentActivity() {
 
     private val captureAsk = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
         val data = r.data
-        if (r.resultCode == RESULT_OK && data != null) TrackerService.start(this, r.resultCode, data)
-        else TrackerLog.add("Screen capture wasn't allowed")
+        if (r.resultCode == RESULT_OK && data != null) {
+            TrackerService.start(this, r.resultCode, data)
+            if (playAfterStart) { playAfterStart = false; window.decorView.postDelayed({ playNow() }, 700) }
+        } else { playAfterStart = false; TrackerLog.add("Screen capture wasn't allowed") }
         emit("tracker", bridge.info())
     }
 
@@ -265,6 +267,25 @@ class MainActivity : ComponentActivity() {
 
     fun askNotify() {
         if (Build.VERSION.SDK_INT >= 33) notifyAsk.launch(Manifest.permission.POST_NOTIFICATIONS) else emit("perm", bridge.info())
+    }
+
+    /** Set by "Track & play": open MARVEL SNAP as soon as tracking has started. */
+    var playAfterStart = false
+
+    fun openSnapGame(): Boolean {
+        val i = packageManager.getLaunchIntentForPackage(ShotQueue.SNAP_PACKAGE) ?: return false
+        return try { startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); true } catch (e: Exception) { false }
+    }
+
+    private fun playNow() {
+        if (!openSnapGame()) android.widget.Toast.makeText(this, "Couldn't find MARVEL SNAP on this phone. Tracking is on, so open the game yourself.", android.widget.Toast.LENGTH_LONG).show()
+    }
+
+    /** Starts tracking (asking for screen capture if needed), then opens MARVEL SNAP. */
+    fun trackAndPlay() {
+        if (TrackerService.running) { playNow(); return }
+        playAfterStart = true
+        startTracker()
     }
 
     fun startTracker() {

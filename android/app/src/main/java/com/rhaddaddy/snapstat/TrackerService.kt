@@ -80,6 +80,12 @@ class TrackerService : Service() {
     private var lastModeAt = 0L
     private var width = 0
     private var height = 0
+    // Other screens: when each kind was last saved, what it said then, and how many checks in a row it's been on screen
+    private val screenAt = HashMap<String, Long>()
+    private val screenText = HashMap<String, String>()
+    private var screenKind = ""
+    private var screenHits = 0
+    private var shotsSaved = 0
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -93,7 +99,8 @@ class TrackerService : Service() {
         val b = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(this, CH_RUN) else @Suppress("DEPRECATION") Notification.Builder(this)
         return b.setSmallIcon(R.drawable.ic_notify)
             .setContentTitle("Tracking your matches")
-            .setContentText(if (captured == 0) "Play MARVEL SNAP. Matches are saved when they end." else "$captured match${if (captured == 1) "" else "es"} saved. Open SNAP Stat to log them.")
+            .setContentText(if (captured == 0 && shotsSaved == 0) "Play MARVEL SNAP. Matches, your alliance, event passes and shops are saved as you go."
+                else listOfNotNull(if (captured > 0) "$captured match${if (captured == 1) "" else "es"}" else null, if (shotsSaved > 0) "$shotsSaved screen${if (shotsSaved == 1) "" else "s"}" else null).joinToString(" and ") + " saved. Open SNAP Stat to update.")
             .setOngoing(true)
             .setContentIntent(openApp())
             .addAction(Notification.Action.Builder(Icon.createWithResource(this, R.drawable.ic_notify), "Stop", stop).build())
@@ -182,6 +189,7 @@ class TrackerService : Service() {
             // Note the screen's words whenever they change, for tuning the rules
             if (flat.isNotEmpty() && similarity(flat, lastText) < 0.6) { TrackerLog.add("${if (match) "END" else "saw"}: $flat"); lastText = flat }
             hits = if (match) hits + 1 else 0
+            if (!match) saveScreen(flat, bmp)
             if (hits >= rules.frames) {
                 hits = 0
                 cooldownUntil = System.currentTimeMillis() + rules.cooldownSec * 1000L
@@ -195,6 +203,24 @@ class TrackerService : Service() {
             }
         } finally {
             bmp.recycle(); busy = false
+        }
+    }
+
+    /** An alliance, event pass, shop or other screen from [Rules.screens]: saved when it stays up for a moment and has changed since last time. */
+    private fun saveScreen(flat: String, bmp: Bitmap) {
+        val s = rules.screenIn(flat)
+        if (s == null) { screenKind = ""; screenHits = 0; return }
+        screenHits = if (s.kind == screenKind) screenHits + 1 else 1
+        screenKind = s.kind
+        val now = System.currentTimeMillis()
+        if (screenHits < 2 || now - (screenAt[s.kind] ?: 0L) < s.cooldownMin * 60_000L) return
+        if (similarity(flat, screenText[s.kind] ?: "") > 0.85) return  // nothing new on it
+        screenAt[s.kind] = now; screenText[s.kind] = flat; screenHits = 0
+        if (ShotQueue.addBitmap(this, bmp, now, "tracker", "screen:" + s.kind)) {
+            shotsSaved++
+            TrackerLog.add("Saved the ${s.kind} screen")
+            getSystemService(NotificationManager::class.java).notify(ID_RUN, runningNote())
+            onQueued?.invoke()
         }
     }
 
