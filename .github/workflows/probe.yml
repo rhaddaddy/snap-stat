@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: mkdir -p probe && npm i --no-save playwright@1.48.2 && npx playwright install --with-deps chromium && node scripts/probe_web.js || true
+      - run: mkdir -p probe && node scripts/probe_web.js || true
       - run: |
           cd probe && git init -q && git checkout -q -b probe-results && git add -A && git -c user.name=probe -c user.email=probe@users.noreply.github.com commit -qm results
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" probe-results
