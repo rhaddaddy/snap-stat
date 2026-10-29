@@ -1,7 +1,5 @@
 {
- "anim": [
-  "MatteRed"
- ],
+ "anim": [],
  "still": [
   "WebPink",
   "MetalChainsGold",
@@ -81,6 +79,7 @@
   "Infinity",
   "Legendary",
   "MatteBlack",
+  "MatteRed",
   "MetallicCopper",
   "MetallicGold",
   "MetallicSilver",
