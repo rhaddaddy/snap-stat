@@ -651,7 +651,7 @@ tr.me td { font-weight: 800; color: var(--cube); }
 </style>
 
 <style>html, body { margin: 0; } :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); } img { max-width: 100%; }</style>
-<script>window.SNAPSTAT_BUILD = "56fe6d08f940"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
+<script>window.SNAPSTAT_BUILD = "d018907526aa"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
 <script src="firebase-config.js"></script>
 <script type="module" src="firebase-init.js"></script>
 </head>
@@ -1603,7 +1603,7 @@ const LOCAL_AT = "snapstat.localAt" + (SLOT ? "." + SLOT : "");
 async function flushState() {
   if (writing) await writing.catch(() => {});
   if ((store.mode === "cloud" && !store.stateLoaded) || (store.provider === "firebase" && !store.ready)) { clearTimeout(saveTimer); saveTimer = setTimeout(flushState, 1500); return; }
-  const ver = saveVer, body = clone(S); let ok = true;
+  const ver = saveVer, body = typeof compactState === "function" ? compactState(clone(S)) : clone(S); let ok = true;
   if (store.mode === "cloud" && !flushState.warned) { let n = 0; try { n = JSON.stringify(body).length; } catch { /* fine */ } if (n > 850000) { flushState.warned = true; toast("Your saved data is nearly too big for one account to hold. Please tell Claude in your SNAP Stat chat."); } }
   // A save the database turned down for good (too big, not allowed) isn't kept waiting, or other devices' changes would never arrive
   let permanent = false;
@@ -2216,6 +2216,30 @@ function mergeCatalog(map) {
     });
     _catByCard.set(k, vs);
   }
+  hydrateVariants();
+}
+// Saved catalog variants only keep what's yours (ticks, favourite, wish): the name, artist, rarity and source come back from the card data
+function hydrateVariants() {
+  for (const v of arr(S.variants)) {
+    if (!v || !v.cat || v.auto === false) continue; const cv = _catVars.get(v.cat); if (!cv) continue;
+    for (const f of ["name", "artist", "rarity", "tier", "source", "release"]) if (!v[f] && cv[f]) v[f] = cv[f];
+  }
+}
+// What's saved for a catalog variant: your ticks, favourite and wish, not the catalog's own fields (a collector's 2,000 variants would otherwise fill the whole account)
+const CAT_FIELDS = ["name", "artist", "rarity", "tier", "source"];
+function compactState(b) {
+  if (!b || !Array.isArray(b.variants)) return b;
+  b.variants = b.variants.map((v) => {
+    if (!v || !v.cat || v.auto === false) return v; const cv = _catVars.get(v.cat); if (!cv) return v;
+    const o = {};
+    for (const [f, x] of Object.entries(v)) {
+      if (CAT_FIELDS.includes(f) || (f === "release" && x === cv.release) || (f === "auto" && x === true)) continue;
+      if (x === false || x === "" || x === null || x === undefined) continue;
+      o[f] = x;
+    }
+    return o;
+  });
+  return b;
 }
 function cardInUse(k) { return !!(S.owned[k] || S.wishCards[k] || S.favCards[k] || obj(S.cardEdits)[k] || S.decks.some((d) => arr(d.cards).includes(k)) || S.variants.some((v) => v.card === k)); }
 function variantArt(v) { if (!v) return ""; const cv = v.cat && _catVars.get(v.cat); return cv ? cv.art : safeUrl(v.art); }
@@ -8195,7 +8219,7 @@ function vSettingsTab() {
         <p>MARVEL SNAP doesn't let other apps read your account, so SNAP Stat brings things in from these instead.</p>
         <div class="grid2"><button class="btn" data-a="svOpen">Import from SnapVault</button><button class="btn" data-a="importOpen">Paste a deck code</button></div>
         <label class="btn">Import the game's files<input type="file" accept=".json,application/json,text/plain" data-collfile="1" multiple hidden></label><button class="btn ghost" data-a="sweepOpen">Update everything</button>
-        <span class="muted">If you also play MARVEL SNAP on a PC, the game keeps your whole collection in a file called <b>CollectionState.json</b> (in <code>AppData\\LocalLow\\Second Dinner\\SNAP\\Standalone\\States\\nvprod</code>). Choose it here, with <b>ProfileState.json</b> from the same folder, to tick every card, variant and cosmetic you own.</span></div></section>
+        <span class="muted">If you also play MARVEL SNAP on a PC, the game keeps your whole collection in a file called <b>CollectionState.json</b> (in <code>AppData\\LocalLow\\Second Dinner\\SNAP\\Standalone\\States\\nvprod</code>). Choose it here to bring in every card, variant, avatar, emote and card back you own, your decks, Custom Cards, boosters, upgrade levels, splits and Collection Level. From the same folder, <b>CharacterMasteryState.json</b> adds Mastery levels and <b>ClanState.json</b> your alliance's week; it's fine to pick every file there.</span></div></section>
       ${sfPanel()}
       <section class="sec"><h2>Backup</h2><div class="row"><button class="btn" data-a="csvMatches">Matches spreadsheet</button><button class="btn" data-a="csvCollection">Collection spreadsheet</button></div><div class="row"><button class="btn" data-a="backupCopy">${ICON.copy} Copy backup</button>${store.downloads ? `<button class="btn" data-a="backupSave">Save backup file</button>` : ""}<button class="btn" data-a="restoreOpen">Restore</button></div>
         ${allMatches().some((m) => m.example) || S.decks.some((d) => d.example) ? `<button class="btn ghost" data-a="clearExamples">Clear example data</button>` : ""}
@@ -8520,9 +8544,130 @@ function pctBar(a, b) { return `<div class="bar"><i style="width:${barW(num(a), 
 /* ---------- The PC game's collection file ---------- */
 /* MARVEL SNAP on PC keeps your collection in CollectionState.json. Every card in it has a CardDefId (the card) and, for a
    variant, an ArtVariantDefId like "Abomination_03". Decks are lists of CardDefIds with a name. Nothing leaves the phone. */
+/* The game's own names for Infinity Split finishes and flares → the names SNAP Stat uses ("RaysBlackWhite" → "Black and White Rays") */
+const FX_WORDS = { kirby: "Krackle", comic: "Tone", sparkle: "Stardust", space: "Cosmic", snow: "Snowflakes", frosted: "Frosted Glass", circuits: "Glass Circuits", confetti: "Rainbow Confetti", goldfoil: "Gold", prismfoil: "Prism", prismgoldtarot: "Gilded Prism", glasswakanda: "Wakandan Glass", metallicfoil: "Foil Metallic", neontrails: "Neon Trails", galacticstorm: "Galactic Storm", diamondgold: "Gold Glimmer" };
+function effectName(id, flare) {
+  id = String(id || ""); if (!id || /^none$/i.test(id)) return "";
+  const low = id.toLowerCase(); if (FX_WORDS[low]) return FX_WORDS[low];
+  let words = prettyDef(id).split(" ").map((w) => FX_WORDS[w.toLowerCase()] || w);
+  if (/^embers$/i.test(id)) words = ["Fire", "Embers"];
+  const want = new Set(words.join(" ").toLowerCase().split(" ")), list = flare ? SPLIT_FLARES : SPLIT_FINISHES;
+  const hit = list.find((n) => { const ws = n.toLowerCase().split(" ").filter((w) => w !== "and"); return ws.length === want.size && ws.every((w) => want.has(w)); });
+  return hit || words.join(" ");
+}
+const RARITY_IDS = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4, ultralegendary: 5, ultra: 5, infinity: 6 };
+const rarityOfId = (id) => { const r = RARITY_IDS[String(id || "").toLowerCase()]; return r === undefined ? null : r; };
+const GAME_ID = /^[A-Za-z0-9]+$/, VAR_ID = /^[A-Za-z0-9]+_\d{1,3}$/;
+/* MARVEL SNAP's CollectionState.json (2026): ServerState.Cards is one entry per copy you own (its variant, upgrade level, finish, flare and border;
+   Custom = your Custom Card, Favorite = the copy the game shows), CardDefStats has each card's boosters, AvatarInventory, TitleInventory,
+   EmoteInventory and CardBacks are your cosmetics, Decks are your decks and CollectionScore is your Collection Level.
+   Only the Cards list says what you own: an avatar or album entry can name a card or variant you don't have. */
+function readStateFile(ss, fname) {
+  const cards = new Set(), vars = new Set(), copies = {};
+  for (const e of arr(ss.Cards)) {
+    if (!e || typeof e !== "object" || typeof e.CardDefId !== "string" || !GAME_ID.test(e.CardDefId)) continue;
+    const id = e.CardDefId, v = typeof e.ArtVariantDefId === "string" && VAR_ID.test(e.ArtVariantDefId) ? e.ArtVariantDefId : "";
+    cards.add(id); if (v) vars.add(v);
+    (copies[id] = copies[id] || []).push({ v, r: rarityOfId(e.RarityDefId), custom: e.Custom === true, fav: e.Favorite === true || e.IsFavorite === true, fin: String(e.SurfaceEffectDefId || e.FinishDefId || ""), fl: String(e.CardRevealEffectDefId || e.RevealEffectDefId || e.FlareDefId || ""), bd: String(e.BorderDefId || e.CardBorderDefId || "") });
+  }
+  // Custom Cards (the favourite one when there are several), favourite variants, upgrade levels and splits, per card
+  const looks = {}, favs = {}, prog = {};
+  const stats = obj(obj(ss.CardDefStats).Stats);
+  for (const [id, list] of Object.entries(copies)) {
+    const cus = list.filter((c) => c.custom).sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0))[0];
+    if (cus && (cus.v || cus.fin || cus.fl || cus.bd)) looks[id] = { v: cus.v, finish: effectName(cus.fin), flare: effectName(cus.fl, true), border: cus.bd };
+    const fav = list.find((c) => c.fav && c.v); if (fav) favs[id] = fav.v;
+    const pr = { b: null, base: null, vr: {}, splits: [], borders: [] }, st = obj(stats[id]);
+    if (Number.isFinite(Number(st.Boosters)) && Number(st.Boosters) >= 0 && Number(st.Boosters) < 1e6) pr.b = Math.round(Number(st.Boosters));
+    for (const c of list) {
+      if (c.bd && rarityOfId(c.bd) === null && GAME_ID.test(c.bd) && !pr.borders.includes(c.bd)) pr.borders.push(c.bd);
+      if (c.custom) continue;
+      // A copy with a finish or flare came from an Infinity Split; the plain copies carry the card's and each variant's upgrade level
+      if ((c.fin && !/^none$/i.test(c.fin)) || (c.fl && !/^none$/i.test(c.fl))) { pr.splits.push({ fin: effectName(c.fin), fl: effectName(c.fl, true), r: c.r }); continue; }
+      if (c.r === null) continue;
+      if (c.v) pr.vr[c.v] = Math.max(num(pr.vr[c.v]), c.r); else pr.base = Math.max(num(pr.base), c.r);
+    }
+    prog[id] = pr;
+  }
+  const cos = { cardback: new Set(), emote: new Set(), title: new Set() }, avatars = [];
+  for (const b of arr(ss.CardBacks)) if (b && typeof b.CardBackDefId === "string" && GAME_ID.test(b.CardBackDefId.replace(/_/g, ""))) cos.cardback.add(b.CardBackDefId);
+  for (const e of arr(obj(ss.EmoteInventory).OwnedCosmetics)) if (e && typeof e.DefId === "string" && GAME_ID.test(e.DefId)) cos.emote.add(e.DefId);
+  for (const t of arr(obj(ss.TitleInventory).OwnedTitles)) if (t && typeof t.TitleDefId === "string" && GAME_ID.test(t.TitleDefId)) cos.title.add(t.TitleDefId);
+  const seenAv = new Set();
+  for (const a of arr(obj(ss.AvatarInventory).OwnedAvatars)) {
+    const ca = obj(obj(a).CardArtAvatar), c = typeof ca.CardDefId === "string" && GAME_ID.test(ca.CardDefId) ? ca.CardDefId : "", v = typeof ca.ArtVariantDefId === "string" && VAR_ID.test(ca.ArtVariantDefId) ? ca.ArtVariantDefId : "";
+    const key = v || c; if (!c || seenAv.has(key)) continue; seenAv.add(key); avatars.push({ card: c, v });
+  }
+  const decks = [];
+  for (const d of arr(ss.Decks)) {
+    if (!d || typeof d.Name !== "string" || !Array.isArray(d.Cards) || d.Cards.length < 6 || d.Cards.length > 12 || !d.Cards.every((c) => c && typeof c.CardDefId === "string")) continue;
+    const back = String(obj(d.CardBack).CardBackDefId || d.CardBackDefId || ""); if (back) cos.cardback.add(back);
+    decks.push({ name: d.Name.slice(0, 60), cards: d.Cards.map((c) => c.CardDefId), vars: d.Cards.map((c) => (typeof c.ArtVariantDefId === "string" ? c.ArtVariantDefId : "")), back });
+  }
+  const clRaw = Number(obj(ss.CollectionScore).Amount), cl = Number.isFinite(clRaw) && clRaw > 0 && clRaw < 200000 ? Math.round(clRaw) : null;
+  return { cards: [...cards], vars: [...vars], decks, looks, favs, prog, cos: Object.fromEntries(Object.entries(cos).map(([k, v]) => [k, [...v].slice(0, 3000)])), avatars: avatars.slice(0, 3000), cl, state: true, any: cards.size > 0 };
+}
+// ClanState.json: your alliance, its members with this week's points, and the bounties on offer
+const BOUNTY_TXT = { WinLocationWithHighPower: "Win locations with high power", WinLocationWith4Cards: "Win locations with 4 cards", WinMatchesWithCardInDeck: "Win matches with {c} in your deck", DiscardCards: "Discard cards", MoveFiveCards: "Move cards", Play1CostCards: "Play 1-Cost cards", WinMatchesWithRevealCardPairInDeck: "Win matches with {c} and {c2} in your deck" };
+function bountyText(m) {
+  const id = String(m.MissionDefId || "").replace(/^Bounty/, ""), P = obj(m.CustomParameters);
+  const cn = (d) => { const c = d ? cardByDefId(d) : null; return c ? c.name : d ? prettyDef(d) : "a card"; };
+  const t = BOUNTY_TXT[id] || prettyDef(id).replace(/\s+/g, " ").replace(/^(\w)(.*)$/, (s, a, b) => a + b.toLowerCase());
+  return t.replace("{c}", cn(P.CardDefId)).replace("{c2}", cn(P.CardDefId2));
+}
+const isoMs = (s) => { const t = Date.parse(String(s || "")); return Number.isFinite(t) ? t : 0; };
+// The week the alliance is in now: the period whose end (its Key, a date at the 19:00 UTC reset) is still ahead
+function allyPeriod(list, now) {
+  const ps = arr(list).map((p) => ({ end: isoMs(String(obj(p).Key || "") + "T19:00:00Z"), b: num(obj(p).BountyPoints), c: num(obj(p).CubePoints) })).filter((p) => p.end);
+  const ahead = ps.filter((p) => p.end > now && p.end - now <= 8 * DAY).sort((a, b) => a.end - b.end);
+  return ahead[0] || null;
+}
+function readClanFile(ss, j) {
+  const st = obj(ss.State), id = obj(st.Identity), members = arr(ss.Members), log = obj(obj(j).PersonalLog).State ? obj(obj(j).PersonalLog) : obj(ss.PersonalLog); // your own log sits beside ServerState
+  if (!members.length && !id.Name) return null;
+  const now = Date.now(), time = Math.max(isoMs(st.TimeUpdated), ...members.map((m) => isoMs(obj(obj(m).PlayerInfo).TimeUpdated))) || now;
+  const a = { name: String(id.Name || "").slice(0, 40), memberCount: num(st.MemberCount) > members.length ? num(st.MemberCount) : null, members: [], bounties: [] };
+  for (const m of members) {
+    const pi = obj(obj(m).PlayerInfo), per = allyPeriod(obj(obj(m).TimePeriodState).TimePeriodList, now);
+    if (!pi.Name) continue;
+    a.members.push({ name: String(pi.Name).slice(0, 30), role: String(obj(m).Role || "").slice(0, 12), points: per ? per.b + per.c : null, bounties: per ? per.b : null, cubes: per ? per.c : null, collectionLevel: num(pi.CollectionScore) || null });
+  }
+  const me = allyPeriod(obj(obj(log.State).TimePeriodState).TimePeriodList, now); if (me) a.myPoints = me.b + me.c;
+  const next = isoMs(obj(log.State).NextRefreshTime); if (next > now && next - now < 8 * DAY) { const left = next - now; a.resetsIn = `${Math.floor(left / DAY)}d ${Math.floor((left % DAY) / 3600e3)}h ${Math.floor((left % 3600e3) / 60e3)}m`; }
+  for (const m of arr(obj(obj(ss.BountyState)).AvailableMissions).slice(0, 30)) { const o = obj(m); if (!o.MissionDefId) continue; a.bounties.push({ text: bountyText(o), rarity: String(o.MissionDifficulty || "").slice(0, 12), goal: num(o.RequiredProgress) || null }); }
+  return { alliance: a, time };
+}
+// The event files (HighStakesTablesManagerState.json, CustomGameManagerState.json…): which pass levels you've claimed in the live event
+function readEventFile(ss) {
+  const evs = [...(obj(ss.ActiveEvent).LimitedEventDefId ? [ss.ActiveEvent] : []), ...arr(ss.ActiveEvents)].map(obj).filter((e) => typeof e.LimitedEventDefId === "string" && /^[A-Za-z0-9_]+$/.test(e.LimitedEventDefId));
+  if (!evs.length) return null;
+  const lv = (l) => arr(l).map((s) => Number(String(s).match(/(\d+)$/) ? String(s).match(/(\d+)$/)[1] : NaN)).filter((n) => Number.isFinite(n) && n > 0 && n <= 200);
+  const passes = new Map(arr(ss.BattlePasses).map(obj).map((b) => [String(b.BattlePassDefId || ""), b.PremiumUnlocked === true]));
+  return { events: evs.map((e) => ({ defId: e.LimitedEventDefId, claimed: lv(e.ClaimedMilestoneRewards), premiumClaimed: lv(e.PremiumClaimedMilestoneRewards), premium: passes.get(String(e.BattlePassDefId || e.LimitedEventDefId)) === true, time: isoMs(e.TimeUpdated) || Date.now() })) };
+}
+// Claimed levels from an event file → that event's progress here. The event is matched by the game's own id (it's in the snap.fan link).
+function applyEventFile(ev) {
+  const e = events().find((x) => new RegExp("/" + ev.defId + "/?$", "i").test(String(x.link || ""))) || null; if (!e) return "";
+  const pr = (S.eventProg = obj(S.eventProg))[e.id] = obj(obj(S.eventProg)[e.id]); const top = Math.max(0, ...ev.claimed, ...ev.premiumClaimed);
+  let changed = false;
+  if (top && num(pr.level) < top) { pr.level = top; changed = true; }
+  for (const m of arr(pr.ms)) { const list = m.premium ? ev.premiumClaimed : ev.claimed; if (list.includes(num(m.level)) && !m.claimed) { m.claimed = true; changed = true; } }
+  if (ev.premium && !pr.premium) { pr.premium = true; changed = true; }
+  if (changed) pr.at = Math.max(num(pr.at), ev.time);
+  return changed ? `${e.name}: level ${top}${ev.premium ? " · Premium" : ""}` : "";
+}
+// CharacterMasteryState.json: each card's Mastery level (the last level claimed, so the real one can be a step higher)
+function readMasteryFile(ss) {
+  const out = {}, data = obj(obj(ss.CharacterMasteryProgress).CharacterProgressData);
+  for (const [id, d] of Object.entries(data)) { const lv = Math.round(Number(obj(d).LastClaimedLevel)); if (GAME_ID.test(id) && Number.isFinite(lv) && lv >= 1 && lv <= 30) out[id] = lv; }
+  return Object.keys(out).length ? out : null;
+}
 function readCollectionFile(text, fileName) {
   let j; try { j = JSON.parse(String(text || "").replace(/^﻿/, "")); } catch { return null; }
   const fname = String(fileName || ""), isColl = !fname || /collection/i.test(fname), isProfile = /profile/i.test(fname);
+  const ss = j && typeof j === "object" && j.ServerState && typeof j.ServerState === "object" ? j.ServerState : null;
+  const mastery = ss ? readMasteryFile(ss) : null, clan = ss && !mastery ? readClanFile(ss, j) : null, evf = ss && !mastery && !clan ? readEventFile(ss) : null;
+  const state = ss && Array.isArray(ss.Cards) ? readStateFile(ss, fname) : null;
   const cards = new Set(), vars = new Set(), decks = [], looks = {}, cos = { cardback: new Set(), avatar: new Set(), title: new Set(), emote: new Set() };
   const keys = {}, defs = {};
   const COS_KEY = { cardback: /^card ?backs?(def)?(id)?s?$/i, avatar: /^avatars?(def)?(id)?s?$/i, title: /^titles?(def)?(id)?s?$/i, emote: /^emotes?(def)?(id)?s?$/i };
@@ -8553,6 +8698,8 @@ function readCollectionFile(text, fileName) {
   };
   walk(j, 0, "");
   const summary = { file: fname.slice(0, 60), keys: Object.entries(keys).sort((a, b) => b[1] - a[1]).slice(0, 80).map(([k, n]) => `${k}×${n}`), defIds: Object.fromEntries(Object.entries(defs).slice(0, 40).map(([k, v]) => [k, [...v]])) };
+  if (state) return { ...state, summary };
+  if (mastery || clan || evf) return { cards: [], vars: [], decks: [], looks: {}, cos: {}, mastery, clan, events: evf ? evf.events : [], summary, any: true };
   // Only the collection file says what you own; the profile file says what you have on
   const cosOk = isColl || isProfile;
   return { cards: isColl ? [...cards] : [], vars: isColl ? [...vars] : [], decks: isColl ? decks : [], looks: isColl ? looks : {}, cos: cosOk ? Object.fromEntries(Object.entries(cos).map(([k, v]) => [k, [...v].slice(0, 2000)])) : {}, summary, any: cards.size > 0 || Object.values(cos).some((x) => x.size) };
@@ -8571,28 +8718,77 @@ let collImp = null;
 function applyCollectionFile(text, fileName) { return applyGameFiles([{ text, name: fileName || "CollectionState.json" }]); }
 function applyGameFiles(files) {
   const rs = files.map((f) => ({ f, r: readCollectionFile(f.text, f.name) })).filter((x) => x.r);
-  if (!rs.some((x) => x.r.any)) { toast("Those don't look like MARVEL SNAP's files."); return; }
-  let cardsNew = 0, varsNew = 0, unknown = 0, cosNew = 0, looksNew = 0, cards = 0, vars = 0, cosN = 0;
+  if (!rs.some((x) => x.r.any)) { toast("Those don't look like MARVEL SNAP's files. The one that matters is CollectionState.json."); return; }
+  let cardsNew = 0, varsNew = 0, unknown = 0, cosNew = 0, looksNew = 0, cards = 0, vars = 0, cosN = 0, favsNew = 0, titles = 0, avatarsN = 0;
+  let progCards = 0, boostersSet = 0, levelsSet = 0, splitsNew = 0, bordersNew = 0, masteryN = 0, masterySet = 0, cl = null, clWas = num(S.me.colLevel); const notes = [];
   const have = new Set(S.decks.map((d) => keyOf(d.name) + "|" + [...arr(d.cards)].sort().join(","))), decks = [];
   for (const { r } of rs) {
     cards += r.cards.length; vars += r.vars.length;
     for (const id of r.cards) { const c = cardByDefId(id); if (!c) { unknown++; continue; } if (!S.owned[c.key]) { S.owned[c.key] = true; cardsNew++; } }
+    // Cards that only exist inside a game mode are hidden until you own one: the lists are rebuilt now so their variants can be found
+    if (cardsNew) save();
     for (const id of r.vars) { const v = variantByDefId(id); if (v && setVarOwned(v, true, "file")) varsNew++; }
-    for (const [id, L] of Object.entries(r.looks)) { const c = cardByDefId(id); if (!c) continue; const v = L.v ? variantByDefId(L.v) : null; if (noteLook(c.key, { v: v ? (v.virtual ? "cat:" + v.cat : v.id) : "", vname: v ? v.name : "", finish: prettyDef(L.finish), flare: prettyDef(L.flare), border: prettyDef(L.border) }, "file")) looksNew++; }
+    for (const [id, L] of Object.entries(r.looks)) { const c = cardByDefId(id); if (!c) continue; const v = L.v ? variantByDefId(L.v) : null; if (noteLook(c.key, { v: v ? (v.virtual ? "cat:" + v.cat : v.id) : "", vname: v ? v.name : "", finish: r.state ? L.finish : prettyDef(L.finish), flare: r.state ? L.flare : prettyDef(L.flare), border: borderLabel(L.border) }, "file")) looksNew++; }
+    // The copy the game shows for a card is its favourite variant here too
+    for (const [id, def] of Object.entries(obj(r.favs))) { const c = cardByDefId(id), v0 = variantByDefId(def); if (!c || !v0) continue; const v = v0.virtual ? materializeVar(v0.id) : S.variants.find((x) => x.id === v0.id); if (v && !v.favorite) { S.variants.forEach((x) => { if (x.card === c.key) x.favorite = false; }); v.favorite = true; favsNew++; } }
     for (const [kind, ids] of Object.entries(r.cos)) for (const id of ids) {
+      // The game only stores a title's number; it's matched to a name when the daily data knows that number
+      if (kind === "title" && /^Title\d+$/i.test(id)) { const nm = titleById(id); if (!nm) { titles++; continue; } cosN++; if (markCosmetic("title", nm, true, true)) cosNew++; continue; }
       cosN++;
       const e = kind === "emote" && typeof emoteById === "function" ? emoteById(id) : null;
       const b = kind === "cardback" ? cardBackById(id) : null;
       if (b) { if (!(backCos(b) || {}).owned) { setBack(b, "owned", true); cosNew++; } continue; }
       if (e) { if (!emoteOwned(e)) { emoteSet(e, "owned", true); cosNew++; } continue; }
+      if (kind === "emote" && r.state) continue; // an emote the daily list doesn't know yet
       if (markCosmetic(kind, prettyDef(id), kind === "avatar" || kind === "title")) cosNew++;
     }
-    for (const d of r.decks) { const ks = d.cards.map((id) => (cardByDefId(id) || {}).key).filter(Boolean).sort().join(","); if (!have.has(keyOf(d.name) + "|" + ks)) decks.push(d); }
+    for (const a of arr(r.avatars)) { avatarsN++; cosN++; if (markAvatarFile(a)) cosNew++; }
+    // Boosters, upgrade levels, splits and borders straight from the game
+    for (const [id, pr] of Object.entries(obj(r.prog))) { const c = cardByDefId(id); if (!c || c.unknown) continue; const got = applyProgFile(c.key, pr); if (got.any) progCards++; boostersSet += got.b; levelsSet += got.levels; splitsNew += got.splits; bordersNew += got.borders; }
+    for (const [id, lv] of Object.entries(obj(r.mastery))) { const c = cardByDefId(id); if (!c || c.unknown) continue; masteryN++; const p = prog(c.key); if (num(p.ml) < lv) { p.ml = lv; masterySet++; } }
+    if (r.cl && r.cl > num(cl)) cl = r.cl;
+    if (r.clan && typeof applyShotAlliance === "function") { const x = {}; applyShotAlliance(x, r.clan.alliance, r.clan.time); if (x.detail) notes.push(`Alliance: ${x.detail}`); }
+    for (const ev of arr(r.events)) { const t = applyEventFile(ev); if (t) notes.push(t); }
   }
-  if (cosN) (S.seen = obj(S.seen)).cosfile = Date.now();
-  collImp = { cards, cardsNew, vars, varsNew, unknown, decks, cos: cosN, cosNew, looksNew, files: rs.map((x) => x.r.summary) };
+  // Collection Level only goes up
+  if (cl && cl > clWas) { S.me.colLevel = cl; S.colLow = null; }
+  for (const { r } of rs) for (const d of r.decks) { const ks = d.cards.map((id) => (cardByDefId(id) || {}).key).filter(Boolean).sort().join(","); if (!have.has(keyOf(d.name) + "|" + ks)) decks.push(d); }
+  if (cosN || titles) (S.seen = obj(S.seen)).cosfile = Date.now();
+  collImp = { cards, cardsNew, vars, varsNew, unknown, decks, cos: cosN, cosNew, looksNew, favsNew, titles, avatars: avatarsN, progCards, boostersSet, levelsSet, splitsNew, bordersNew, masteryN, masterySet, cl: cl && cl > clWas ? cl : null, clSame: cl && cl <= clWas ? cl : null, notes, state: rs.some((x) => x.r.state), files: rs.map((x) => x.r.summary) };
   if (cards) S.collFileAt = Date.now();
   save(); collSyncNow(); render(); openSheet(collImpSheet);
+}
+// A border's name from the border list ("CosmicBlack" → "Cosmic · Black"); the upgrade-level borders keep their name
+const borderLabel = (id) => { id = String(id || ""); if (!id) return ""; const r = rarityOfId(id); if (r !== null) return UP_LEVELS[r]; const b = typeof BDL !== "undefined" && BDL && BDL.byId ? BDL.byId.get(id) : null; return b ? b.name || b.id : prettyDef(id); };
+// An avatar from the game's files: named after the variant it shows ("Venom (Nicola Saviori)"), or the card for the base art
+function markAvatarFile(a) {
+  const c = cardByDefId(a.card); if (!c || c.unknown) return false;
+  const v = a.v ? variantByDefId(a.v) : null, ref = a.v || a.card;
+  const name = (v && v.name && keyOf(v.name) !== keyOf(c.name) ? `${c.name} (${v.name})` : c.name).slice(0, 60);
+  let x = S.cosmetics.find((y) => y.kind === "avatar" && y.ref === ref) || S.cosmetics.find((y) => y.kind === "avatar" && !y.ref && keyOf(y.name) === keyOf(name));
+  if (!x) { x = { id: uid(), kind: "avatar", name, ref }; S.cosmetics.push(x); }
+  if (!x.ref) x.ref = ref;
+  if (x.owned) return false; x.owned = true; return true;
+}
+// What the game's file says about one card's progress. Levels and boosters are the game's own numbers, so they replace what was noted
+// by hand or read from screenshots; splits already logged keep their notes and only pick up a level.
+function applyProgFile(k, pr) {
+  const p = prog(k), got = { any: false, b: 0, levels: 0, splits: 0, borders: 0 };
+  if (pr.b !== null && pr.b !== undefined && p.b !== pr.b) { p.b = pr.b; got.b = 1; got.any = true; }
+  if (pr.base !== null && pr.base !== undefined && p.base !== pr.base) { p.base = pr.base; got.levels++; got.any = true; }
+  for (const [def, r] of Object.entries(obj(pr.vr))) { const v0 = variantByDefId(def); if (!v0 || r === null) continue; const v = v0.virtual ? materializeVar(v0.id) : v0; if (v && p.vr[v.id] !== r) { p.vr[v.id] = r; got.levels++; got.any = true; } }
+  const free = p.splits.slice();
+  for (const sp of arr(pr.splits)) {
+    const same = (a, b) => !a || !b || keyOf(a) === keyOf(b);
+    let i = free.findIndex((x) => same(x.fin, sp.fin) && same(x.fl, sp.fl) && (x.fin || x.fl)); if (i < 0) i = free.findIndex((x) => !x.fin && !x.fl);
+    let s = i >= 0 ? free.splice(i, 1)[0] : null;
+    if (!s) { s = { id: uid(), fin: "", fl: "", r: null }; p.splits.push(s); got.splits++; got.any = true; }
+    if (sp.fin && !s.fin) s.fin = sp.fin; if (sp.fl && !s.fl) s.fl = sp.fl;
+    if (sp.r !== null && sp.r !== undefined && s.r !== sp.r) { s.r = sp.r; got.any = true; }
+  }
+  for (const id of arr(pr.borders)) { const name = borderLabel(id); if (name && !p.borders.some((b) => keyOf(b) === keyOf(name))) { p.borders.push(name); got.borders++; got.any = true; } }
+  if (got.splits) syncSplitCount(k);
+  return got;
 }
 function gameFilesSummary() { return JSON.stringify(arr(obj(collImp).files), null, 1).slice(0, 20000); }
 function collImpSheet() {
@@ -8601,7 +8797,11 @@ function collImpSheet() {
     <div class="kpis">${`<div class="kpi"><b class="num">${fmt(r.cards)}</b><span>cards in the file${r.cardsNew ? ` · ${fmt(r.cardsNew)} newly ticked` : ""}</span></div><div class="kpi"><b class="num">${fmt(r.vars)}</b><span>variants${r.varsNew ? ` · ${fmt(r.varsNew)} newly ticked` : ""}</span></div>`}</div>
     ${r.unknown ? `<p class="muted small">${r.unknown} card${r.unknown === 1 ? "" : "s"} in the file aren't in SNAP Stat's card list yet. They'll be picked up after the next daily card update if you read the file again.</p>` : ""}
     <p class="muted small">Variants you ticked or unticked yourself weren't changed.</p>
-    ${r.cos || r.looksNew ? `<p class="small">${r.cos ? `${fmt(r.cos)} avatars, titles, card backs and emotes in the files${r.cosNew ? ` · ${fmt(r.cosNew)} newly ticked` : ""}. ` : ""}${r.looksNew ? `${fmt(r.looksNew)} Custom Card${r.looksNew === 1 ? "" : "s"} saved.` : ""}</p>` : `<p class="muted small">No avatars, titles, card backs or Custom Cards found in ${arr(r.files).length > 1 ? "these files" : "this file"}. Try the other files in the same folder (like ProfileState.json), or copy the summary below and send it to Claude to look at.</p>`}
+    ${r.cl ? `<p class="small pos">Collection Level ${fmt(r.cl)}.</p>` : r.clSame ? `<p class="muted small">Collection Level ${fmt(r.clSame)} (no change).</p>` : ""}
+    ${r.progCards || r.masteryN ? `<p class="small">${r.progCards ? `Boosters and upgrade levels for ${fmt(r.progCards)} card${r.progCards === 1 ? "" : "s"}${r.splitsNew ? ` · ${fmt(r.splitsNew)} split${r.splitsNew === 1 ? "" : "s"} added` : ""}${r.bordersNew ? ` · ${fmt(r.bordersNew)} border${r.bordersNew === 1 ? "" : "s"}` : ""}. ` : ""}${r.masteryN ? `Mastery levels for ${fmt(r.masteryN)} card${r.masteryN === 1 ? "" : "s"}${r.masterySet ? ` · ${fmt(r.masterySet)} went up` : ""}.` : ""}</p>` : ""}
+    ${r.cos || r.looksNew || r.favsNew ? `<p class="small">${r.cos ? `${fmt(r.cos)} avatars, titles, card backs and emotes in the files${r.cosNew ? ` · ${fmt(r.cosNew)} newly ticked` : ""}. ` : ""}${r.looksNew ? `${fmt(r.looksNew)} Custom Card${r.looksNew === 1 ? "" : "s"} saved. ` : ""}${r.favsNew ? `${fmt(r.favsNew)} favourite variant${r.favsNew === 1 ? "" : "s"} set.` : ""}</p>` : `<p class="muted small">No avatars, card backs or Custom Cards found in ${arr(r.files).length > 1 ? "these files" : "this file"}. Choose CollectionState.json from the game's folder, or copy the summary below and send it to Claude to look at.</p>`}
+    ${arr(r.notes).length ? `<p class="small">${arr(r.notes).map(esc).join("<br>")}</p>` : ""}
+    ${r.titles ? `<p class="muted small">${fmt(r.titles)} title${r.titles === 1 ? " is" : "s are"} in the file too, but the game only stores their numbers, and the daily data doesn't know those numbers yet, so they can't be matched to names.</p>` : ""}
     <button class="btn sm ghost" data-a="gameFilesCopy">Copy what's in the files, for Claude</button><span class="muted small">Only the names of what's stored and the game's own IDs, never your account details.</span>
     ${r.decks.length ? `<h3>Decks in the file</h3><div class="list">${r.decks.map((d, i) => `<div class="li"><div class="grow"><div class="t">${esc(d.name)}</div><div class="s">${d.cards.map((id) => esc((cardByDefId(id) || { name: id }).name)).join(", ")}</div></div><button class="btn sm" data-a="collDeck" data-i="${i}">${d.added ? "Added" : "Add"}</button></div>`).join("")}</div>
       ${r.decks.length > 1 ? `<button class="btn block" data-a="collDeck" data-i="all">Add all ${r.decks.length} decks</button>` : ""}` : ""}
@@ -9079,6 +9279,8 @@ function deckTagFilterHtml() {
 
 /* ---------- Titles: every one in the game, so you can tick the ones you've collected ---------- */
 const titleCatalog = () => arr(ART.data && ART.data.titles).filter((t) => typeof t === "string" && t && t.length <= 60);
+// The game's own id for a title ("Title747") → its name, when the daily data has it
+const titleById = (id) => { const t = obj(ART.data && ART.data.titleIds)[String(id || "")]; return typeof t === "string" && t.length <= 60 ? t : ""; };
 const titleOwnedSet = () => new Set(S.cosmetics.filter((c) => c.kind === "title" && c.owned).map((c) => keyOf(c.name)));
 function titleGallery() {
   const all = titleCatalog(); if (!all.length) return "";
