@@ -35,6 +35,8 @@ class TrackerService : Service() {
         private const val CH_RUN = "tracker"
         private const val CH_DONE = "captured"
         private const val ID_RUN = 1
+        /** Two frames this alike (out of 1) mean the screen has stopped moving; card effects still shimmer a little */
+        private const val STEADY = 0.92
         private const val ID_DONE = 2
         private const val ID_BOT = 3
         private const val ACTION_STOP = "com.rhaddaddy.snapstat.STOP"
@@ -82,7 +84,11 @@ class TrackerService : Service() {
     private var width = 0
     private var height = 0
     // Other screens: when each kind was last saved, what it said then, and how many checks in a row it's been on screen
-    private val screenLog = HashMap<String, ArrayDeque<Pair<Long, String>>>()
+    /** Each kind's saved pages: when, their words and a small fingerprint of the picture */
+    private class Saved(val first: Long, val second: String, val sig: LongArray)
+    private val screenLog = HashMap<String, ArrayDeque<Saved>>()
+    /** The last frame's fingerprint, to tell when the screen has stopped moving */
+    private var prevSig: LongArray? = null
     private var screenKind = ""
     private var screenHits = 0
     private var shotsSaved = 0
@@ -209,7 +215,8 @@ class TrackerService : Service() {
             if (flat.isNotEmpty() && similarity(flat, lastText) < 0.6) { TrackerLog.add("${if (match) "END" else "saw"}: $flat"); lastText = flat }
             if (!match) watchTurns(flat.lowercase(), bmp)
             hits = if (match) hits + 1 else 0
-            if (!match) saveScreen(flat, bmp)
+            val sig = fingerprint(bmp); val steady = prevSig?.let { sigSim(it, sig) >= STEADY } ?: false; prevSig = sig
+            if (!match) saveScreen(flat, bmp, sig, steady)
             if (hits >= rules.frames) {
                 hits = 0
                 cooldownUntil = System.currentTimeMillis() + rules.cooldownSec * 1000L
@@ -237,7 +244,7 @@ class TrackerService : Service() {
      * something new. Scrolling a list or switching tabs counts as new, so each page gets saved, up to [Screen.maxPer]
      * pictures of that kind per [Screen.cooldownMin] minutes and no closer together than [Screen.minGapSec] seconds.
      */
-    private fun saveScreen(flat: String, bmp: Bitmap) {
+    private fun saveScreen(flat: String, bmp: Bitmap, sig: LongArray, steady: Boolean) {
         val s = rules.screenIn(flat)
         if (s == null) { screenKind = ""; screenHits = 0; return }
         screenHits = if (s.kind == screenKind) screenHits + 1 else 1
@@ -245,14 +252,18 @@ class TrackerService : Service() {
         if (screenHits < s.frames) return
         val now = System.currentTimeMillis()
         val log = screenLog.getOrPut(s.kind) { ArrayDeque() }
+        // Still scrolling: wait for it to stop, but never more than 8 seconds without a picture
+        if (s.still && !steady && now - (log.lastOrNull()?.first ?: 0L) < 8_000L) return
         while (log.isNotEmpty() && now - log.first().first > s.cooldownMin * 60_000L) log.removeFirst()
         if (log.isNotEmpty() && now - log.last().first < s.minGapSec * 1000L) return
         if (log.size >= s.maxPer) return
-        if (log.any { similarity(flat, it.second) > s.same }) return  // that page was saved already
-        log.addLast(now to flat); screenHits = 0
+        // That page was saved already: told apart by its picture, or by its words
+        if (s.imgSame > 0) { if (log.any { sigSim(sig, it.sig) >= s.imgSame }) return }
+        else if (log.any { similarity(flat, it.second) > s.same }) return
+        log.addLast(Saved(now, flat, sig)); screenHits = 0
         if (ShotQueue.addBitmap(this, bmp, now, "tracker", "screen:" + s.kind)) {
             shotsSaved++
-            TrackerLog.add("Saved the ${s.kind} screen (${log.size} of up to ${s.maxPer})")
+            TrackerLog.add("Saved the ${s.kind} screen (${log.size} of up to ${s.maxPer}${if (s.still) if (steady) ", stopped" else ", still moving" else ""})")
             getSystemService(NotificationManager::class.java).notify(ID_RUN, runningNote())
             onQueued?.invoke()
         }
@@ -305,6 +316,29 @@ class TrackerService : Service() {
             .setTimeoutAfter(5 * 60_000L)
             .setContentIntent(openApp())
             .build())
+    }
+
+    /** A 16×24 picture of the screen in shades of grey, each pixel compared with the next: 384 bits */
+    private fun fingerprint(bmp: Bitmap): LongArray {
+        val small = Bitmap.createScaledBitmap(bmp, 17, 24, true)
+        val out = LongArray(6)
+        try {
+            var bit = 0
+            for (y in 0 until 24) {
+                var prev = -1
+                for (x in 0 until 17) {
+                    val p = small.getPixel(x, y)
+                    val g = (((p shr 16) and 0xFF) * 3 + ((p shr 8) and 0xFF) * 6 + (p and 0xFF)) / 10
+                    if (prev >= 0) { if (g > prev) out[bit / 64] = out[bit / 64] or (1L shl (bit % 64)); bit++ }
+                    prev = g
+                }
+            }
+        } finally { if (small !== bmp) small.recycle() }
+        return out
+    }
+    private fun sigSim(a: LongArray, b: LongArray): Double {
+        var diff = 0; for (i in a.indices) diff += java.lang.Long.bitCount(a[i] xor b[i])
+        return 1.0 - diff / 384.0
     }
 
     private fun similarity(a: String, b: String): Double {

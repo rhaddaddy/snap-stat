@@ -85,7 +85,10 @@ def card_crop(b):
     except Exception: return None
     a = np.asarray(im)[..., 3]; ys, xs = np.nonzero(a > 40)
     if len(xs) < 100: return None
-    return im.crop((int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1))
+    x0, y0, x1, y1 = int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1
+    c = im.crop((x0, y0, x1, y1))
+    c.info["box"] = [round(x0 / im.width, 4), round(y0 / im.height, 4), round(x1 / im.width, 4), round(y1 / im.height, 4)]  # where the card is in the picture
+    return c
 
 def inner(rgb):
     h, w = rgb.shape[:2]; return rgb[int(h * .06):int(h * .94), int(w * .07):int(w * .93)]
@@ -145,7 +148,7 @@ def paint_out(im, t):
     out = cv2.inpaint(cv2.cvtColor(np.asarray(im.convert("RGB")), cv2.COLOR_RGB2BGR), m, max(5, W // 100), cv2.INPAINT_TELEA)
     o = Image.fromarray(cv2.cvtColor(out, cv2.COLOR_BGR2RGB)).convert("RGBA"); o.putalpha(im.split()[3]); return o
 
-CHECK_V = 3  # bump to check every card back again
+CHECK_V = 4  # bump to check every card back again (4: also where the card sits in each picture)
 if have_cv and backs:
     os.makedirs("cardbacks", exist_ok=True)
     try: checked = json.load(open("cardbacks/checked.json"))
@@ -169,8 +172,8 @@ if have_cv and backs:
         else:
             m_im, f_im = card_crop(get_bytes(m_url)), card_crop(get_bytes(f_url)) if f_url else None
             mq, fq = (look(m_im) if m_im else None), (look(f_im) if f_im else None)
-            if fq: fq["words"] = label_words(f_im)
-            if mq: mq["words"] = label_words(m_im)
+            if fq: fq["words"] = label_words(f_im); fq["box"] = f_im.info.get("box")
+            if mq: mq["words"] = label_words(m_im); mq["box"] = m_im.info.get("box")
             use, f_good = "none", bool(fq and not fq["standIn"] and not fq["words"])
             if mq and not mq["standIn"]:
                 mt = text_line(m_im)
@@ -216,6 +219,10 @@ if have_cv and backs:
         b["img"] = m_url if use == "msz" else f_url if use == "sf" and f_url else f"cardbacks/{cid}.webp" if use == "fixed" else ""
         if use == "none" or not b["img"]: b["noArt"] = True; b["img"] = ""
         else: b.pop("noArt", None)
+        # Marvel Snap Zone's pictures are square, with the card in the middle: the app crops to it
+        box = ((c.get("m") if use == "msz" else c.get("f") if use == "sf" else None) or {}).get("box")
+        if box and (box[0] > 0.02 or box[1] > 0.02 or box[2] < 0.98 or box[3] < 0.98): b["box"] = box
+        else: b.pop("box", None)
     json.dump(checked, open("cardbacks/checked.json", "w"), indent=0, sort_keys=True)
     print("card back pictures:", tally, "· switched to snap.fan for a repeated picture:", switched)
 

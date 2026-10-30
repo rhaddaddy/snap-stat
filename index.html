@@ -594,6 +594,9 @@ button.cbt { cursor: pointer; }
 .cbt.on .cbp { outline: 3px solid var(--cube); outline-offset: 2px; }
 .cbp { position: relative; display: block; width: 100%; aspect-ratio: 5 / 7; border-radius: 10px; overflow: hidden; border: 0; padding: 0; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.35); }
 .cbp img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* A card back with its picture: no tile behind it, so nothing shows round its edges */
+.cbp.has-img, .dkb.has-img { background: none; box-shadow: none; }
+.cbp img.crop, .dkb img.crop { position: absolute; max-width: none; object-fit: fill; }
 .cbinfo { display: flex; align-items: flex-start; gap: 2px; }
 .cbn { display: block; font-size: 12.5px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .cbd { display: block; font-size: 11px; color: var(--muted); }
@@ -627,6 +630,9 @@ button.linkish { background: none; border: 0; padding: 0; color: inherit; text-d
 .cbp .cbx { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 12px 10px; font-family: var(--comic); font-size: 15px; line-height: 1.1; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.6); }
 .cbp .cbx::before { content: ""; position: absolute; inset: 7px; border: 2px solid rgba(255,255,255,.55); border-radius: 8px; }
 .cbp.has-img .cbx { display: none; }
+.cbp img.stand { opacity: .55; }
+.cbp .cbx { align-content: center; }
+.cbp .cbx small { display: block; margin-top: 6px; font-family: var(--ui); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; opacity: .85; }
 .wallet.nums { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .wallet.nums .s { font-size: 10.5px; color: var(--muted); line-height: 1.2; margin-top: 2px; }
 @media (max-width: 400px) { .wallet.nums { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -644,7 +650,7 @@ tr.me td { font-weight: 800; color: var(--cube); }
 </style>
 
 <style>html, body { margin: 0; } :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); } img { max-width: 100%; }</style>
-<script>window.SNAPSTAT_BUILD = "56cb55b79b09"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
+<script>window.SNAPSTAT_BUILD = "f99b90deb7a2"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
 <script src="firebase-config.js"></script>
 <script type="module" src="firebase-init.js"></script>
 </head>
@@ -1254,6 +1260,10 @@ const defId = (n) => String(n || "").replace(/[^A-Za-z0-9]/g, "");
 const num = (v, d = 0) => { const n = Number(v); return Number.isFinite(n) ? n : d; };
 const fmt = (n) => num(n).toLocaleString();
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
+// Progress toward a whole: 100% only when it's all there (506 of 507 is 99%, not a rounded-up 100%)
+const donePct = (a, b) => (!b ? 0 : a >= b ? 100 : Math.min(99, Math.floor((a / b) * 100)));
+// A bar's width: one that isn't finished always shows a gap at the end
+const barW = (a, b) => (!b ? 0 : a >= b ? 100 : clamp(Math.min(96, (a / b) * 100), 0, 96));
 const DAY = 864e5;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const signed = (n) => (n > 0 ? "+" + n : String(n));
@@ -2857,7 +2867,7 @@ function cubeChart(pm) {
     <text x="${L}" y="${H - 6}">${dayStr(pts[0].ts)}</text><text x="${W - R}" y="${H - 6}" text-anchor="end">${dayStr(pts[pts.length - 1].ts)}</text></svg>`;
 }
 function exampleNote(list) { return list.some((m) => m.example) ? `<div class="note">Includes example data so you can see how this works. <button class="btn sm ghost" data-a="clearExamples">Clear examples</button></div>` : ""; }
-function passBar(level, of) { return `<div class="bar" role="img" aria-label="Pass level ${level} of ${of}"><i style="width:${clamp(pct(level, of), 0, 100)}%"></i></div>`; }
+function passBar(level, of) { return `<div class="bar" role="img" aria-label="Pass level ${level} of ${of}"><i style="width:${barW(num(level), num(of))}%"></i></div>`; }
 
 /* ============ Home ============ */
 function seasonHero() {
@@ -3152,7 +3162,7 @@ const showSoon = () => !!S.showSoon;
 function vCardGrid() {
   const all = allCards().filter((c) => !c.upcoming); const ownedN = all.filter((c) => S.owned[c.key]).length;
   const pMin = ui.powMin === "" ? -Infinity : num(ui.powMin), pMax = ui.powMax === "" ? Infinity : num(ui.powMax);
-  let list = ui.cardFilter === "custom" ? S.custom.map((c) => customCard(c.id)) : allCards();
+  let list = ui.cardFilter === "custom" ? allCards().filter((c) => obj(S.looks)[c.key]) : allCards();
   list = list.filter((c) => cardMatches(c, ui.cardQ)
     && (["all", "custom"].includes(ui.cardFilter) || (ui.cardFilter === "unknown" && (c.unknownName || c.cost === "?")) || (ui.cardFilter === "owned" && S.owned[c.key]) || (ui.cardFilter === "missing" && !S.owned[c.key] && !c.upcoming) || (ui.cardFilter === "wish" && S.wishCards[c.key]) || (ui.cardFilter === "fav" && (S.favCards[c.key] || favVariant(c.key))) || (ui.cardFilter === "upcoming" && c.upcoming))
     && (ui.cardFilter === "upcoming" || ui.cardFilter === "custom" || ui.cardFilter === "wish" || !c.upcoming || showSoon())
@@ -3164,7 +3174,7 @@ function vCardGrid() {
   list = [...list].sort(sorters[ui.cardSort] || sorters.cost);
   const f = (v, l) => `<button class="chip" data-a="cardFilter" data-v="${v}" aria-pressed="${ui.cardFilter === v}">${l}</button>`;
   return `<section class="sec">
-    <div class="panel stack halftone" style="gap:6px"><div class="row between"><span class="eyebrow">Cards owned</span><span class="num" style="font-weight:800">${ownedN} / ${all.length} · ${pct(ownedN, all.length)}%</span></div>${passBar(ownedN, all.length)}
+    <div class="panel stack halftone" style="gap:6px"><div class="row between"><span class="eyebrow">Cards owned</span><span class="num" style="font-weight:800">${ownedN} / ${all.length} · ${donePct(ownedN, all.length)}%</span></div>${passBar(ownedN, all.length)}
       <p class="muted small">Stats change with balance patches: tap any card to edit it.</p><div class="row"><label class="btn sm snap">Sync from SnapVault<input type="file" accept=".json,application/json,text/plain" data-svquick="1" hidden></label><button class="btn sm ghost" data-a="svOpen">Preview an export first</button></div></div>
     ${ui.cardFilter === "custom" ? "" : seriesPanel()}
     ${missingBanner()}
@@ -3748,7 +3758,7 @@ function vMore() {
     ${item("shops", "Shops & wishlist alerts", alerts ? `${alerts} wishlist item${alerts > 1 ? "s" : ""} on sale` : "Credits, gold, tokens and current offers")}
     ${item("promos", "Promo codes", promos ? `${promos} active code${promos > 1 ? "s" : ""} you haven't redeemed` : "Codes for the web shop")}
     ${item("progress", "Upgrades & boosters", (() => { const n = readyUpgrades().length; return n ? `${n} card${n === 1 ? "" : "s"} ready to upgrade` : "Boosters, upgrades, splits, borders and Reroll Coins"; })())}
-    ${item("custom", "Custom cards", `${S.custom.length} designed`)}
+    ${item("custom", "Custom cards", `${Object.keys(obj(S.looks)).length} from the game`)}
     ${item("account", "Profile & account", S.me.handle ? esc(S.me.handle) : "Set up your profile")}
     ${item("about", "About & legal", "Fan-made app disclaimer")}</div>
     <p class="muted small">Unofficial fan-made app. Not affiliated with or endorsed by Marvel or Second Dinner.</p></section>`;
@@ -3946,17 +3956,8 @@ function customCardHtml(c, small) {
   const n = String(c.name || "?").trim();
   return `<div class="cc fr-${clamp(num(c.frame), 0, 5)}" ${small ? 'style="width:110px"' : ""}><span class="pip cost">${esc(c.cost)}</span><span class="pip pow">${esc(c.power)}</span><span class="glyph">${esc((n[0] || "?").toUpperCase())}</span><span class="nm">${esc(n || "Untitled")}</span>${c.ability ? `<span class="ab">${esc(c.ability)}</span>` : ""}</div>`;
 }
-function vCustom() {
-  return `<section class="sec">${backBar("Custom cards")}
-    <div class="panel" style="display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start"><div id="cd-prev">${customCardHtml(cd)}</div>
-      <div class="stack"><label class="f">Name<input type="text" id="cd-name" data-cd="name" value="${esc(cd.name)}" maxlength="24"></label>
-      <div class="grid2"><label class="f">Cost<input type="number" id="cd-c" data-cd="cost" value="${esc(cd.cost)}" min="0" max="20"></label><label class="f">Power<input type="number" id="cd-p" data-cd="power" value="${esc(cd.power)}"></label></div></div></div>
-    <label class="f">Ability<textarea id="cd-abl" data-cd="ability" maxlength="140" placeholder="On Reveal: …">${esc(cd.ability)}</textarea></label>
-    <div class="chips">${FRAMES.map((f, i) => `<button class="chip" data-a="cdFrame" data-v="${i}" aria-pressed="${cd.frame === i}">${f}</button>`).join("")}</div>
-    <div class="row"><button class="btn snap" data-a="cdSave">${cd.editing ? "Save changes" : "Save card"}</button>${cd.editing ? `<button class="btn ghost" data-a="cdNew">New card</button>` : ""}</div>
-    <p class="muted small">Custom cards can go in your decks and be shared in posts. They stay in the app and aren't part of the code you paste into the game.</p></section>
-  <section class="sec"><h2>Your designs</h2>${S.custom.length ? `<div class="cgrid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">${S.custom.map((c) => `<div class="stack" style="align-items:center">${customCardHtml(c)}<div class="row"><button class="btn sm" data-a="cdEdit" data-id="${esc(c.id)}">Edit</button><button class="btn sm" data-a="cdPost" data-id="${esc(c.id)}">Post</button><button class="x" data-a="cdDel" data-id="${esc(c.id)}" aria-label="Delete">${ICON.x}</button></div></div>`).join("")}</div>` : `<div class="empty"><span>Design a card above and save it. You can add it to decks and post it to the feed.</span></div>`}</section>`;
-}
+// Cards › Custom cards shows the Custom Cards you've made in the game (y12_looks.js)
+function vCustom() { return vGameCustom(); }
 
 /* Profile & account */
 function vAccount() {
@@ -4628,7 +4629,7 @@ const pad2 = (n) => String(n).padStart(2, "0");
 const MODES = ["Ranked", "Conquest", "Friendly", "Draft", "High Voltage", "Deadpool's Diner", "Sanctum Showdown", "Event", "Limited-time mode", "Other"];
 const modeOf = (m) => (m && m.mode) || "Ranked";
 const APP_URL = window.SNAPSTAT_STANDALONE ? location.origin + location.pathname : "https://rhaddaddy.github.io/snap-stat/";
-function progBar(have, of, label) { return `<div class="bar" role="img" aria-label="${esc(label || `${have} of ${of}`)}"><i style="width:${clamp(pct(have, of), 0, 100)}%"></i></div>`; }
+function progBar(have, of, label) { return `<div class="bar" role="img" aria-label="${esc(label || `${have} of ${of}`)}"><i style="width:${barW(num(have), num(of))}%"></i></div>`; }
 const avgCubes = (list) => (list.length ? Math.round((list.reduce((s, m) => s + num(m.cubes), 0) / list.length) * 10) / 10 : 0);
 const winPct = (list) => pct(list.filter((m) => m.result === "W").length, list.filter((m) => m.result !== "T").length);
 const plural = (n, w, many) => `${fmt(n)} ${n === 1 ? w : many || w + "s"}`;
@@ -6974,6 +6975,8 @@ function natPull() {
 }
 
 /* The tracker's rules for spotting the end of a match live on the website, so they can be tuned without a new app. */
+// Before Android 1.18 the app can't wait for the screen to stop or tell pages apart by their picture, so those pages go on a timer
+function rulesForApp(j, ver) { if (verCmp(ver, "1.18") < 0) j.screens = arr(j.screens).map((s) => (s && s.still ? { ...s, minGapSec: 4, maxPer: Math.min(40, num(s.maxPer) || 40), same: 0.6 } : s)); return j; }
 async function natRules() {
   if (!NATIVE) return false;
   for (const u of catUrls("tracker-rules.json")) {
@@ -6985,6 +6988,7 @@ async function natRules() {
       for (const name of modeNames()) if (!modes[name]) modes[name] = [String(name).toLowerCase()];
       j.modes = modes;
       j.turnShots = S.turnShots !== false;  // a picture of the board each turn, for the play-by-play
+      rulesForApp(j, String(natInfo().version || "0"));
       if (NATIVE.setRules(JSON.stringify(j))) return true;
     } catch { /* next */ }
   }
@@ -8034,9 +8038,23 @@ function cardBackImg(b) {
   try { return safeUrl(new URL(b.img, ART.from || new URL("./", location.href).href).href); } catch { return ""; }
 }
 // A card back without a usable picture (the game's moving ones) gets a drawn tile with its name.
+// The picture, cropped to the card back itself when the picture has empty space round it (Marvel Snap Zone's are square)
+function backImg(b) {
+  const u = showArt() ? cardBackImg(b) : ""; if (!u) return "";
+  const t = imgTag(u, b.box ? "crop" : ""), x = arr(b.box).map(Number);
+  if (!t || x.length !== 4 || !(x[2] > x[0] && x[3] > x[1])) return t;
+  const w = x[2] - x[0], h = x[3] - x[1], r = (v) => Math.round(v * 1000) / 10;
+  return t.replace("<img ", `<img style="width:${r(1 / w)}%;height:${r(1 / h)}%;left:${r(-x[0] / w)}%;top:${r(-x[1] / h)}%" `);
+}
+// Card backs that move in the game have no still picture anywhere, so the character's own art stands in
+function backStandIn(b) {
+  if (!b || !b.noArt || !showArt()) return "";
+  const n = keyOf(b.name), c = allCards().filter((x) => !x.custom && !x.unknown && keyOf(x.name).length >= 4 && n.includes(keyOf(x.name))).sort((a, z) => keyOf(z.name).length - keyOf(a.name).length)[0];
+  const u = c ? chipArt(c) : ""; return u ? imgTag(u, "stand") : "";
+}
 function backPic(b) {
-  const u = showArt() ? cardBackImg(b) : "";
-  return `${u ? imgTag(u, "") : ""}<span class="cbx">${esc(b.name)}</span>`;
+  const st = backImg(b) ? "" : backStandIn(b);
+  return `${backImg(b) || st}<span class="cbx">${esc(b.name)}${b.noArt ? `<small>Moves in the game</small>` : ""}</span>`;
 }
 const cardBackById = (id) => (id ? cardBacks().find((b) => b.id === id) || null : null);
 // Your card backs are kept with your other cosmetics, matched by name.
@@ -8147,7 +8165,7 @@ function deckIcon(d, big) {
   const l = deckLook(d), b = cardBackById(d.back);
   const face = l ? lookAvatar(l, card(l.card).name, d.id, big ? "lg" : "") : `<span class="av hex art ${big ? "lg" : ""}" style="${artStyle(d.id)}">${esc((String(d.name || "?")[0] || "?").toUpperCase())}${borderHtml("", { hex: true, still: true })}</span>`;
   const bu = b && showArt() ? cardBackImg(b) : "";
-  const back = b ? `<span class="dkb art ${bu ? "has-img" : ""}" style="${artStyle(b.id)}">${bu ? imgTag(bu, "") : ""}</span>` : "";
+  const back = b ? `<span class="dkb art ${bu ? "has-img" : ""}" style="${artStyle(b.id)}">${bu ? backImg(b) : ""}</span>` : "";
   return `<span class="dkic ${big ? "big" : ""} ${back ? "" : "noback"}" aria-hidden="true">${back}${face}</span>`;
 }
 function deckLookHtml(d) {
@@ -8209,7 +8227,7 @@ function cardBackGallery() {
       <div class="cbinfo"><div class="grow" style="min-width:0"><span class="cbn">${esc(b.name)}</span>${b.added ? `<span class="cbd">Update ${esc(b.added)}</span>` : ""}</div><button class="star" data-a="cbWish" data-id="${esc(b.id)}" aria-pressed="${want(b)}" aria-label="Wishlist">${HEART}</button></div></div>`).join("")}</div>` : `<p class="muted small">No card backs here.</p>`}
     ${list.length > cbv.lim ? `<button class="btn block" data-a="cbMore">Show more (${list.length - cbv.lim} left)</button>` : ""}</div>`;
 }
-function pctBar(a, b) { return `<div class="bar"><i style="width:${b ? Math.round((a / b) * 100) : 0}%"></i></div>`; }
+function pctBar(a, b) { return `<div class="bar"><i style="width:${barW(num(a), num(b))}%"></i></div>`; }
 
 /* ---------- The PC game's collection file ---------- */
 /* MARVEL SNAP on PC keeps your collection in CollectionState.json. Every card in it has a CardDefId (the card) and, for a
@@ -9918,6 +9936,54 @@ function applyShotReward(x, r) {
   x.status = `Ticked as yours: ${got.slice(0, 4).join(", ")}${got.length > 4 ? ` and ${got.length - 4} more` : ""}`; x.detail = from; save(); collSyncNow();
 }
 if (typeof OWN_BY !== "undefined") Object.assign(OWN_BY, { match: "seen in one of your matches", reward: "from a reward screen" });
+
+/* ---------- Cards › Custom cards: the Custom Cards you've made in the game (and ones opponents use) ---------- */
+let le = { k: "", q: "" };
+Object.assign(LOOK_SRC, { you: "set by you" });
+function vGameCustom() {
+  const L = obj(S.looks), q = keyOf(le.q || "");
+  const ks = Object.keys(L).filter((k) => !card(k).unknown && (!q || keyOf(card(k).name).includes(q))).sort((a, b) => card(a).name.localeCompare(card(b).name));
+  const deckOf = (k) => S.decks.find((d) => d.status !== "retired" && d.cards.includes(k) && obj(d.variants)[k]) || null;
+  const row = (k) => { const x = obj(L[k]), v = x.v ? variantAny(x.v) : null;
+    return `<div class="li coll"><div class="collart" style="width:74px">${cardChip(k, { noOwn: true, size: "xs", v })}</div><div class="grow"><div class="t">${esc(card(k).name)}</div>
+      ${[v ? `${v.name || "Variant"}${byArtist(v)}` : x.vname ? `${x.vname} variant` : "Base art", x.border ? `${x.border} border` : "", x.finish ? `${x.finish} finish` : "", x.flare ? `${x.flare} flare` : ""].filter(Boolean).map((t) => `<div class="s">${esc(t)}</div>`).join("")}
+      <div class="s">${esc(LOOK_SRC[x.src] || "")}${x.at ? ` · ${esc(ago(x.at) === "now" ? "just now" : ago(x.at) + " ago")}` : ""}</div></div>
+      <div class="collchk"><button class="btn sm" data-a="leOpen" data-k="${esc(k)}">Edit</button></div></div>`; };
+  // What opponents had on, newest first
+  const seen = new Map();
+  for (const m of realMatches().slice().sort((a, b) => b.ts - a.ts)) for (const [k, x] of Object.entries(obj(obj(m.opp).looks))) { const key = k + "|" + lookText(x); if (!seen.has(key) && seen.size < 40) seen.set(key, { k, x, who: m.oppName || "an opponent", ts: m.ts }); }
+  return `<section class="sec">${backBar("Custom cards")}
+    <div class="panel stack small" style="gap:6px"><b>Your Custom Cards</b><span class="muted">The look you've given each card in MARVEL SNAP: its variant, border, finish and flare. They fill in by themselves from each card's own screen in the game (screenshot it, or open it with Track & play on), from the cards you play in matches, and from the PC game's files. Tap Edit to fix one.</span>
+      <div class="row"><input type="search" id="le-q" data-le="q" value="${esc(le.q || "")}" placeholder="Find a card" style="flex:1"><button class="btn sm" data-a="leAdd">${ICON.plus} Add one</button></div></div>
+    ${ks.length ? `<div class="list">${ks.slice(0, 300).map(row).join("")}</div>` : `<div class="empty"><strong>${q ? "No Custom Card for that card yet" : "No Custom Cards saved yet"}</strong><span>Open a card in the game and screenshot it, or play a match with Track & play on.</span></div>`}
+    <span class="muted small">${fmt(Object.keys(L).length)} card${Object.keys(L).length === 1 ? "" : "s"} with a Custom Card saved.</span></section>
+    ${seen.size ? `<section class="sec"><details class="panel small"><summary><b>Opponents' Custom Cards</b> <span class="muted">(${seen.size})</span></summary><div class="list" style="margin-top:8px">${[...seen.values()].map((s) => `<div class="li coll"><div class="collart" style="width:74px">${cardChip(s.k, { noOwn: true, size: "xs" })}</div><div class="grow"><div class="t">${esc(card(s.k).name)}</div><div class="s">${esc(lookText(s.x))}</div><div class="s">${esc(s.who)} · ${esc(dayStr(s.ts))}</div></div></div>`).join("")}</div></details></section>` : ""}
+    ${S.custom.length ? `<section class="sec"><details class="panel small"><summary><b>Cards you designed in SNAP Stat</b> <span class="muted">(${S.custom.length})</span></summary><div class="stack" style="margin-top:8px"><div class="cgrid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${S.custom.map((c) => `<div class="stack" style="align-items:center;gap:6px">${customCardHtml(c, true)}<button class="btn sm ghost" data-a="cdDel" data-id="${esc(c.id)}">Delete</button></div>`).join("")}</div><span class="muted">These were made with the old card designer. They still work in your decks and posts.</span></div></details></section>` : ""}`;
+}
+function leSheet() {
+  const k = le.k, c = card(k), x = obj(obj(S.looks)[k]);
+  if (!k) return `${sheetHead("Add a Custom Card")}<label class="f">Card<input type="text" id="le-card" list="le-cards" placeholder="Start typing a card" autocomplete="off"></label><datalist id="le-cards">${allCards().filter((y) => !y.unknown && !y.custom).map((y) => `<option value="${esc(y.name)}">`).join("")}</datalist><button class="btn snap" data-a="lePick">Next</button>`;
+  const vs = allVariants().filter((v) => v.card === k && (v.owned || v.id === x.v || "cat:" + v.cat === x.v));
+  const cur = x.v ? (variantAny(x.v) || {}).id : "";
+  return `${sheetHead(esc(c.name), "Your Custom Card in the game")}
+    <div class="row" style="justify-content:center">${cardChip(k, { noOwn: true, v: x.v ? variantAny(x.v) : null })}</div>
+    <label class="f">Variant<select id="le-v"><option value="">Base art${x.vname && !x.v ? ` (read as ${esc(x.vname)})` : ""}</option>${vs.map((v) => `<option value="${esc(v.virtual ? "cat:" + v.cat : v.id)}" ${v.id === cur ? "selected" : ""}>${esc((v.name || "Variant") + byArtist(v))}</option>`).join("")}</select></label>
+    <label class="f">Border<input type="text" id="le-b" list="le-bl" value="${esc(x.border || "")}" placeholder="Standard"></label><datalist id="le-bl">${borderNames().map((n) => `<option value="${esc(n)}">`).join("")}</datalist>
+    <div class="grid2"><label class="f">Finish<input type="text" id="le-fi" list="le-fil" value="${esc(x.finish || "")}" placeholder="None"></label><label class="f">Flare<input type="text" id="le-fl" list="le-fll" value="${esc(x.flare || "")}" placeholder="None"></label></div>
+    <datalist id="le-fil">${SPLIT_FINISHES.map((n) => `<option value="${esc(n)}">`).join("")}</datalist><datalist id="le-fll">${SPLIT_FLARES.map((n) => `<option value="${esc(n)}">`).join("")}</datalist>
+    <span class="muted small">Only your owned variants are listed. Tick more in Cards › Variants.</span>
+    <div class="row"><button class="btn snap" data-a="leSave">Save</button>${x.at ? `<button class="btn danger" data-a="leClear">Remove</button>` : ""}</div>`;
+}
+Object.assign(A, {
+  leOpen: (el) => { le.k = el.dataset.k; openSheet(leSheet); },
+  leAdd: () => { le.k = ""; openSheet(leSheet); },
+  lePick: () => { const c = fuzzyCard(($("#le-card") || {}).value || ""); if (!c || c.unknown) { toast("Pick a card from the list"); return; } le.k = c.key; refreshSheet(); },
+  leSave: () => { const k = le.k; if (!k) return; const v = $("#le-v").value; const vv = v ? variantAny(v) : null;
+    S.looks = obj(S.looks); S.looks[k] = { v, vname: vv ? vv.name || "" : "", border: $("#le-b").value.trim().slice(0, 40), finish: $("#le-fi").value.trim().slice(0, 40), flare: $("#le-fl").value.trim().slice(0, 40), at: Date.now(), src: "you" };
+    save(); closeSheet(); render(); toast("Custom Card saved"); },
+  leClear: () => { delete obj(S.looks)[le.k]; save(); closeSheet(); render(); toast("Removed"); },
+});
+document.addEventListener("input", (e) => { const t = e.target; if (t && t.dataset && t.dataset.le === "q") { le.q = t.value; const pos = t.selectionStart; render(); const n = $("#le-q"); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch { /* fine */ } } } });
 /* ============ Update everything: a guided sweep through the game, and how fresh each part is ============
    Each part of your data remembers when a screenshot last updated it. The sweep lists the game's screens in order,
    ticks each one as its picture is read (from Track & play or a screenshot you take), and shows what changed. */

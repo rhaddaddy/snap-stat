@@ -14,7 +14,13 @@ data class Screen(val kind: String, val groups: List<List<String>>, val not: Lis
                   /** …at least this many seconds apart… */
                   val minGapSec: Int = 4,
                   /** …and a page counts as already saved when this much of its text matches one that was. */
-                  val same: Double = 0.85) {
+                  val same: Double = 0.85,
+                  /** Only save once the picture has stopped moving (you've stopped scrolling) */
+                  val still: Boolean = false,
+                  /** When above 0, pages are told apart by the picture instead of the words (the card effects on
+                   *  the collection screen make the words read differently every time): a page counts as saved
+                   *  already when its picture is this similar to one that was. */
+                  val imgSame: Double = 0.0) {
     fun matches(t: String): Boolean = not.none { it.isNotBlank() && t.contains(it) } && groups.any { g -> g.isNotEmpty() && g.all { t.contains(it) } }
 }
 
@@ -107,7 +113,8 @@ data class Rules(
                         val any = s.optJSONArray("any")
                         val groups = if (any == null) emptyList() else (0 until any.length()).map { k -> val g = any.opt(k); if (g is JSONArray) words(g) else listOf(plainText(g.toString()).trim()) }.filter { it.isNotEmpty() }
                         if (kind.isEmpty() || groups.isEmpty()) null else Screen(kind, groups, words(s.optJSONArray("not")), s.optInt("cooldownMin", 20).coerceIn(2, 24 * 60), s.optInt("frames", 2).coerceIn(1, 5),
-                            s.optInt("maxPer", 1).coerceIn(1, 40), s.optInt("minGapSec", 4).coerceIn(1, 600), s.optDouble("same", 0.85).coerceIn(0.3, 0.99))
+                            s.optInt("maxPer", 1).coerceIn(1, 300), s.optInt("minGapSec", 4).coerceIn(1, 600), s.optDouble("same", 0.85).coerceIn(0.3, 0.99),
+                            s.optBoolean("still", false), s.optDouble("imgSame", 0.0).coerceIn(0.0, 0.99))
                     } } ?: d.screens,
                     modeNot = if (j.has("modeNot")) words(j.optJSONArray("modeNot")) else d.modeNot,
                     modeReset = if (j.has("modeReset")) words(j.optJSONArray("modeReset")) else d.modeReset,
