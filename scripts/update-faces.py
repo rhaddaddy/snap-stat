@@ -97,14 +97,15 @@ if MODE == "match":
     print(len(ids), "pictures,", len(faces), "done,", len(todo), "to match")
     n = 0
     with ThreadPoolExecutor(6) as ex:
-        for i, box, why in ex.map(match, todo):
-            n += 1
-            if box:
-                faces[i] = box; how[i] = why; misses.pop(i, None)
-                if float(why[2:]) < MATCH_SURE: misses[i] = {"at": now, "why": "check"}
-            elif why != "noart": misses[i] = {"at": now, "why": why}
-            if n % 200 == 0: print(n, "matched so far,", round(time.time() - T0), "s"); save()
+        for k in range(0, len(todo), 60):
             if time.time() - T0 > BUDGET: print("Out of time; the rest next run."); break
+            for i, box, why in ex.map(match, todo[k:k + 60]):
+                n += 1
+                if box:
+                    faces[i] = box; how[i] = why; misses.pop(i, None)
+                    if float(why[2:]) < MATCH_SURE: misses[i] = {"at": now, "why": "check"}
+                elif why != "noart": misses[i] = {"at": now, "why": why}
+                if n % 200 == 0: print(n, "matched so far,", round(time.time() - T0), "s"); save()
     print("faces:", len(faces), "· not matched:", len(misses))
 
 # ---------- A head finder for portraits that aren't a crop of the art ----------

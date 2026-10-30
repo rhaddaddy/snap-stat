@@ -271,8 +271,10 @@ for b in borders:
     # moving version first
     try: head = get(ANIM.format(bid), method="HEAD"); sig = "a4:" + str(head.get("Content-Length") or head.get("content-length")) + ":" + str(head.get("Last-Modified") or head.get("ETag") or "")
     except Exception: head, sig = None, ""
-    if head and prev_src.get(bid) == sig and all(os.path.exists(f) for f in (still_p, anim_p, hex_p, hexa_p, bn_p, bna_p)):
-        item.update(frame=still_p, anim=anim_p, hex=hex_p, hexAnim=hexa_p, banner=bn_p, bannerAnim=bna_p); src_log[bid] = sig; report["kept"].append(bid); out.append(item); continue
+    all6 = all(os.path.exists(f) for f in (still_p, anim_p, hex_p, hexa_p, bn_p, bna_p))
+    # Unchanged, or the check itself failed (the site was down) for one that moves: keep last time's pictures
+    if all6 and ((head and prev_src.get(bid) == sig) or (head is None and str(prev_src.get(bid, "")).startswith("a4:"))):
+        item.update(frame=still_p, anim=anim_p, hex=hex_p, hexAnim=hexa_p, banner=bn_p, bannerAnim=bna_p); src_log[bid] = sig if head else prev_src.get(bid); report["kept"].append(bid); out.append(item); continue
     done = False
     if head:
         try:
@@ -287,10 +289,14 @@ for b in borders:
                 bns[0].save(bna_p, "WEBP", save_all=True, append_images=bns[1:], duration=100, loop=0, quality=66, method=4)
                 item.update(frame=still_p, anim=anim_p, hex=hex_p, hexAnim=hexa_p, banner=bn_p, bannerAnim=bna_p); src_log[bid] = sig; report["anim"].append(bid); done = True
         except Exception as e: print(bid, "animation failed:", e)
+    net_fail = True
     if not done:
         for u in [b["img"], f"https://static.marvelsnap.pro/borders/{bid}.webp"]:
+            try: data = get(u, True)
+            except Exception: continue
+            net_fail = False
             try:
-                got = flatten_tilted(Image.open(io.BytesIO(get(u, True))))
+                got = flatten_tilted(Image.open(io.BytesIO(data)))
                 if got is not None:
                     got[0].save(still_p, "WEBP", quality=82, method=6); got[1].save(hex_p, "WEBP", quality=82, method=6); got[2].save(bn_p, "WEBP", quality=82, method=6)
                     item.update(frame=still_p, hex=hex_p, banner=bn_p); done = True; report["still"].append(bid)
@@ -298,6 +304,10 @@ for b in borders:
                         if os.path.exists(f): os.remove(f)
                     break
             except Exception: pass
+    if not done and net_fail and os.path.exists(still_p):
+        # Both pictures failed to download: keep what's there rather than deleting it
+        ex = lambda f: f if os.path.exists(f) else ""
+        item.update(frame=still_p, hex=ex(hex_p), banner=ex(bn_p), anim=ex(anim_p), hexAnim=ex(hexa_p), bannerAnim=ex(bna_p)); src_log[bid] = prev_src.get(bid, ""); report["kept"].append(bid); done = True
     if not done:
         report["drawn"].append(bid)
         for f in (still_p, anim_p, hex_p, hexa_p, bn_p, bna_p):

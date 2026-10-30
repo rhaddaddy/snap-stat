@@ -103,7 +103,7 @@ data class Rules(
                     turnShots = j.optBoolean("turnShots", d.turnShots),
                     end = if (endA == null) d.end else (0 until endA.length()).map { i ->
                         val g = endA.opt(i)
-                        if (g is JSONArray) words(g) else listOf(plainText(g.toString()).trim())
+                        if (g is JSONArray) words(g) else listOf(plainText(g.toString()).trim()).filter { it.isNotBlank() && it != "null" }
                     }.filter { it.isNotEmpty() },
                     not = if (j.has("not")) words(j.optJSONArray("not")) else d.not,
                     modes = j.optJSONObject("modes")?.let { m -> m.keys().asSequence().associateWith { words(m.optJSONArray(it)) }.filterValues { it.isNotEmpty() } } ?: d.modes,
@@ -111,7 +111,7 @@ data class Rules(
                         val s = a.optJSONObject(i) ?: return@mapNotNull null
                         val kind = s.optString("kind").replace(Regex("[^A-Za-z0-9_-]"), "").take(24)
                         val any = s.optJSONArray("any")
-                        val groups = if (any == null) emptyList() else (0 until any.length()).map { k -> val g = any.opt(k); if (g is JSONArray) words(g) else listOf(plainText(g.toString()).trim()) }.filter { it.isNotEmpty() }
+                        val groups = if (any == null) emptyList() else (0 until any.length()).map { k -> val g = any.opt(k); if (g is JSONArray) words(g) else listOf(plainText(g.toString()).trim()).filter { it.isNotBlank() && it != "null" } }.filter { it.isNotEmpty() }
                         if (kind.isEmpty() || groups.isEmpty()) null else Screen(kind, groups, words(s.optJSONArray("not")), s.optInt("cooldownMin", 20).coerceIn(2, 24 * 60), s.optInt("frames", 2).coerceIn(1, 5),
                             s.optInt("maxPer", 1).coerceIn(1, 300), s.optInt("minGapSec", 4).coerceIn(1, 600), s.optDouble("same", 0.85).coerceIn(0.3, 0.99),
                             s.optBoolean("still", false), s.optDouble("imgSame", 0.0).coerceIn(0.0, 0.99))

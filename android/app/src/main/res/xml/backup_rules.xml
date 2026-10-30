@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android's backup keeps your SNAP Stat data, but not the tracker's log (it has words read off your screen)
+     or pictures still waiting to be read. -->
+<full-backup-content>
+    <exclude domain="file" path="log.txt" />
+    <exclude domain="file" path="queue/" />
+</full-backup-content>

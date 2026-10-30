@@ -38,13 +38,18 @@ class TrackerService : Service() {
         /** Two frames this alike (out of 1) mean the screen has stopped moving; card effects still shimmer a little */
         private const val STEADY = 0.92
         private const val ID_DONE = 2
-        private const val ID_BOT = 3
+        private const val ID_BOT = 4 // 3 is the app update's notification
         private const val ACTION_STOP = "com.rhaddaddy.snapstat.STOP"
 
         @Volatile var running = false
             private set
         @Volatile var captured = 0
             private set
+        /** The app read everything that was waiting, so the "matches to log" count starts again (and its notification goes). */
+        fun queueRead(ctx: Context) {
+            captured = 0
+            try { ctx.getSystemService(NotificationManager::class.java).cancel(ID_DONE) } catch (_: Exception) {}
+        }
         /** Called when a picture is queued, so an open SNAP Stat can read it right away. */
         @Volatile var onQueued: (() -> Unit)? = null
         /** Called when tracking starts or stops. */
@@ -165,7 +170,7 @@ class TrackerService : Service() {
         reader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
         display = mp.createVirtualDisplay("SNAP Stat tracker", width, height, m.densityDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, reader!!.surface, null, handler)
         recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-        running = true; Widget.refresh(this)
+        running = true; captured = 0; Widget.refresh(this)
         TrackerLog.add("Tracking started (${width}x$height, every ${rules.intervalMs} ms)")
         onState?.invoke()
         handler?.postDelayed(::tick, rules.intervalMs)
@@ -189,19 +194,22 @@ class TrackerService : Service() {
         if (busy) return
         val now = System.currentTimeMillis()
         val front = usage.update()
-        // Only look while the game is in front (when usage access is on; otherwise always)
-        if (rules.onlyInSnap && front != null && front != ShotQueue.SNAP_PACKAGE) { reader?.acquireLatestImage()?.close(); hits = 0; return }
-        if (now < cooldownUntil) { reader?.acquireLatestImage()?.close(); return }
-        val bmp = grab() ?: return
+        // Only look while the game is in front. With usage access that's checked here, whatever the rules say; without
+        // it the app can't tell, so it looks at the screen but keeps other apps' words out of its log.
+        if (usage.access && front != ShotQueue.SNAP_PACKAGE) { try { reader?.acquireLatestImage()?.close() } catch (_: Throwable) {}; hits = 0; return }
+        if (now < cooldownUntil) { try { reader?.acquireLatestImage()?.close() } catch (_: Throwable) {}; return }
+        val bmp = try { grab() } catch (e: Throwable) { TrackerLog.add("Couldn't read the screen: ${e.javaClass.simpleName}"); null } ?: return
         busy = true
-        recognizer?.process(InputImage.fromBitmap(bmp, 0))
-            ?.addOnSuccessListener { result ->
-                h.post { look(result.text, bmp) }
-            }
-            ?.addOnFailureListener { e ->
-                h.post { TrackerLog.add("Text reading failed: ${e.message}"); bmp.recycle(); busy = false }
-            }
-            ?: run { bmp.recycle(); busy = false }
+        try {
+            recognizer?.process(InputImage.fromBitmap(bmp, 0))
+                ?.addOnSuccessListener { result ->
+                    if (!h.post { look(result.text, bmp) }) { bmp.recycle(); busy = false }
+                }
+                ?.addOnFailureListener { e ->
+                    if (!h.post { TrackerLog.add("Text reading failed: ${e.message}"); bmp.recycle(); busy = false }) bmp.recycle()
+                }
+                ?: run { bmp.recycle(); busy = false }
+        } catch (e: Throwable) { TrackerLog.add("Text reading failed: ${e.javaClass.simpleName}"); bmp.recycle(); busy = false }
     }
 
     private fun look(text: String, bmp: Bitmap) {
@@ -211,8 +219,8 @@ class TrackerService : Service() {
             // Remember the last game mode or event the screen named (the main menu shows it before a match)
             if (!match && lastMode.isNotEmpty() && rules.resetsMode(flat)) { TrackerLog.add("Mode: back on the home screen"); lastMode = "" }
             if (!match) rules.modeIn(flat)?.let { if (it != lastMode) TrackerLog.add("Mode: $it"); lastMode = it; lastModeAt = System.currentTimeMillis() }
-            // Note the screen's words whenever they change, for tuning the rules
-            if (flat.isNotEmpty() && similarity(flat, lastText) < 0.6) { TrackerLog.add("${if (match) "END" else "saw"}: $flat"); lastText = flat }
+            // Note the screen's words whenever they change, for tuning the rules (only when it's known to be the game)
+            if (flat.isNotEmpty() && similarity(flat, lastText) < 0.6) { TrackerLog.add(if (usage.access) "${if (match) "END" else "saw"}: $flat" else if (match) "END (words not kept: usage access is off)" else "saw a new screen"); lastText = flat }
             if (!match) watchTurns(flat.lowercase(), bmp)
             hits = if (match) hits + 1 else 0
             val sig = fingerprint(bmp); val steady = prevSig?.let { sigSim(it, sig) >= STEADY } ?: false; prevSig = sig
@@ -234,6 +242,9 @@ class TrackerService : Service() {
                     onQueued?.invoke()
                 }
             }
+        } catch (e: Throwable) {
+            // Something unexpected on one picture shouldn't stop the tracker (or close the app)
+            TrackerLog.add("Skipped a frame: ${e.javaClass.simpleName}")
         } finally {
             bmp.recycle(); busy = false
         }
@@ -275,7 +286,8 @@ class TrackerService : Service() {
         val now = System.currentTimeMillis()
         // The matchmaking screen names your opponent and their title ("VS OKKI FINGARO Professor X's Barber")
         if (t.contains(" vs ") && (t.contains("waiting for") || t.contains("connecting"))) vsText = t.substringAfter(" vs ").take(60)
-        if (t.contains("searching for") || (matchSeenAt > 0 && now - matchSeenAt > 3 * 60_000L)) { if (botFast + botSlow > 0 || t.contains("searching for")) resetTurns(); matchSeenAt = 0L }
+        // A new match, or no match screen for 3 minutes (the end screen was missed): start the next match afresh
+        if (t.contains("searching for") || (matchSeenAt > 0 && now - matchSeenAt > 3 * 60_000L)) { resetTurns(); matchSeenAt = 0L }
         val inMatch = t.contains("retreat") || t.contains("end turn") || playing.containsMatchIn(t)
         if (!inMatch) return
         matchSeenAt = now
@@ -361,13 +373,19 @@ class TrackerService : Service() {
 
     override fun onDestroy() {
         running = false; Widget.refresh(this)
-        handler?.removeCallbacksAndMessages(null)
-        try { display?.release() } catch (_: Exception) {}
-        try { reader?.close() } catch (_: Exception) {}
-        try { projection?.stop() } catch (_: Exception) {}
-        try { recognizer?.close() } catch (_: Exception) {}
-        thread?.quitSafely()
-        display = null; reader = null; projection = null; recognizer = null
+        // The capture is closed on the tracker's own thread, so a picture being read right now finishes first
+        val h = handler; handler = null
+        val release = {
+            try { display?.release() } catch (_: Exception) {}
+            try { reader?.close() } catch (_: Exception) {}
+            try { projection?.stop() } catch (_: Exception) {}
+            try { recognizer?.close() } catch (_: Exception) {}
+            display = null; reader = null; projection = null; recognizer = null
+            // A frame that finished just now may have put the "tracking" notification back up
+            try { getSystemService(NotificationManager::class.java).cancel(ID_RUN) } catch (_: Exception) {}
+            thread?.quitSafely()
+        }
+        if (h != null) { h.removeCallbacksAndMessages(null); if (!h.post { release() }) release() } else release()
         TrackerLog.add("Tracking stopped")
         onState?.invoke()
         super.onDestroy()

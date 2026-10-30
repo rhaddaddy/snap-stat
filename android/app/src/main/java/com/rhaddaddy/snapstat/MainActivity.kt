@@ -131,7 +131,7 @@ class MainActivity : ComponentActivity() {
 
         if (savedInstanceState != null) web.restoreState(savedInstanceState)
         if (web.url == null) web.loadUrl(HOME)
-        handleIntent(intent)
+        if (savedInstanceState == null) handleIntent(intent)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -170,7 +170,7 @@ class MainActivity : ComponentActivity() {
     private fun route(uri: Uri): Boolean {
         val scheme = uri.scheme ?: ""
         if (scheme == "https" && uri.host == HOST && (uri.path ?: "").startsWith(PATH) && !(uri.path ?: "").endsWith("native-signin.html")) return false
-        if (scheme == "https" && uri.host == HOST && (uri.path ?: "").endsWith("native-signin.html")) { openInChrome(uri.toString()); return true }
+        if (scheme == "https" && uri.host == HOST && (uri.path ?: "").endsWith("native-signin.html")) { startSignIn(); return true }
         if (scheme == "http" || scheme == "https") { openExternal(uri.toString()); return true }
         try {
             val i = if (scheme == "intent") Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME) else Intent(Intent.ACTION_VIEW, uri)
@@ -183,6 +183,25 @@ class MainActivity : ComponentActivity() {
     fun openExternal(url: String) {
         try { CustomTabsIntent.Builder().setShowTitle(true).build().launchUrl(this, Uri.parse(url)) }
         catch (e: Exception) { try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (_: Exception) {} }
+    }
+
+    /**
+     * Starts Google sign-in in Chrome with a one-time code. The sign-in that comes back is only used if it carries the
+     * same code and arrives within 10 minutes, so a sign-in link from anywhere else (a post, another app) can't switch
+     * SNAP Stat to someone else's account.
+     */
+    fun startSignIn() {
+        val b = ByteArray(16); java.security.SecureRandom().nextBytes(b)
+        val state = b.joinToString("") { "%02x".format(it) }
+        getSharedPreferences("snapstat", 0).edit().putString("signinState", state).putLong("signinAt", System.currentTimeMillis()).apply()
+        openInChrome("$SIGN_IN_URL?state=$state")
+    }
+    private fun signInOk(state: String?): Boolean {
+        val p = getSharedPreferences("snapstat", 0)
+        val want = p.getString("signinState", "") ?: ""; val at = p.getLong("signinAt", 0L)
+        val ok = want.isNotEmpty() && state == want && System.currentTimeMillis() - at < 10 * 60_000L
+        if (ok) p.edit().remove("signinState").remove("signinAt").apply()
+        return ok
     }
 
     /** Google sign-in runs in Chrome (Google doesn't allow it inside apps' web views), then comes back here. */
@@ -207,9 +226,10 @@ class MainActivity : ComponentActivity() {
         }
         val data = intent.data
         if (intent.action == Intent.ACTION_VIEW && data?.scheme == "snapstat" && data.host == "signin") {
-            val token = data.getQueryParameter("token") ?: intent.getStringExtra("token") ?: ""
-            emit("signin", JSONObject.quote(token))
+            val token = data.getQueryParameter("token") ?: ""
             setIntent(Intent())
+            if (signInOk(data.getQueryParameter("state"))) emit("signin", JSONObject.quote(token))
+            else { TrackerLog.add("Ignored a sign-in this app didn't start"); emit("signin", "\"\"") } // the page shows "try again" instead of waiting forever
             return
         }
         if (intent.action == Intent.ACTION_SEND || intent.action == Intent.ACTION_SEND_MULTIPLE) {
@@ -223,6 +243,9 @@ class MainActivity : ComponentActivity() {
             }
             val type = intent.type
             setIntent(Intent())
+            // Only files another app shares (content links), never the app's own files or a raw file path
+            val mine = "$packageName.files"
+            uris.retainAll { it.scheme == "content" && it.authority != mine }
             thread {
                 var n = 0
                 for (u in uris.take(20)) {

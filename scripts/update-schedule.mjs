@@ -31,9 +31,11 @@ try {
   for (const c of JSON.parse(readFileSync("card-data.json", "utf8")).cards) {
     if (!c.id) continue; names[c.id] = c.name;
     // snap.fan names variants like GhostRider_18; Marvel Snap Zone numbers the same variant 18.
-    for (const v of c.variants || []) varByOrder[`${c.id}_${String(v.order).padStart(2, "0")}`] = `${c.id}:${v.id}`;
+    // Two variants can share a number (one released, one not yet): the released one keeps it
+    for (const v of c.variants || []) { const k = `${c.id}_${String(v.order).padStart(2, "0")}`, old = varByOrder[k]; if (!old || (old.unreleased && !v.unreleased)) varByOrder[k] = { id: `${c.id}:${v.id}`, unreleased: !!v.unreleased }; }
   }
 } catch { /* names fall back to splitting the ID */ }
+for (const k of Object.keys(varByOrder)) varByOrder[k] = varByOrder[k].id;
 const cardName = (id) => names[id] || String(id).replace(/([a-z])([A-Z])/g, "$1 $2");
 
 const firstTuesday = (y, m) => { const d = new Date(Date.UTC(y, m, 1)); while (d.getUTCDay() !== 2) d.setUTCDate(d.getUTCDate() + 1); return d; };
@@ -75,6 +77,8 @@ for (let i = 0; i < items.length; i++) {
       else if (!out.cards.includes(n)) out.cards.push(n);
     }
     if (out.superCard) out.notes = `${out.superCard} is the Super Premium card. ${out.notes}`;
+    // The page loaded but nothing could be read from it (its layout changed): keep what was known
+    if (old && !out.passCard && !out.cards.length && !out.variants.length && (old.passCard || (old.cards || []).length || (old.variants || []).length)) { console.log(`Couldn't read ${s.slug}'s page, so its cards were kept.`); Object.assign(out, { passCard: old.passCard || "", superCard: old.superCard || "", cards: old.cards || [], variants: old.variants || [] }); }
   } else if (old) { Object.assign(out, { passCard: old.passCard || "", superCard: old.superCard || "", cards: old.cards || [], variants: old.variants || [] }); }
   seasons[id] = out;
 }
@@ -92,11 +96,15 @@ if (evPage) {
     const m1 = MON3.indexOf(m[1].toLowerCase()), m2 = m[4] ? MON3.indexOf(m[4].toLowerCase()) : m1;
     if (m1 < 0 || m2 < 0) continue;
     // The year: written out, or from the event's ID (like HighVoltage_WeekendNov26), or the closest one to today.
-    let y2 = m[6] ? Number(m[6]) : m[3] ? Number(m[3]) : 0;
+    let y2 = m[6] ? Number(m[6]) : m[3] ? Number(m[3]) + (m1 > m2 ? 1 : 0) : 0, y1 = m[3] ? Number(m[3]) : 0;
     const fromSlug = slug.match(/([A-Z][a-z]{2})(\d{2})(?:_\d+)?$/);
-    if (!y2 && fromSlug) y2 = 2000 + Number(fromSlug[2]);
-    if (!y2) { const c = [now.getUTCFullYear() - 1, now.getUTCFullYear(), now.getUTCFullYear() + 1]; y2 = c.sort((a, b) => Math.abs(Date.UTC(a, m1, +m[2]) - today) - Math.abs(Date.UTC(b, m1, +m[2]) - today))[0]; }
-    const y1 = m[3] ? Number(m[3]) : m1 > m2 ? y2 - 1 : y2;
+    if (!y2 && fromSlug) {
+      const sy = 2000 + Number(fromSlug[2]), sm = MON3.indexOf(fromSlug[1].toLowerCase());
+      // Usually the month it starts; if it's the end month, the year is the end's
+      if (sm === m2 && sm !== m1) { y2 = sy; y1 = m1 > m2 ? sy - 1 : sy; } else { y1 = sy; y2 = m1 > m2 ? sy + 1 : sy; }
+    }
+    if (!y2) { const c = [now.getUTCFullYear() - 1, now.getUTCFullYear(), now.getUTCFullYear() + 1]; y1 = c.sort((a, b) => Math.abs(Date.UTC(a, m1, +m[2]) - today) - Math.abs(Date.UTC(b, m1, +m[2]) - today))[0]; y2 = m1 > m2 ? y1 + 1 : y1; }
+    if (!y1) y1 = m1 > m2 ? y2 - 1 : y2;
     const start = new Date(Date.UTC(y1, m1, +m[2])), end = new Date(Date.UTC(y2, m2, +m[5]));
     if (start.getTime() > today + 400 * 864e5) continue;
     let name = strip(rawName).replace(/\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{2}$/i, "");
@@ -106,6 +114,7 @@ if (evPage) {
   }
 }
 if (Object.keys(events).length < 5) { console.log("The event list looked wrong, so the previous events were kept."); Object.assign(events, prev.events || {}); }
+else for (const [id, e] of Object.entries(prev.events || {})) if (!events[id] && e && e.by === "snap.fan") events[id] = e; // older ones snap.fan no longer lists
 
 /* ---------- Filling gaps and fixing names ---------- */
 // snap.fan sometimes skips a season (October 2026 wasn't listed). Marvel Snap Zone's season list (art.json, from
@@ -128,7 +137,7 @@ if (Object.keys(events).length < 5) { console.log("The event list looked wrong, 
   for (const [id, o] of Object.entries(fix.seasons || {})) if (seasons[id] || o.name) seasons[id] = { ...(seasons[id] || { passLevels: 50, cards: [], variants: [], rewards: [], notes: "" }), ...o };
   // Each season ends the day before the next one starts.
   const ids = Object.keys(seasons).sort();
-  ids.forEach((id, i) => { const next = seasons[ids[i + 1]]; if (next && next.start) seasons[id].end = iso(dayBefore(new Date(next.start + "T00:00:00Z"))); else if (!seasons[id].end) { const [y, m] = id.slice(2).split("-").map(Number); seasons[id].end = iso(dayBefore(firstTuesday(m === 12 ? y + 1 : y, m % 12))); } });
+  ids.forEach((id, i) => { if (fix.seasons && fix.seasons[id] && fix.seasons[id].end) return; const next = seasons[ids[i + 1]]; if (next && next.start) seasons[id].end = iso(dayBefore(new Date(next.start + "T00:00:00Z"))); else if (!seasons[id].end) { const [y, m] = id.slice(2).split("-").map(Number); seasons[id].end = iso(dayBefore(firstTuesday(m === 12 ? y + 1 : y, m % 12))); } });
   const renames = fix.eventNames || {}, drop = new Set((fix.dropEvents || []).map((n) => n.toLowerCase()));
   for (const [id, e] of Object.entries(events)) {
     if (drop.has(String(e.name).toLowerCase())) { delete events[id]; continue; }
@@ -141,12 +150,13 @@ if (Object.keys(events).length < 5) { console.log("The event list looked wrong, 
 const itemsFrom = (html) => [...html.matchAll(/<a href="\/cards\/([A-Za-z0-9]+)\/(?:([A-Za-z0-9_]+)\/)?"[\s\S]*?bundle-card__item-text">([^<]+)</g)]
   .map(([, cid, vid, label]) => { const isVar = !!vid && /_\d+$/.test(vid); return { cardId: cid, cardName: cardName(cid), variantId: isVar ? vid : "", cat: isVar ? varByOrder[vid] || "" : "", label: strip(label) }; });
 const shops = [];
-const nowMs = Date.now();
+const nowMs = Date.now(), bundleKey = (s) => [s.title, s.start, s.end, s.price, (s.items || []).map((i) => i.cat || i.variantId || i.cardId).join(",")].join("|"), seenB = new Set();
 for (let pageNo = 1; pageNo <= 6; pageNo++) {
   const page = await get(pageNo === 1 ? "/bundles/" : `/bundles/page/${pageNo}/`); await sleep(800);
   if (!page) break;
   const cards = page.split('<article class="bundle-card"').slice(1);
   if (!cards.length) break;
+  let added = 0;
   for (const b of cards) {
     const name = strip((b.match(/bundle-card__name">([^<]+)</) || [])[1]);
     const start = (b.match(/data-start="([^"]+)"/) || [])[1] || "", end = (b.match(/data-end="([^"]+)"/) || [])[1] || "";
@@ -157,11 +167,19 @@ for (let pageNo = 1; pageNo <= 6; pageNo++) {
     const breakdown = [...b.matchAll(/<td class="px-3 py-1\.5 text-snap-gray-100">([\s\S]*?)<\/td>\s*<td class="px-3 py-1\.5 text-right[^"]*">\s*([\d,]+)\s*<\/td>/g)].map((m) => [strip(m[1]).replace(/([a-z])([A-Z])/g, "$1 $2").slice(0, 60), Number(m[2].replace(/,/g, ""))]).slice(0, 15);
     const goldValue = Number(((b.match(/Total Gold Value<\/td>\s*<td[^>]*>\s*([\d,]+)/) || [])[1] || "").replace(/,/g, "")) || 0;
     if (!name || (!items.length && !goldValue) || (end && Date.parse(end) < nowMs - 864e5)) continue;
-    shops.push({ source: "bundle", shop: "Bundle", title: name, start: start.slice(0, 10), end: end.slice(0, 10), endsAt: end, price: price ? Number(price.replace(/,/g, "")) : "", currency: "usd", items, value: pcts["bundle value"] || 0, currencyValue: pcts["currency value"] || 0, goldValue, breakdown });
+    const s = { source: "bundle", shop: "Bundle", title: name, start: start.slice(0, 10), end: end.slice(0, 10), endsAt: end, price: price ? Number(price.replace(/,/g, "")) : "", currency: "usd", items, value: pcts["bundle value"] || 0, currencyValue: pcts["currency value"] || 0, goldValue, breakdown };
+    if (seenB.has(bundleKey(s))) continue; seenB.add(bundleKey(s)); shops.push(s); added++;
   }
+  if (!added) break; // this page only repeated earlier ones
+}
+{
+  // Nothing (or far fewer than last time) could be read: the bundles from last time that haven't ended are kept
+  const before = (prev.shops || []).filter((s) => s.source === "bundle" && !(s.endsAt && Date.parse(s.endsAt) < nowMs));
+  const uniq = [...new Map(before.map((s) => [bundleKey(s), s])).values()];
+  if (shops.length < Math.floor(uniq.length / 2)) { console.log(`Only ${shops.length} bundles could be read (last time ${uniq.length}), so last time's are kept.`); for (const s of uniq) if (!seenB.has(bundleKey(s))) { seenB.add(bundleKey(s)); shops.push(s); } }
 }
 for (const [id, e] of Object.entries(events)) {
-  const end = Date.parse(e.end + "T23:59:59Z"), start = Date.parse(e.start + "T00:00:00Z");
+  const shopEnd = e.shopUntil || e.end, end = Date.parse(shopEnd + "T23:59:59Z"), start = Date.parse(e.start + "T00:00:00Z");
   if (end < nowMs || start > nowMs + 14 * 864e5 || !e.link) continue;
   const page = await get(e.link.replace("https://snap.fan", "")); await sleep(800);
   const shopHtml = page ? (page.match(/<h2>Shop<\/h2>([\s\S]*?)(?:<h2>|<\/main>)/) || [])[1] || "" : "";
@@ -169,7 +187,7 @@ for (const [id, e] of Object.entries(events)) {
     const items = itemsFrom(part), cost = part.match(/([\d,]+)\s*<span class="event-card__cost-label">([^<]+)<\/span>(?:\s*<span class="event-card__gold">\(≈ ([\d,]+) Gold\))?/);
     if (!items.length || !cost) continue;
     const sec = strip((part.match(/event-card__section-name">([^<]+)</) || [])[1]);
-    shops.push({ source: "event", eventId: id, shop: `${e.name} shop`, title: sec && !/all offers/i.test(sec) ? sec : "", start: e.start, end: e.end, price: Number(cost[1].replace(/,/g, "")), currency: "event", gold: cost[3] ? Number(cost[3].replace(/,/g, "")) : "", items });
+    shops.push({ source: "event", eventId: id, shop: `${e.name} shop`, title: sec && !/all offers/i.test(sec) ? sec : "", start: e.start, end: shopEnd, price: Number(cost[1].replace(/,/g, "")), currency: "event", gold: cost[3] ? Number(cost[3].replace(/,/g, "")) : "", items });
   }
 }
 console.log(`Found ${shops.length} shop offers.`);

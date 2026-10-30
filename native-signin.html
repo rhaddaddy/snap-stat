@@ -39,7 +39,9 @@
       const token = GoogleAuthProvider.credentialFromResult(result)?.idToken;
       if (!token) throw new Error("Google didn't send back a sign-in. Try again.");
       // Hands the sign-in to the SNAP Stat app on this phone only (the link names the app's package)
-      const link = `intent://signin?token=${encodeURIComponent(token)}#Intent;scheme=snapstat;package=com.rhaddaddy.snapstat;end`;
+      // The one-time code the app sent, so the app knows this is the sign-in it asked for
+      const state = (new URLSearchParams(location.search).get("state") || "").replace(/[^a-f0-9]/g, "").slice(0, 64);
+      const link = `intent://signin?token=${encodeURIComponent(token)}&state=${state}#Intent;scheme=snapstat;package=com.rhaddaddy.snapstat;end`;
       $("go").hidden = true; $("back").hidden = false; $("back").href = link;
       $("msg").textContent = `Signed in as ${result.user.email || result.user.displayName || "you"}. Tap below to go back to the app.`;
       location.href = link;

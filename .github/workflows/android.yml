@@ -79,6 +79,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk snap-stat.apk
-          gh release delete android -y --cleanup-tag || true
-          gh release create android snap-stat.apk --latest --title "SNAP Stat for Android 1.${{ github.run_number }}" \
-            --notes "Download snap-stat.apk on your phone and open it to install or update. Built from ${GITHUB_SHA::7}."
+          T="SNAP Stat for Android 1.${{ github.run_number }}"; N="Download snap-stat.apk on your phone and open it to install or update. Built from ${GITHUB_SHA::7}."
+          # The release is updated in place, so the download link never stops working between builds
+          if gh release view android > /dev/null 2>&1; then
+            gh release upload android snap-stat.apk --clobber && gh release edit android --title "$T" --notes "$N" --latest
+          else
+            gh release create android snap-stat.apk --latest --title "$T" --notes "$N"
+          fi

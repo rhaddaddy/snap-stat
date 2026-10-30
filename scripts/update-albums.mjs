@@ -53,6 +53,8 @@ for (const key of keys) {
     const extra = items.length ? [] : [strip(blk.replace(/^[^<]*<\/span>/, "")).replace(/^Collected\s*/, "").slice(0, 80)].filter(Boolean).map((n) => ({ name: n, type: "" }));
     return { at, items: [...items, ...extra] };
   });
+  // A page that loaded but had nothing readable on it (its layout changed) keeps what was known
+  if (!variants.length && old && old.variants && old.variants.length) { console.log(`Couldn't read the ${key} album's page, so it was kept.`); continue; }
   albums[key] = { name, date: isoDate(strip(main)), variants, rewards };
   read++;
 }

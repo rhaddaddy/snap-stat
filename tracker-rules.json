@@ -1,5 +1,5 @@
 {
-  "v": 13,
+  "v": 14,
   "about": "How the SNAP Stat Android app's match tracker spots the end of a match. A frame counts when its words include every word of one 'end' group and none of the 'not' words, on 'frames' checks in a row. 'modes' are words that tell which game mode or event the player is in; the last one seen is passed along with the match, except on screens with a 'modeNot' word (the home screen lists every event that's on, so it doesn't count). 'screens' are other screens worth saving while you play (your alliance, event passes and shops, the season pass, the shop, the home screen): each kind is saved when its words stay on screen for its 'frames' checks (2 if not given). Every new page of it counts (scrolling a list, another tab): up to 'maxPer' pictures per 'cooldownMin' minutes, at least 'minGapSec' seconds apart, skipping pages whose words match one already saved by more than 'same'. Words are matched in lowercase without accents. 'modeReset' words (the home screen) forget the last mode, so a ranked match isn't taken for an event's. Tuned from the tracker logs of October 28, 2026 (six sessions). v11 (October 29) also saves reward pop-ups (a new card, variant, avatar, title, card back or emote), your avatars, titles, card backs and emotes, and your collection's card grid. v12 (October 29, from the evening's log): the collection grid is spotted by its CARDS and COLLECTION words (its other words are too garbled to use), and a picture is saved every 12 seconds or so while you scroll, since the moving card effects make every page read differently. v13 (October 29, night): the screen is checked every second, and on the collection grid, your avatars, titles, card backs and emotes, and albums a page is saved as soon as you stop scrolling (Android 1.18), told apart from pages already saved by its picture, not its words.",
   "intervalMs": 1000,
   "scale": 0.7,
@@ -38,7 +38,13 @@
       "continue"
     ]
   ],
-  "not": [],
+  "not": [
+    "accept victory",
+    "defeated you",
+    "known defeat",
+    "searching for",
+    "undefeated"
+  ],
   "modes": {
     "Ranked": [
       "ranked"
@@ -123,7 +129,8 @@
         "victory",
         "defeat",
         "matchmaking",
-        "end turn"
+        "end turn",
+        "searching for"
       ],
       "cooldownMin": 30,
       "maxPer": 16,
@@ -148,7 +155,8 @@
         "defeat",
         "matchmaking",
         "end turn",
-        "season pass"
+        "season pass",
+        "searching for"
       ],
       "cooldownMin": 20,
       "frames": 1,
@@ -188,7 +196,8 @@
         "victory",
         "defeat",
         "matchmaking",
-        "end turn"
+        "end turn",
+        "searching for"
       ],
       "cooldownMin": 30,
       "maxPer": 10,
@@ -221,7 +230,8 @@
         "matchmaking",
         "end turn",
         "featured location",
-        "missions"
+        "missions",
+        "searching for"
       ],
       "cooldownMin": 60,
       "maxPer": 10,
@@ -274,7 +284,8 @@
         "victory",
         "defeat",
         "matchmaking",
-        "end turn"
+        "end turn",
+        "searching for"
       ],
       "cooldownMin": 30,
       "maxPer": 10,
@@ -297,7 +308,8 @@
         "victory",
         "defeat",
         "matchmaking",
-        "end turn"
+        "end turn",
+        "searching for"
       ],
       "cooldownMin": 5,
       "maxPer": 3,
@@ -331,7 +343,8 @@
         "victory",
         "defeat",
         "matchmaking",
-        "end turn"
+        "end turn",
+        "searching for"
       ],
       "cooldownMin": 15,
       "maxPer": 10,
@@ -361,7 +374,8 @@
         "victory",
         "defeat",
         "matchmaking",
-        "end turn"
+        "end turn",
+        "searching for"
       ],
       "cooldownMin": 60,
       "maxPer": 2,
@@ -394,7 +408,8 @@
         "defeat",
         "matchmaking",
         "end turn",
-        "upgrade card"
+        "upgrade card",
+        "searching for"
       ],
       "cooldownMin": 60,
       "maxPer": 60,
@@ -423,7 +438,8 @@
         "victory",
         "defeat",
         "matchmaking",
-        "end turn"
+        "end turn",
+        "searching for"
       ],
       "cooldownMin": 60,
       "maxPer": 4,
@@ -468,7 +484,8 @@
         "victory",
         "defeat",
         "matchmaking",
-        "end turn"
+        "end turn",
+        "searching for"
       ],
       "cooldownMin": 60,
       "maxPer": 8,
@@ -491,7 +508,8 @@
         "victory",
         "defeat",
         "matchmaking",
-        "end turn"
+        "end turn",
+        "searching for"
       ],
       "cooldownMin": 120,
       "maxPer": 6,
@@ -540,7 +558,8 @@
         "victory",
         "defeat",
         "matchmaking",
-        "end turn"
+        "end turn",
+        "searching for"
       ],
       "cooldownMin": 60,
       "maxPer": 12,
@@ -564,7 +583,8 @@
         "victory",
         "defeat",
         "matchmaking",
-        "end turn"
+        "end turn",
+        "searching for"
       ],
       "cooldownMin": 60,
       "maxPer": 3,
@@ -622,7 +642,8 @@
         "matchmaking",
         "retreat",
         "season pass",
-        "daily missions"
+        "daily missions",
+        "searching for"
       ],
       "cooldownMin": 10,
       "frames": 1,
@@ -686,7 +707,8 @@
         "token shop",
         "offers",
         "season pass",
-        "buy"
+        "buy",
+        "searching for"
       ],
       "cooldownMin": 30,
       "maxPer": 60,
@@ -712,8 +734,8 @@
         "albums",
         "upgrade",
         "level",
-        "deck",
-        "variants"
+        "variants",
+        "searching for"
       ],
       "cooldownMin": 60,
       "maxPer": 200,
@@ -742,7 +764,8 @@
     "medal shop",
     "limited time mode",
     "new bundle",
-    "balance updates"
+    "balance updates",
+    "searching for"
   ],
   "modeReset": [
     "season pass"

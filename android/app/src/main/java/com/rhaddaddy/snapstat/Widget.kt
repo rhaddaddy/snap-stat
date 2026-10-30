@@ -106,7 +106,7 @@ object Widget {
 
         // The rank tile's extra line: cubes toward the next rank
         val climb = j.optJSONObject("climb")
-        v.setTextViewText(R.id.w_rank_sub, if (climb != null && climb.optInt("rank") in 1..99) "${climb.optInt("cubes")}/10 to next" else "")
+        v.setTextViewText(R.id.w_rank_sub, if (climb != null && climb.optInt("rank") in 1..99) "${climb.optInt("cubes")}/${climb.optInt("per", 7)} to next" else "")
         val missions = j.optInt("missionsLeft", -1)
         v.setTextViewText(R.id.w_today_sub, listOfNotNull(
             if (played && td!!.optInt("games") > 0) "${td.optInt("games")} game${if (td.optInt("games") == 1) "" else "s"}" else null,
@@ -193,6 +193,17 @@ object ResetClock {
         return best
     }
 
+    /** The latest refresh at or before [now]. */
+    private fun lastAt(hours: List<Int>, now: Long): Long {
+        var best = 0L
+        for (h in hours) {
+            val c = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = now; set(Calendar.HOUR_OF_DAY, h); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
+            if (c.timeInMillis > now) c.add(Calendar.DAY_OF_YEAR, -1)
+            best = maxOf(best, c.timeInMillis)
+        }
+        return best
+    }
+
     fun nextDaily(ctx: Context, now: Long): Long = nextAt(listOf(resetHour(clock(ctx))), now)
     fun nextRefresh(ctx: Context, now: Long): Long = nextAt(refreshHours(clock(ctx)), now)
 
@@ -200,20 +211,38 @@ object ResetClock {
     fun gameDay(ctx: Context, now: Long): String =
         java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date(now - resetHour(clock(ctx)) * 3_600_000L))
 
+    private const val SLOT_DONE = "resetSlotDone"
+
+    /**
+     * Sets the alarm for the next refresh this alarm hasn't told you about yet. It used to always pick the next one
+     * after "now", so opening SNAP Stat just after a refresh (before the alarm went off) moved it 8 hours on and that
+     * refresh's notification never came.
+     */
     fun schedule(ctx: Context) {
-        val at = nextAt(refreshHours(clock(ctx)), System.currentTimeMillis())
-        val pi = PendingIntent.getBroadcast(ctx, 7, Intent(ctx, ResetAlarm::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val now = System.currentTimeMillis()
+        val sp = ctx.getSharedPreferences("snapstat", 0)
+        var done = sp.getLong(SLOT_DONE, 0L)
+        // First time (or a time saved while the phone's clock was wrong): start from the refresh that has just passed
+        if (done == 0L || done > now + 9 * 3600_000L) { done = lastAt(refreshHours(clock(ctx)), now); sp.edit().putLong(SLOT_DONE, done).apply() }
+        val at = nextAt(refreshHours(clock(ctx)), maxOf(done, now - 60 * 60_000L))
+        val pi = PendingIntent.getBroadcast(ctx, 7, Intent(ctx, ResetAlarm::class.java).putExtra("slot", at), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         // A window rather than an exact time, so no special permission is needed: it goes off within a few minutes of the refresh.
         try { ctx.getSystemService(AlarmManager::class.java).setWindow(AlarmManager.RTC_WAKEUP, at + 30_000L, 10 * 60_000L, pi) }
         catch (e: Exception) { TrackerLog.add("Couldn't set the reset alarm: ${e.message}") }
     }
 
     /** Called by the alarm: the notification for the refresh that just happened, if it's wanted. */
-    fun fired(ctx: Context) {
+    fun fired(ctx: Context, slot0: Long = 0L) {
         val st = clock(ctx); val prefs = st?.optJSONObject("prefs")
         val now = System.currentTimeMillis()
-        // The refresh that just happened: the nearest whole hour (the alarm goes off a few minutes after it)
-        val hour = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = now + 30 * 60_000L }.get(Calendar.HOUR_OF_DAY)
+        val sp = ctx.getSharedPreferences("snapstat", 0)
+        // The refresh this alarm was set for (or, from an older alarm, the nearest whole hour)
+        val slot = if (slot0 > 0L) slot0 else Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = now + 30 * 60_000L; set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
+        if (slot <= sp.getLong(SLOT_DONE, 0L) || slot > now + 60_000L) return
+        sp.edit().putLong(SLOT_DONE, slot).apply()
+        // Hours late (the phone was off): no point telling you now
+        if (now - slot > 3 * 3600_000L) return
+        val hour = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = slot }.get(Calendar.HOUR_OF_DAY)
         val h = refreshHours(st).firstOrNull { it == hour } ?: return
         if (prefs == null || !prefs.optBoolean("on")) return
         val daily = h == resetHour(st)
@@ -221,7 +250,7 @@ object ResetClock {
         val items = { k: String, def: String -> st?.optJSONObject("clock")?.optJSONArray(k)?.let { a -> val l = (0 until a.length()).map { a.optString(it) }.filter { it.isNotBlank() }
             if (l.size > 1) l.dropLast(1).joinToString(", ") + " and " + l.last() else l.firstOrNull() } ?: def }
         val refreshName = st?.optJSONObject("clock")?.optString("refreshName")?.ifBlank { null } ?: "Mission refresh"
-        val tag = "reset:" + java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date(now)) + ":" + h
+        val tag = "reset:" + java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date(slot)) + ":" + h
         val web = prefs.optBoolean("webshop", true)
         if (daily && prefs.optBoolean("resetDaily")) Alerts.show(ctx, "MARVEL SNAP's daily reset", items("daily", "Free shop credits, the daily offer, free Collector's Tokens and Gold Pass gold") + " are ready." + if (web) " Tap to claim your free web shop credits." else "", tag, if (web) "#webshop" else "#home")
         else if (daily && web) Alerts.show(ctx, "Free web shop credits", "Today's free credits are waiting in the web shop. Tap to claim them.", "webshop:$tag", "#webshop")
@@ -232,7 +261,7 @@ object ResetClock {
 class ResetAlarm : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         TrackerLog.attach(ctx.applicationContext)
-        try { ResetClock.fired(ctx) } catch (e: Exception) { TrackerLog.add("Reset alarm failed: ${e.message}") }
+        try { ResetClock.fired(ctx, intent.getLongExtra("slot", 0L)) } catch (e: Exception) { TrackerLog.add("Reset alarm failed: ${e.message}") }
         Widget.refresh(ctx)
         ResetClock.schedule(ctx)
     }

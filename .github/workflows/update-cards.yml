@@ -43,49 +43,77 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      # Each step has its own time limit and one failing doesn't stop the others (they use the card data already saved)
       - name: Download cards, variants and locations
         run: node scripts/update-cards.mjs
+        continue-on-error: true
+        timeout-minutes: 8
       - name: Download seasons, events and shops
         run: node scripts/update-schedule.mjs
         continue-on-error: true
+        timeout-minutes: 10
       - name: Download balance history
         run: node scripts/update-history.mjs
         continue-on-error: true
+        timeout-minutes: 5
       - name: Download variant details
         run: node scripts/update-variants.mjs
         continue-on-error: true
+        timeout-minutes: 28
       - name: Download albums and split finishes
         run: node scripts/update-albums.mjs
         continue-on-error: true
+        timeout-minutes: 8
       - name: Download Snap Packs
         run: node scripts/update-packs.mjs
         continue-on-error: true
+        timeout-minutes: 4
       - name: Check promo codes
         run: node scripts/update-promos.mjs
         continue-on-error: true
+        timeout-minutes: 3
       - name: Download the web shop's bundles
         run: node scripts/update-webshop.mjs
         continue-on-error: true
+        timeout-minutes: 2
       - name: Download Custom Card borders
+        id: borders
         run: pip install --quiet pillow numpy && python3 scripts/update-borders.py
         continue-on-error: true
+        timeout-minutes: 10
       - name: Download season art and card backs
+        id: art
         run: (sudo apt-get install -y -qq tesseract-ocr > /dev/null 2>&1 || true) && pip install --quiet pillow numpy opencv-python-headless pytesseract && python3 scripts/update-art.py
         continue-on-error: true
+        timeout-minutes: 12
       - name: Save changes
+        if: always()
+        env:
+          BORDERS_OK: ${{ steps.borders.outcome }}
+          ART_OK: ${{ steps.art.outcome }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
           git add card-data.json card-data-sample.json
           for f in schedule.json balance-history.json variant-details.json albums.json packs.json borders.json promo-codes.json art.json webshop.json; do if [ -f "$f" ]; then git add "$f"; fi; done
-          if [ -d borders ]; then git add -A borders; fi
-          if [ -d cardbacks ]; then git add -A cardbacks; fi
+          # Picture folders only when their script finished, so a crash halfway can't commit deleted pictures
+          # (and a step that failed has its half-done changes thrown away, or git can't pull before pushing)
+          if [ "$BORDERS_OK" = success ]; then
+            if [ -d borders ]; then git add -A borders; fi
+          else
+            git checkout HEAD -- borders borders.json 2>/dev/null || true; git clean -fdq borders 2>/dev/null || true
+          fi
+          if [ "$ART_OK" = success ]; then
+            if [ -d cardbacks ]; then git add -A cardbacks; fi
+          else
+            git checkout HEAD -- cardbacks art.json 2>/dev/null || true; git clean -fdq cardbacks 2>/dev/null || true
+          fi
           if git diff --cached --quiet; then
             echo "Nothing new."
           else

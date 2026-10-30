@@ -32,6 +32,24 @@ service cloud.firestore {
     // Posts: the app owner and social admins can also remove a reported post.
     match /posts/{uid}     { allow read: if signedIn(); allow write: if isOwner(uid) || isModerator(); }
 
+    // A private player's profile details, decks and posts. Only they can read them, plus the followers they approved,
+    // players who entered the same alliance name (the alliance itself isn't shown anywhere public), and the moderators.
+    function allyOf(uid) {
+      return exists(/databases/$(database)/documents/allykeys/$(uid)) ? get(/databases/$(database)/documents/allykeys/$(uid)).data.k : "";
+    }
+    function approvedBy(uid) {
+      return exists(/databases/$(database)/documents/approvals/$(uid))
+        && request.auth.uid in get(/databases/$(database)/documents/approvals/$(uid)).data.ok;
+    }
+    match /pdetail/{uid} {
+      allow read: if isOwner(uid) || (signedIn() && (approvedBy(uid)
+        || (resource.data.allyKey is string && resource.data.allyKey != "" && allyOf(request.auth.uid) == resource.data.allyKey)))
+        || isModerator();
+      allow write: if isOwner(uid) || (isModerator() && resource != null && request.resource.data.allyKey == resource.data.allyKey);
+    }
+    // Each player's alliance key, used only by the rule above. Nobody else can read it.
+    match /allykeys/{uid} { allow read, write: if isOwner(uid); }
+
     // Uploaded profile banners, kept small.
     match /images/{uid} {
       allow read: if signedIn();

@@ -19,6 +19,8 @@ import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -39,9 +41,10 @@ class WebShopActivity : Activity() {
         private const val READ = """(function(){
   if (location.host !== 'shop.marvelsnap.com' || !window.SnapStatShop) return;
   var me = fetch('/api/auth/me', {credentials: 'include'}).then(function(r){ return r.ok; }).catch(function(){ return false; });
-  var cat = fetch('/api/catalog?lang=en', {credentials: 'include'}).then(function(r){ return r.json(); });
+  var cat = fetch('/api/catalog?lang=en', {credentials: 'include'}).then(function(r){ return r.ok ? r.json() : null; });
   Promise.all([me, cat]).then(function(a){
-    var j = a[1] || {};
+    var j = a[1];
+    if (!j || typeof j.webPoints !== 'number') return;
     SnapStatShop.got(JSON.stringify({ loggedIn: a[0], webPoints: j.webPoints,
       chains: (j.rewardChains || []).map(function(c){ return { id: c.id, steps: (c.steps || []).map(function(s){ return { id: s.id, claimed: !!s.isClaimed }; }) }; }),
       free: (j.offers || []).filter(function(o){ return o.isFree; }).map(function(o){ return { key: o.offerKey, name: o.name, available: o.available }; }) }));
@@ -92,8 +95,13 @@ class WebShopActivity : Activity() {
         root.addView(bar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         root.addView(web, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         setContentView(root)
+        // Keep the title bar and the page clear of the status bar, the camera cutout and the navigation bar
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            val b = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime() or WindowInsetsCompat.Type.displayCutout())
+            v.setPadding(b.left, b.top, b.right, b.bottom)
+            WindowInsetsCompat.CONSUMED
+        }
         web.loadUrl(SHOP)
-        main.postDelayed(again, 20_000)
     }
 
     private fun read() { if (::web.isInitialized && isShop(web.url)) web.evaluateJavascript(READ, null) }
@@ -115,14 +123,15 @@ class WebShopActivity : Activity() {
     /** Keeps only numbers, yes/no values and short plain names; anything else is dropped. */
     private fun clean(json: String): JSONObject? = try {
         val j = JSONObject(json)
-        if (!j.optBoolean("loggedIn", false)) null else {
+        // Only a real answer from the shop (an error page or a changed format would have wiped your saved progress)
+        if (!j.optBoolean("loggedIn", false) || j.opt("webPoints") !is Number) null else {
             val out = JSONObject().put("loggedIn", true).put("webPoints", j.optInt("webPoints", 0).coerceIn(0, 10_000_000))
             val chains = JSONArray()
             val cs = j.optJSONArray("chains") ?: JSONArray()
             for (i in 0 until minOf(cs.length(), 4)) {
                 val c = cs.optJSONObject(i) ?: continue
                 val steps = JSONArray(); val ss = c.optJSONArray("steps") ?: JSONArray()
-                for (k in 0 until minOf(ss.length(), 40)) { val s = ss.optJSONObject(k) ?: continue; steps.put(JSONObject().put("id", s.optInt("id")).put("claimed", s.optBoolean("claimed"))) }
+                for (k in 0 until minOf(ss.length(), 40)) { val s = ss.optJSONObject(k) ?: continue; steps.put(JSONObject().put("id", s.opt("id")?.toString()?.filter { it.isLetterOrDigit() || it == '-' || it == '_' }?.take(24) ?: "").put("claimed", s.optBoolean("claimed"))) }
                 chains.put(JSONObject().put("id", c.optString("id").filter { it.isDigit() }.take(12)).put("steps", steps))
             }
             val free = JSONArray(); val fs = j.optJSONArray("free") ?: JSONArray()
@@ -135,7 +144,9 @@ class WebShopActivity : Activity() {
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() { if (web.canGoBack()) web.goBack() else @Suppress("DEPRECATION") super.onBackPressed() }
 
-    override fun onPause() { read(); CookieManager.getInstance().flush(); super.onPause() }
+    // Checks every 20 seconds only while the shop is on screen (it kept going in the background before)
+    override fun onResume() { super.onResume(); web.onResume(); main.removeCallbacks(again); main.postDelayed(again, 20_000) }
+    override fun onPause() { read(); main.removeCallbacks(again); web.onPause(); CookieManager.getInstance().flush(); super.onPause() }
 
     override fun onDestroy() {
         main.removeCallbacksAndMessages(null)

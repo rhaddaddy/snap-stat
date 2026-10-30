@@ -170,24 +170,29 @@ if have_cv and backs:
         if old and old.get("v") == CHECK_V and old.get("sf") == f_url and (age < 7 or old.get("use") == "msz" and age < 30):
             use = old.get("use")
         else:
-            m_im, f_im = card_crop(get_bytes(m_url)), card_crop(get_bytes(f_url)) if f_url else None
-            mq, fq = (look(m_im) if m_im else None), (look(f_im) if f_im else None)
-            if fq: fq["words"] = label_words(f_im); fq["box"] = f_im.info.get("box")
-            if mq: mq["words"] = label_words(m_im); mq["box"] = m_im.info.get("box")
-            use, f_good = "none", bool(fq and not fq["standIn"] and not fq["words"])
-            if mq and not mq["standIn"]:
-                mt = text_line(m_im)
-                ft = text_line(f_im) if f_im is not None and fq and fq["standIn"] else None
-                same_spot = bool(ft and ft["dens"] >= 0.05 and abs(ft["y"] - mt["y"]) < 0.06)  # snap.fan's stand-in has its label right there
-                stray = mt["dens"] >= 0.08 and mt["n"] >= 8 and (mt["iso"] >= 5 or same_spot)
-                if stray and f_good: use = "sf"
-                elif stray and (same_spot or (fq and fq["standIn"])):  # snap.fan only has a stand-in: it's one of the moving ones
-                    paint_out(m_im, mt).save(f"cardbacks/{cid}.webp", "WEBP", quality=84, method=6); use = "fixed"
-                elif f_good and fq["detail"] > mq["detail"] * 1.5: use = "sf"
-                else: use = "msz"
-            elif f_good: use = "sf"
-            if use != "fixed" and os.path.exists(f"cardbacks/{cid}.webp"): os.remove(f"cardbacks/{cid}.webp")
-            checked[cid] = {"v": CHECK_V, "use": use, "sf": f_url, "at": datetime.now(timezone.utc).timestamp(), "m": mq, "f": fq}
+            m_bytes = get_bytes(m_url); f_bytes = get_bytes(f_url) if f_url else None
+            if old and (not m_bytes or (f_url and not f_bytes)):
+                # A download failed (a site was down): keep last time's answer and its picture, and check again next run
+                use = old.get("use") or "none"
+            else:
+                m_im, f_im = card_crop(m_bytes), card_crop(f_bytes) if f_bytes else None
+                mq, fq = (look(m_im) if m_im else None), (look(f_im) if f_im else None)
+                if fq: fq["words"] = label_words(f_im); fq["box"] = f_im.info.get("box")
+                if mq: mq["words"] = label_words(m_im); mq["box"] = m_im.info.get("box")
+                use, f_good = "none", bool(fq and not fq["standIn"] and not fq["words"])
+                if mq and not mq["standIn"]:
+                    mt = text_line(m_im)
+                    ft = text_line(f_im) if f_im is not None and fq and fq["standIn"] else None
+                    same_spot = bool(ft and ft["dens"] >= 0.05 and abs(ft["y"] - mt["y"]) < 0.06)  # snap.fan's stand-in has its label right there
+                    stray = mt["dens"] >= 0.08 and mt["n"] >= 8 and (mt["iso"] >= 5 or same_spot)
+                    if stray and f_good: use = "sf"
+                    elif stray and (same_spot or (fq and fq["standIn"])):  # snap.fan only has a stand-in: it's one of the moving ones
+                        paint_out(m_im, mt).save(f"cardbacks/{cid}.webp", "WEBP", quality=84, method=6); use = "fixed"
+                    elif f_good and fq["detail"] > mq["detail"] * 1.5: use = "sf"
+                    else: use = "msz"
+                elif f_good: use = "sf"
+                if use != "fixed" and os.path.exists(f"cardbacks/{cid}.webp"): os.remove(f"cardbacks/{cid}.webp")
+                checked[cid] = {"v": CHECK_V, "use": use, "sf": f_url, "at": datetime.now(timezone.utc).timestamp(), "m": mq, "f": fq}
         tally[use] = tally.get(use, 0) + 1
         b["img"] = m_url if use == "msz" else f_url if use == "sf" else f"cardbacks/{cid}.webp" if use == "fixed" else ""
         if use == "none": b["noArt"] = True
@@ -270,8 +275,17 @@ try:
             if img: e["sf"] = img.group(1)
             if texts: e["texts"] = texts
 except Exception as e: print("snap.fan emotes", e)
-for e in found.values(): e.setdefault("kind", "anim" if e["id"].endswith("Anim") else "image")
-if len(found) >= 50: emotes = sorted(found.values(), key=lambda e: (e["kind"] != "text",))
+# Merged into last time's list by id, so one site being down doesn't lose the other's pictures, kinds, texts or dates
+prev_by = {e["id"]: e for e in (prev.get("emotes") or []) if isinstance(e, dict) and e.get("id")}
+for e in found.values():
+    if "kind" not in e and not (prev_by.get(e["id"]) or {}).get("kind"): e["kind"] = "anim" if e["id"].endswith("Anim") else "image"
+if len(found) >= 50:
+    merged = {}  # newest first, as the sites list them, then any only last time's list had
+    for cid, e in found.items():
+        o = dict(prev_by.get(cid) or {}); o.update({k: v for k, v in e.items() if v not in ("", None, [])}); merged[cid] = o
+    for cid, e in prev_by.items():
+        if cid not in merged: merged[cid] = e
+    emotes = sorted(merged.values(), key=lambda e: (e.get("kind") != "text",))
 print("emotes:", len(emotes))
 
 body = {"source": "Marvel Snap Zone (marvelsnapzone.com)", "seasons": dict(sorted(seasons.items())), "cardbacks": backs, "titles": titles, "emotes": emotes}

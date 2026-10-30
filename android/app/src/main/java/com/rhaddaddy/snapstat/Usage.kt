@@ -48,15 +48,23 @@ object Usage {
 
     /** Keeps track of the app in front cheaply by reading only the events since the last check. */
     class Tracker(private val ctx: Context) {
-        private var since = System.currentTimeMillis() - 10 * 60_000L
+        private var since = 0L
         var front: String? = null
             private set
+        /** Whether usage access is on, as of the last [update] */
+        var access = false
+            private set
+        private var checks = 0
 
         fun update(): String? {
-            if (!hasAccess(ctx)) return null
+            access = hasAccess(ctx)
+            if (!access) return null
+            // The first time: whatever was in front already (SNAP may have been open for a while)
+            if (since == 0L) { val now0 = System.currentTimeMillis(); front = foregroundAt(ctx, now0); since = now0; return front }
             val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val now = System.currentTimeMillis()
-            val events = usm.queryEvents(since, now) ?: return front
+            if (front != ShotQueue.SNAP_PACKAGE && ++checks % 10 == 0) { foregroundAt(ctx, now)?.let { front = it } }
+            val events = usm.queryEvents(since - 5_000L, now) ?: return front
             val e = UsageEvents.Event()
             while (events.hasNextEvent()) {
                 events.getNextEvent(e)

@@ -32,9 +32,22 @@ object ShotQueue {
         return "${time.toString().padStart(14, '0')}_${source}_$rnd.$ext"
     }
 
+    private fun drop(f: File) { f.delete(); File(f.path + ".hint").delete(); File(f.path + ".meta").delete() }
+    private fun hintOf(f: File): String = try { File(f.path + ".hint").takeIf { it.exists() }?.readText() ?: "" } catch (_: Exception) { "" }
+
+    /**
+     * Keeps the queue under [MAX_ITEMS]. Turn pictures and saved screens go first (oldest first), so the end-of-match
+     * pictures and the screenshots you shared are the last to be dropped. Half-written files left by a crash are removed.
+     */
     private fun trim(ctx: Context) {
+        val old = System.currentTimeMillis() - 10 * 60_000L
+        (dir(ctx).listFiles() ?: emptyArray()).filter { it.name.endsWith(".tmp") && it.lastModified() < old }.forEach { it.delete() }
         val all = items(ctx)
-        if (all.size > MAX_ITEMS) all.take(all.size - MAX_ITEMS).forEach { it.delete(); File(it.path + ".hint").delete(); File(it.path + ".meta").delete() }
+        var extra = all.size - MAX_ITEMS
+        if (extra <= 0) return
+        val minor = all.filter { val h = hintOf(it); h.startsWith("turn:") || h.startsWith("screen:") }
+        for (f in minor) { if (extra <= 0) break; drop(f); extra-- }
+        if (extra > 0) items(ctx).take(extra).forEach { drop(it) }
     }
 
     /** Shrinks a picture to at most 1600 pixels on its long side and saves it as a JPEG. */
@@ -44,13 +57,19 @@ object ShotQueue {
         val out = if (scale < 1f) Bitmap.createScaledBitmap(bmp, (bmp.width * scale).toInt(), (bmp.height * scale).toInt(), true) else bmp
         val f = File(dir(ctx), nameFor(time, source, "jpg"))
         val tmp = File(f.path + ".tmp")
-        tmp.outputStream().use { out.compress(Bitmap.CompressFormat.JPEG, 85, it) }
-        if (out !== bmp) out.recycle()
-        if (hint.isNotBlank()) File(f.path + ".hint").writeText(hint.take(80))
-        if (meta.isNotBlank()) File(f.path + ".meta").writeText(meta.take(2000))
-        val ok = tmp.renameTo(f)
-        trim(ctx)
-        return ok
+        // A full phone (or anything else going wrong while saving) loses this picture, not the app
+        return try {
+            tmp.outputStream().use { out.compress(Bitmap.CompressFormat.JPEG, 85, it) }
+            if (hint.isNotBlank()) File(f.path + ".hint").writeText(hint.take(80))
+            if (meta.isNotBlank()) File(f.path + ".meta").writeText(meta.take(2000))
+            val ok = tmp.renameTo(f)
+            trim(ctx)
+            ok
+        } catch (e: Exception) {
+            tmp.delete(); File(f.path + ".hint").delete(); File(f.path + ".meta").delete()
+            TrackerLog.add("Couldn't save a picture: ${e.message}")
+            false
+        } finally { if (out !== bmp) out.recycle() }
     }
 
     /** A small JSON file for the web app, like your web shop progress. */

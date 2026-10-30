@@ -44,7 +44,7 @@ class Bridge(private val act: MainActivity) {
     /** The web app is loaded and listening: send anything that came in while it was loading. */
     @JavascriptInterface fun ready() { act.runOnUiThread { act.pageReady() } }
 
-    @JavascriptInterface fun openSignIn() { act.runOnUiThread { act.openInChrome(MainActivity.SIGN_IN_URL) } }
+    @JavascriptInterface fun openSignIn() { act.runOnUiThread { act.startSignIn() } }
 
     @JavascriptInterface fun openUrl(url: String) {
         if (!url.startsWith("https://") && !url.startsWith("http://")) return
@@ -116,7 +116,7 @@ class Bridge(private val act: MainActivity) {
     /** MARVEL SNAP's web shop inside SNAP Stat, so your Web Points and claimed rewards are kept (see WebShopActivity). */
     @JavascriptInterface fun openWebShop(): Boolean = try { act.runOnUiThread { act.startActivity(Intent(act, WebShopActivity::class.java)) }; true } catch (e: Exception) { false }
     @JavascriptInterface fun next(): String = ShotQueue.next(ctx)
-    @JavascriptInterface fun done(id: String) = ShotQueue.done(ctx, id)
+    @JavascriptInterface fun done(id: String) { ShotQueue.done(ctx, id); if (ShotQueue.count(ctx) == 0) TrackerService.queueRead(ctx) }
 
     // ---- Automatic screenshots ----
     @JavascriptInterface fun setAutoShots(on: Boolean) {

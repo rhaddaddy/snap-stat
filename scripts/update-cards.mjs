@@ -90,8 +90,17 @@ if (!Array.isArray(list)) throw new Error("The card list wasn't where it used to
 const cards = list.map(trimCard).filter((c) => c.name);
 const variantCount = cards.reduce((n, c) => n + c.variants.length, 0);
 console.log(`Found ${cards.length} cards and ${variantCount} variants.`);
-// Don't replace good data with a broken download.
+// Don't replace good data with a broken download: too few cards, a part of the list missing, or the variants or art gone
 if (cards.length < 300) throw new Error(`Only ${cards.length} cards came back, so card-data.json was left as it was.`);
+{
+  let old = null; try { old = existsSync(OUT) ? JSON.parse(readFileSync(OUT, "utf8")) : null; } catch { old = null; }
+  if (old && Array.isArray(old.cards) && old.cards.length) {
+    const oc = old.cards.length, ov = old.cards.reduce((n, c) => n + (c.variants || []).length, 0), oa = old.cards.filter((c) => c.art).length;
+    const na = cards.filter((c) => c.art).length, noId = cards.filter((c) => !c.id || c.id === "undefined").length;
+    const why = cards.length < oc * 0.9 ? `${cards.length} cards (last time ${oc})` : variantCount < ov * 0.9 ? `${variantCount} variants (last time ${ov})` : na < oa * 0.9 ? `${na} cards with art (last time ${oa})` : noId > cards.length * 0.1 ? `${noId} cards without an id` : "";
+    if (why) throw new Error(`Only ${why} came back, so card-data.json was left as it was.`);
+  }
+}
 
 // A peek at the original format, to make fixing this script easier if Marvel Snap Zone changes it.
 const keysOf = (objs) => [...new Set(objs.flatMap((o) => Object.keys(o || {})))].sort();
