@@ -644,7 +644,7 @@ tr.me td { font-weight: 800; color: var(--cube); }
 </style>
 
 <style>html, body { margin: 0; } :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); } img { max-width: 100%; }</style>
-<script>window.SNAPSTAT_BUILD = "4876163a63c1"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
+<script>window.SNAPSTAT_BUILD = "56cb55b79b09"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
 <script src="firebase-config.js"></script>
 <script type="module" src="firebase-init.js"></script>
 </head>
@@ -6495,7 +6495,7 @@ const NOT_YOURS = "Numbers inside offers, bundles, packs and price buttons (like
 const SCREEN_TIPS = {
   reward: "Read it as \"reward\": list everything the pop-up shows the player got. " + NOT_YOURS,
   cosmetics: "Read it as \"cosmetics\": every avatar, title, card back or emote shown, and whether the player has it (locked, greyed-out or priced ones they don't). Leave \"numbers\" out.",
-  collection: "Read it as \"collection\": each card in the grid with the booster number on it.",
+  collection: "Read it as \"collection\": every card in the grid, by its name and art, with the booster number on it as shown (like 20 or 99+). Leave out the deck shown at the side.",
   home: "Read it as \"numbers\". " + TOP_BAR + " " + HOME_TIPS + " Collector's Tokens aren't shown on the home screen.",
   shop: "Read it as \"shop\". " + TOP_BAR + " " + NOT_YOURS + " Put each bundle or special offer in \"bundles\" with its price, everything in it and the time it has left.",
   shopcurrency: "Read it as \"shop\" (Credits and Gold offers, the Gold Pass and the free credits). " + TOP_BAR + " " + NOT_YOURS + " A red \"Available In 5h 17m\" on the free credits is \"freeCreditsIn\"; \"329 DAYS LEFT\" is \"goldPassDays\", and a timer under the Gold Pass's gold (like 13h 17m) is \"goldPassClaimIn\".",
@@ -6527,7 +6527,7 @@ ${/^screen:/.test(hint || "") ? `This picture was saved automatically while the 
  "numbers": {"topLeft": {"amount": the number at the top left of the top bar or null, "icon": "credits" (blue crystal, blue box) | "tokens" (purple token, purple box) | "other"}, "topRight": {"amount": the number at the top right or null, "icon": "gold" | "other"}, "rank": rank number 1-99, or "Infinite", or null, "rankCubes": cubes toward the next rank (the 4 in 4/7) or null, "rankCubesNeed": cubes the next rank needs (the 7 in 4/7) or null, "collectionLevel": the Collection Level (in a green badge) or null, "clNextReward": "the next big Collection Level reward if shown, like 3000 Collector's Tokens", "clNextIn": Collection Levels until it or null, "credits": Credits (blue crystal icon) or null, "gold": Gold (gold bar icon) or null, "tokens": Collector's Tokens (purple token icon) or null, "passLevel": season pass level or null, "passXp": points toward the next season pass level or null, "passXpNext": points that level needs in all or null, "passTier": "free" | "premium" | "premium+" | "" (which season pass the player has, if you can tell), "rerollCoins": Split Reroll Coins or null, "wildBoosters": Wild Boosters or null, "medals": Conquest medals or null, "goldPassDays": days left on the Gold Pass if shown or null, "goldPassClaimIn": "time until the Gold Pass's daily gold can be claimed, as shown, or empty", "freeTokensClaimed": true if today's free Collector's Tokens show as claimed, false if they can be claimed, else null, "freeCreditsIn": "time until the shop's free credits can be claimed again, as shown, like 7h 22m, or empty"},
  "deck": {"name": "", "cards": ["card names"]},
  "card": {"card": "card name", "variant": "variant name if shown, else empty", "rarity": "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Ultra" | "Infinity" | "", "boosters": this card's boosters or null, "splits": number of Infinity Splits if shown or null, "finish": "split finish if shown", "flare": "split flare if shown", "border": "border name if shown", "masteryLevel": Character Mastery level or null},
- "collection": {"cards": [{"card": "card name", "boosters": the booster number on the card, "rarity": "upgrade level if you can tell, else empty"}]},
+ "collection": {"cards": [{"card": "card name", "boosters": "the booster number on the card as shown, like 20 or 99+", "rarity": "upgrade level if you can tell, else empty"}]},
  "split": {"card": "card name", "finish": "finish it got", "flare": "flare it got", "rerolled": true if the player rerolled, "usedCoin": true if a Split Reroll Coin was spent},
  "variants": {"card": "card name", "screen": "editor" if this is the Custom Card editor's art picker (it only lists variants the player owns), otherwise "collection", "count": how many variant pictures you can see, "items": [{"name": "variant name or style if shown", "artist": "artist if shown", "owned": true if the player has it, false if it's greyed out, locked or shows a price}]},
  "shop": {"shop": "the shop's name, like Token Shop, Spotlight, an event shop's name, or a bundle's name", "bundles": [{"name": "the bundle's title, like Signature Bundle or Special Offer", "price": "its price as shown, like $29.99 or 1,200 Gold", "contents": ["each thing in it, like 3,600 Credits, Bucky Barnes Exiles Variant or 155 Ghost Rider Boosters"], "endsIn": "time it has left as shown, like 1d 13h", "value": "a value label if shown, like ~250 Collection Level Value!", "sold": true if bought or sold out}], "daily": [{"card": "card name", "variant": "variant name if it's a variant", "price": "its price", "pinned": true if marked Pinned!, "sold": true if bought}], "dailyRefreshIn": "time until the daily cards change, as shown", "packs": [{"name": "like Seasonal Series 5 or Series 4", "price": "its price", "complete": true if marked COMPLETE!}], "items": [{"card": "card name", "kind": "variant" | "card" | "border" | "other", "variant": "variant name or style if shown", "artist": "artist if shown", "price": "price as shown"}]},
@@ -7270,18 +7270,21 @@ function applyShotCard(x, cc) {
   x.status = `Updated ${c.name}`; x.detail = done.join(" · "); x.undo = { type: "prog", items: [before], tag }; x.cardKey = k; save();
 }
 function applyShotCollection(x, list) {
-  const items = []; let n = 0;
+  const items = []; let n = 0, ticked = 0, nb = 0;
   const tag = tagged(() => {
     for (const it of arr(list).slice(0, 40)) {
-      const c = fuzzyCard(it.card); if (!c || it.boosters === null || it.boosters === undefined || !Number.isFinite(Number(it.boosters))) continue;
+      const c = fuzzyCard(it.card); if (!c || c.unknown) continue;
       items.push(snapFields(c.key));
-      S.owned[c.key] = true; setBoosters(c.key, it.boosters, "from a collection screenshot");
+      if (!S.owned[c.key]) { S.owned[c.key] = true; ticked++; }
+      // Every card in your collection grid is yours. "99+" boosters means at least 99.
+      const raw = String(it.boosters === null || it.boosters === undefined ? "" : it.boosters).trim(), plus = /\+$/.test(raw), b = Number(raw.replace(/[+,\s]/g, ""));
+      if (raw && Number.isFinite(b) && b >= 0 && b < 100000) { if (!plus || num(prog(c.key).b) < b) setBoosters(c.key, b, "from a collection screenshot"); nb++; }
       const r = rarityIdx(it.rarity); if (r !== null) setCopyRarity(c.key, "base", r);
       n++;
     }
   });
-  if (!n) { x.status = "Couldn't read boosters on this screen"; return; }
-  x.status = `Updated boosters for ${n} card${n === 1 ? "" : "s"}`; x.detail = items.slice(0, 6).map((i) => card(i.k).name).join(", ") + (items.length > 6 ? "…" : "");
+  if (!n) { x.status = "Couldn't read the cards on this screen"; return; }
+  x.status = `${n} card${n === 1 ? "" : "s"} from your collection${ticked ? ` (${ticked} newly ticked)` : ""}${nb ? ` · boosters for ${nb}` : ""}`; x.detail = items.slice(0, 6).map((i) => card(i.k).name).join(", ") + (items.length > 6 ? "…" : "");
   x.undo = { type: "prog", items, tag }; save();
 }
 function applyShotSplit(x, sp) {
