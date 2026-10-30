@@ -651,7 +651,7 @@ tr.me td { font-weight: 800; color: var(--cube); }
 </style>
 
 <style>html, body { margin: 0; } :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); } img { max-width: 100%; }</style>
-<script>window.SNAPSTAT_BUILD = "07464e2f056f"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
+<script>window.SNAPSTAT_BUILD = "56fe6d08f940"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
 <script src="firebase-config.js"></script>
 <script type="module" src="firebase-init.js"></script>
 </head>
@@ -8195,7 +8195,7 @@ function vSettingsTab() {
         <p>MARVEL SNAP doesn't let other apps read your account, so SNAP Stat brings things in from these instead.</p>
         <div class="grid2"><button class="btn" data-a="svOpen">Import from SnapVault</button><button class="btn" data-a="importOpen">Paste a deck code</button></div>
         <label class="btn">Import the game's files<input type="file" accept=".json,application/json,text/plain" data-collfile="1" multiple hidden></label><button class="btn ghost" data-a="sweepOpen">Update everything</button>
-        <span class="muted">If you also play MARVEL SNAP on a PC, the game keeps your whole collection in a file called <b>CollectionState.json</b> (in <code>AppData\\LocalLow\\Second Dinner\\SNAP\\Standalone\\States</code>). Choose it here to tick every card and variant you own.</span></div></section>
+        <span class="muted">If you also play MARVEL SNAP on a PC, the game keeps your whole collection in a file called <b>CollectionState.json</b> (in <code>AppData\\LocalLow\\Second Dinner\\SNAP\\Standalone\\States\\nvprod</code>). Choose it here, with <b>ProfileState.json</b> from the same folder, to tick every card, variant and cosmetic you own.</span></div></section>
       ${sfPanel()}
       <section class="sec"><h2>Backup</h2><div class="row"><button class="btn" data-a="csvMatches">Matches spreadsheet</button><button class="btn" data-a="csvCollection">Collection spreadsheet</button></div><div class="row"><button class="btn" data-a="backupCopy">${ICON.copy} Copy backup</button>${store.downloads ? `<button class="btn" data-a="backupSave">Save backup file</button>` : ""}<button class="btn" data-a="restoreOpen">Restore</button></div>
         ${allMatches().some((m) => m.example) || S.decks.some((d) => d.example) ? `<button class="btn ghost" data-a="clearExamples">Clear example data</button>` : ""}
