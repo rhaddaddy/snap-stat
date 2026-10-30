@@ -39,6 +39,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var bridge: Bridge
     private var pageIsReady = false
     private val pending = mutableListOf<Pair<String, String>>()
+    /** Text shared to the app while the page was still loading (see [shareText]). */
+    private var pendingText: String? = null
     private var fileCallback: ValueCallback<Array<Uri>>? = null
 
     private val pickFiles = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
@@ -232,6 +234,15 @@ class MainActivity : ComponentActivity() {
             else { TrackerLog.add("Ignored a sign-in this app didn't start"); emit("signin", "\"\"") } // the page shows "try again" instead of waiting forever
             return
         }
+        // Text shared from another app (a deck code from a post or a chat): the page decides what to do with it
+        if (intent.action == Intent.ACTION_SEND && intent.type?.startsWith("text/") == true) {
+            val text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()
+            if (!text.isNullOrBlank()) {
+                setIntent(Intent())
+                shareText(text.take(20_000))
+                return
+            }
+        }
         if (intent.action == Intent.ACTION_SEND || intent.action == Intent.ACTION_SEND_MULTIPLE) {
             val uris = mutableListOf<Uri>()
             if (intent.action == Intent.ACTION_SEND) {
@@ -264,11 +275,19 @@ class MainActivity : ComponentActivity() {
         web.evaluateJavascript("window.snapNative && window.snapNative.on(${JSONObject.quote(type)}, $json)", null)
     }
 
+    /** Hands shared text to the page (window.snapSharedText), waiting if the page is still loading. */
+    private fun shareText(text: String) {
+        if (!::web.isInitialized) return
+        if (!pageIsReady) { pendingText = text; return }
+        web.evaluateJavascript("window.snapSharedText && window.snapSharedText(${JSONObject.quote(text)})", null)
+    }
+
     fun pageReady() {
         pageIsReady = true
         val waiting = pending.toList(); pending.clear()
         waiting.forEach { (t, j) -> emit(t, j) }
         if (ShotQueue.count(this) > 0) emit("queue", ShotQueue.count(this).toString())
+        pendingText?.let { pendingText = null; shareText(it) }
     }
 
     fun scanScreenshots() {

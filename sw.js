@@ -1,7 +1,7 @@
 // SNAP Stat's service worker. It lets the app open without a connection, and checks for things
 // to notify you about: a wishlist item on sale, an event starting, the season ending, a daily goal or checklist.
 // It also receives screenshots and SnapVault exports shared to the app from Android's share menu.
-const VERSION = "snapstat-v2";
+const VERSION = "snapstat-v3";
 const SHELL = ["./", "index.html", "firebase-config.js", "firebase-init.js", "manifest.webmanifest?v=2", "icon-192-v2.png", "icon-512-v2.png", "apple-touch-icon-v2.png"];
 
 self.addEventListener("install", (e) => {
@@ -75,6 +75,8 @@ async function check() {
   if (st.prefs.missions !== false && st.missions && st.missions.left > 0 && st.missions.resetAt > Date.now() && st.missions.resetAt - Date.now() < 3 * 3600e3) once(`missions:${st.missions.key}`, { title: "Daily checklist", body: `${st.missions.left} thing${st.missions.left > 1 ? "s" : ""} left before the game's day resets.`, url: st.app + "#home" });
   if (st.prefs.daily !== false && st.today && st.today.day === today && st.today.games > 0 && now.getHours() >= 21) { const t = st.today; once(`daily:${today}`, { title: "Your day in MARVEL SNAP", body: `${t.games} game${t.games > 1 ? "s" : ""} · ${t.w}-${t.l}${t.t ? "-" + t.t : ""} · ${t.cubes > 0 ? "+" : ""}${t.cubes} cubes`, url: st.app + "#home" }); }
   if (st.prefs.season && st.season && st.season.end === tomorrow) once(`season:${st.season.id}`, { title: "The season ends tomorrow", body: `${st.season.name}: finish your pass and climb while you can.`, url: st.app + "#seasons" });
+  // Reminders the app worked out itself (series drops, the spotlight reset, bounties…): each between its start and end, when its preference is on
+  for (const a of st.alerts || []) { if (!a || !a.id || !a.title) continue; const t = Date.now(); if (t < a.at || t > (a.until || a.at + 12 * 3600e3)) continue; if (a.pref && st.prefs[a.pref] === false) continue; once(`x:${a.id}`, { title: a.title, body: a.body || "", url: st.app + (a.route || "#home") }); }
 
   // Show up to five at a time. Each one is remembered only once it was actually shown.
   for (const n of notes.slice(0, 5)) {

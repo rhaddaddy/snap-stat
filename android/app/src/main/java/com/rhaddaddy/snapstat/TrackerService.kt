@@ -45,6 +45,15 @@ class TrackerService : Service() {
             private set
         @Volatile var captured = 0
             private set
+        /** When the tracker last saved any picture (a match's end, a turn or a screen), so the app can tell it's idle. */
+        @Volatile var lastShotAt = 0L
+            private set
+        private const val PREFS = "snapstat"
+        private const val STARTED_AT = "trackerStartedAt"
+        private const val STOPPED_AT = "trackerStoppedAt"
+        /** When tracking last started and stopped (kept across restarts), for the web app's tracker health card. */
+        fun startedAt(ctx: Context): Long = ctx.getSharedPreferences(PREFS, 0).getLong(STARTED_AT, 0L)
+        fun stoppedAt(ctx: Context): Long = ctx.getSharedPreferences(PREFS, 0).getLong(STOPPED_AT, 0L)
         /** The app read everything that was waiting, so the "matches to log" count starts again (and its notification goes). */
         fun queueRead(ctx: Context) {
             captured = 0
@@ -170,7 +179,9 @@ class TrackerService : Service() {
         reader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
         display = mp.createVirtualDisplay("SNAP Stat tracker", width, height, m.densityDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, reader!!.surface, null, handler)
         recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-        running = true; captured = 0; Widget.refresh(this)
+        running = true; captured = 0; lastShotAt = 0L; Widget.refresh(this)
+        getSharedPreferences(PREFS, 0).edit().putLong(STARTED_AT, System.currentTimeMillis()).apply()
+        TrackerTile.refresh(this)
         TrackerLog.add("Tracking started (${width}x$height, every ${rules.intervalMs} ms)")
         onState?.invoke()
         handler?.postDelayed(::tick, rules.intervalMs)
@@ -236,7 +247,7 @@ class TrackerService : Service() {
                 val meta = if (note.length() > 0) note.toString() else ""
                 resetTurns()
                 if (ShotQueue.addBitmap(this, bmp, System.currentTimeMillis(), "tracker", hint, meta)) {
-                    captured++
+                    captured++; lastShotAt = System.currentTimeMillis()
                     TrackerLog.add("Saved the end of a match")
                     notifyCaptured()
                     onQueued?.invoke()
@@ -273,7 +284,7 @@ class TrackerService : Service() {
         else if (log.any { similarity(flat, it.second) > s.same }) return
         log.addLast(Saved(now, flat, sig)); screenHits = 0
         if (ShotQueue.addBitmap(this, bmp, now, "tracker", "screen:" + s.kind)) {
-            shotsSaved++
+            shotsSaved++; lastShotAt = now
             TrackerLog.add("Saved the ${s.kind} screen (${log.size} of up to ${s.maxPer}${if (s.still) if (steady) ", stopped" else ", still moving" else ""})")
             getSystemService(NotificationManager::class.java).notify(ID_RUN, runningNote())
             onQueued?.invoke()
@@ -311,7 +322,7 @@ class TrackerService : Service() {
                 val n = turnNo.find(t)?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it in 1..8 && it > lastTurnNo } ?: (lastTurnNo + 1)
                 lastTurnNo = n; turnShots++
                 val meta = org.json.JSONObject().put("session", session.toString()).put("turn", n).toString()
-                if (ShotQueue.addBitmap(this, bmp, now, "tracker", "turn:$n", meta)) TrackerLog.add("Saved turn $n's board")
+                if (ShotQueue.addBitmap(this, bmp, now, "tracker", "turn:$n", meta)) { lastShotAt = now; TrackerLog.add("Saved turn $n's board") }
             }
         }
         turnState = state
@@ -372,7 +383,9 @@ class TrackerService : Service() {
     }
 
     override fun onDestroy() {
-        running = false; Widget.refresh(this)
+        // Only a tracker that had really started counts as stopping (a Stop tap on a stopped one also lands here)
+        if (running) getSharedPreferences(PREFS, 0).edit().putLong(STOPPED_AT, System.currentTimeMillis()).apply()
+        running = false; Widget.refresh(this); TrackerTile.refresh(this)
         // The capture is closed on the tracker's own thread, so a picture being read right now finishes first
         val h = handler; handler = null
         val release = {
