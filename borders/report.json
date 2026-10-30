@@ -1,5 +1,6 @@
 {
  "anim": [
+  "FireBlue",
   "Overloaded",
   "DistressedCopperPatina",
   "DistressedGrey",
@@ -19,6 +20,7 @@
   "Epic",
   "MatteRed",
   "MetallicCopper",
+  "MetallicSilver",
   "NeonGreen",
   "NeonRed",
   "NeonWhite",
@@ -71,7 +73,6 @@
  "kept": [
   "FireGreen",
   "Fire",
-  "FireBlue",
   "FireGold",
   "FirePink",
   "FirePurple",
@@ -92,7 +93,6 @@
   "Legendary",
   "MatteBlack",
   "MetallicGold",
-  "MetallicSilver",
   "NeonBlue",
   "NeonPurple",
   "SnowflakesRed",
