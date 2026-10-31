@@ -161,23 +161,15 @@ function swipeBlocked(el) {
   }
   return false;
 }
-function swipeSection(dir) {
-  const n = NAV[ui.tab]; if (!n || !n.subs) return false;
+// The section a swipe lands on (1 = next, -1 = previous), or null if there isn't one
+function swipeTarget(dir) {
+  const n = NAV[ui.tab]; if (!n || !n.subs) return null;
   const subs = n.subs().map(([k]) => k), i = Math.max(0, subs.indexOf(ui[n.key]));
-  let j = i + dir; if (j >= subs.length) j = 0; if (j < 0) return false;
-  ui.swipeDir = dir; go(`${ui.tab}/${subs[j]}`); return true;
+  let j = i + dir; if (j >= subs.length) j = 0; if (j < 0 || subs[j] === subs[i]) return null;
+  return subs[j];
 }
-(() => {
-  let sx = 0, sy = 0, st = 0, on = false;
-  document.addEventListener("touchstart", (e) => {
-    const sh = $("#sheet"); on = false;
-    if (e.touches.length !== 1 || (sh && !sh.hidden) || !e.target.closest || !e.target.closest("#view") || swipeBlocked(e.target)) return;
-    const t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); on = true;
-  }, { passive: true });
-  document.addEventListener("touchend", (e) => {
-    if (!on) return; on = false;
-    const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 2 || Date.now() - st > 700) return;
-    swipeSection(dx < 0 ? 1 : -1);
-  }, { passive: true });
-})();
+function swipeSection(dir) {
+  const k = swipeTarget(dir); if (!k) return false;
+  ui.swipeDir = dir; go(`${ui.tab}/${k}`); return true;
+}
+// The finger-following swipe itself lives in y24_swipe.js

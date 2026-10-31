@@ -12,7 +12,7 @@ Live: https://rhaddaddy.github.io/snap-stat/ · Repo: rhaddaddy/snap-stat · Fir
   LATER files (one global scope, TDZ). `node --check` runs inside build.sh.
 - Publish: push to `main` → GitHub Pages serves the repo root (~1 min). The app checks `version.json` and reloads itself.
 - Android app (`android/`, Kotlin WebView wrapper, package com.rhaddaddy.snapstat): any push touching `android/**` runs
-  `.github/workflows/android.yml` → signed APK published to the GitHub release tagged `android` (now 1.20). Signing key is
+  `.github/workflows/android.yml` → signed APK published to the GitHub release tagged `android` (1.20 live; next build adds the web shop sign-in pop-up). Signing key is
   the `ANDROID_KEYSTORE` secret, never in the repo. Build failures are saved to the `android-build-log` branch.
 - Backend: Firebase Auth (Google) + Firestore (`firestore.rules`; Ryan pastes rule changes into the Firebase console himself).
   `firebase-config.js` + `firebase-init.js` load it. AI keys (Gemini, Claude, ChatGPT, Grok, Perplexity) stay on the device;
@@ -71,6 +71,8 @@ Data & state: `S` (saved state, c_core) · `ui` (view state) · matches in `matc
 - `y18_home.js` 44 · search, shortcuts, Home layout switches (`homeShow(id)`) · `y19_social.js` 37 · share pictures, bounties
 - `y20_knowledge.js` 45 · glossary, tips, News (needs a news.json job) · `y21_tracker.js` 14 · tracker health, match buzz
 - `y22_live.js` 26 · live match helper · `y23_history.js` 10 · data-request history import (milestone dates only)
+- `y24_swipe.js` 6 · finger-following section swipe: `swipeLock/swipeMove/swipeEnd`, preview `.view-peek` drawn from `VIEWS`
+  (x_nav.js keeps `swipeBlocked`, `swipeTarget(dir)`, `swipeSection(dir)`); commit = pushState + route() in one frame
 - `k_firebase.js` 7 · Firebase sign-in/storage · `z_boot.js` · boot, flush on pagehide · `build.sh` · `README.md`
 Root: `index.html` (BUILT, 1.4 MB: never edit or read whole) · `version.json` · `sw.js` (service worker: share target,
 notifications) · `manifest.webmanifest` · `privacy.html` · `native-signin.html` · `firestore.rules` · `tracker-rules.json`
@@ -81,12 +83,17 @@ update-variants.mjs · `albums.json` · `packs.json` · `promo-codes.json` · `w
 update-borders.py · `art.json` + `cardbacks/` ← update-art.py · `faces.json`, `faces-log.json` ← update-faces.py.
 Android `android/app/src/main/java/com/rhaddaddy/snapstat/`: `MainActivity` WebView host · `Bridge` JS bridge · `TrackerService`
 screen-capture tracker · `Screenshots` + `ShotQueue` picture reading queue · `Rules` tracker rules · `Usage` usage access ·
-`Updater` self-update from releases · `Alerts` notifications · `Widget` home widget · `WebShopActivity` web shop window ·
+`Updater` self-update from releases · `Alerts` notifications · `Widget` home widget · `WebShopActivity` web shop window (pop-ups like
+Google sign-in open as a second WebView over the shop via onCreateWindow, so window.opener works) ·
 `TrackerTile` Quick Settings tile. Res: `values/themes.xml` + `values-night/`, `xml/shortcuts.xml`.
 
 ## 4. Status (October 30, 2026)
-- Last working code commit: `90347c7` (Oct 30 update). Later commits on main are bot data updates. UNDO = revert to it.
-- Web build `67c5588d5123` live; Android 1.20 released; 65 automatic Playwright tests + a full page crawl passed before push
+- Last working code commit before this push: `b81d70e`. This push: "Swipe pages follow your finger; web shop Google sign-in".
+  UNDO = `git revert` that commit (bots commit data files to main in between, so revert, don't reset).
+- Oct 30 night: section swipe now follows the finger (preview of the next section, springs back under 30%, flick works,
+  wraps last→first, Back works); Playwright swipe test passed. Web shop: Google sign-in ended on a blank white page because
+  the WebView had no pop-up support (GSI popup replaced the shop, then had no opener); fixed in WebShopActivity, untested on a
+  real phone yet. Earlier: 65 automatic Playwright tests + a full page crawl passed (Oct 30 update)
   (the tests live in the old session's scratchpad, not in the repo: adding them under `tests/` is a to-do).
 - Locked working features (don't change without being asked): match tracking (manual, AI screenshots, Android Track & play,
   PC tracker), SnapVault sync, game-file import, collection/variants/cosmetics, decks, stats & rank maths, seasons/events/
