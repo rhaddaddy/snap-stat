@@ -31,7 +31,7 @@ Live: https://rhaddaddy.github.io/snap-stat/ · Repo: rhaddaddy/snap-stat · Fir
   LATER files (one global scope, TDZ). `node --check` runs inside build.sh.
 - Publish: push to `main` → GitHub Pages serves the repo root (~1 min). The app checks `version.json` and reloads itself.
 - Android app (`android/`, Kotlin WebView wrapper, package com.rhaddaddy.snapstat): any push touching `android/**` runs
-  `.github/workflows/android.yml` → signed APK published to the GitHub release tagged `android` (1.20 live; next build adds the web shop sign-in pop-up). Signing key is
+  `.github/workflows/android.yml` → signed APK published to the GitHub release tagged `android` (1.22 live: widget colours + web shop sign-in pop-up). Signing key is
   the `ANDROID_KEYSTORE` secret, never in the repo. Build failures are saved to the `android-build-log` branch.
 - Backend: Firebase Auth (Google) + Firestore (`firestore.rules`; Ryan pastes rule changes into the Firebase console himself).
   `firebase-config.js` + `firebase-init.js` load it. AI keys (Gemini, Claude, ChatGPT, Grok, Perplexity) stay on the device;
@@ -130,7 +130,7 @@ ImageView layers (`w_bg`, `w_glow`, `w_edge`, `w_play_bg/hi`) and texts (ids in 
 ## 4. Status (October 31, 2026)
 - Last working code commit before this push: `babc6dc`. This push: "Bug reports, test lists, Mastery, swipe fix, widget colours".
   UNDO = `git revert` that commit (bots commit data files to main in between, so revert, don't reset).
-- Oct 31: swipe works from anywhere and can't get stuck; widget follows the app's look (Android 1.21); Report a bug + owner review
+- Oct 31: swipe works from anywhere and can't get stuck; widget follows the app's look (Android 1.22); Report a bug + owner review
   and compile for Claude (.md / .zip); What's new and owner test list from CHANGES; on-screen errors; Mastery levels/XP/rewards +
   Custom Card 2; Review screenshots live panel + failure reasons + retry (garbled/empty AI answers retried, next Gemini model);
   tappable season months; decks follow the game's card back and avatar. 38 browser tests + a 242-button click-through (dark and
@@ -139,7 +139,7 @@ ImageView layers (`w_bg`, `w_glow`, `w_edge`, `w_play_bg/hi`) and texts (ids in 
 - Locked working features (don't change without being asked): match tracking (manual, AI screenshots, Android Track & play,
   PC tracker), SnapVault sync, game-file import, collection/variants/cosmetics, decks, stats & rank maths, seasons/events/
   shops/missions, alliance & social, profile pictures, widget & notifications, self-update, history import, bug reports.
-- Waiting on Ryan: paste the new firestore.rules (bug reports), install Android 1.21, run the owner test list, send failed-picture
+- Waiting on Ryan: paste the new firestore.rules (bug reports), install Android 1.22, run the owner test list, send failed-picture
   reasons. Unknowns: where the game files keep Mastery XP and a deck's avatar (read generically; ask Ryan for "Copy what's in the
   files, for Claude").
 - AI: every player uses their own key (Settings › AI); nothing is shared. AI reads screenshots/tracker pictures and powers the deck
