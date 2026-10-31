@@ -3,6 +3,25 @@
 Fan-made MARVEL SNAP companion. Owner: Ryan, a non-coder on a Samsung phone. Reply in plain English, never paste code in chat.
 Live: https://rhaddaddy.github.io/snap-stat/ · Repo: rhaddaddy/snap-stat · Firebase project: snap-stat-9549f
 
+## 0. Every new chat: do this first, without asking
+1. Repo: if `/home/claude/snap-stat` is missing, attach rhaddaddy/snap-stat with push access, clone it there and register it.
+   Then `git config user.name Claude && git config user.email noreply@anthropic.com && git pull --rebase`.
+2. Read this file. Read the Project doc "claude/SNAP Stat setup checklist.md" only when the task touches Ryan's own to-dos.
+3. Standing approval from Ryan (don't ask him first): edit `src/`, `android/`, `scripts/`, workflows and data files; build;
+   run `bash tests/check.sh`; commit and push to `main` (that publishes the web app and, for `android/**`, the Android
+   release); update this file and the Project checklist doc; publish summary pages as artifacts.
+4. Still stop and ask (or hand Ryan tap-by-tap steps) only for: a product goal that is really unclear; deleting his data,
+   branches or releases; anything that costs money; anything needing his own logins (Firebase console rules, GitHub
+   secrets, Google Play/Cloud, installing on his phone or PC).
+5. Every change: `git pull --rebase` → edit `src/` (a new feature = a new `src/y2N_*.js`, next free number, on `EXT`) → build
+   (section 1) → `bash tests/check.sh` must print ALL GOOD twice → copy `index.html` + `version.json` to the root → update
+   this file → ONE commit → `git pull --rebase` (other chats push too: merge their CLAUDE.md edits, never drop them) → push →
+   `gh run list --limit 4` until Pages (and Android, if touched) show success.
+6. Tool quirks: `gh` GraphQL is blocked (`gh release list` fails), so use `gh run list` and `gh api repos/rhaddaddy/snap-stat/...`;
+   the GitHub Pages API is blocked; the shell reaches only GitHub and package registries; WebFetch only works on links Ryan
+   pasted; Playwright is preinstalled (`require('playwright')`, never reinstall it).
+7. Reply to Ryan as "Done:" (1-3 plain bullets) and "Test:" (one sentence). Steps for him: every tap, plain words.
+
 ## 1. Stack & publish
 - Web app: plain JavaScript, no framework, no bundler, no npm at runtime. One global script built from `src/` into `index.html`.
 - Build (the only way to change the app; never hand-edit `index.html`):
@@ -20,8 +39,8 @@ Live: https://rhaddaddy.github.io/snap-stat/ · Repo: rhaddaddy/snap-stat · Fir
 - Daily data (`.github/workflows/update-cards.yml`, 10:23 and 19:17 UTC; `update-faces.yml` 20:41 UTC) run `scripts/*` and
   commit the JSON data files. Bots commit to main often: always `git pull --rebase` before pushing.
 - Commits end with the Co-Authored-By and Claude-Session lines from the session's attribution reminder.
-- Rules: never put the owner's email, account ids, tokens, purchases or payment data anywhere (grep `index.html` for his email
-  before every push, must be 0). Web shop window must never save card/bank details. Never copy values from Ryan's real game
+- Rules: never put the owner's email, account ids, tokens, purchases or payment data anywhere, including this file and tests
+  (`tests/check.sh` stops if any email address is in `index.html`). Web shop window must never save card/bank details. Never copy values from Ryan's real game
   files or data request into code or tests. Never suggest turning Play Protect off.
 - Game rules used everywhere: 7 cubes per rank; cubes double per snap up to 8 and again when the final turn ends; ties left out
   of win %; rank maths uses Ranked only; daily reset 19:00 UTC, mission refresh every 8 h; bundles valued at 80 gold per $1.
@@ -41,7 +60,7 @@ Live: https://rhaddaddy.github.io/snap-stat/ · Repo: rhaddaddy/snap-stat · Fir
 - Actions: buttons use `data-a="name"` → `A.name(el, e)` (object `A` in i_actions.js; later files `Object.assign(A, {...})`).
 - Extension points (`src/b3_ext.js`, `EXT.*`): homeTop, homeStats, homeSubs, cardsSubs, socialSubs, settingsSubs, settingsApp,
   settingsData, cardSheet, deckSheet, deckTabs, matchSheet, liveMatch, profile, onMatch, afterRender, alerts, topBar, styles,
-  search. New features should be a new `src/y24_*.js` that registers here instead of editing shared views.
+  search. New features should be a new `src/y2N_*.js` (next free number) that registers here instead of editing shared views.
 - Not built yet (from the new project rules): an on-screen global error toast and a Dev/Preview toggle.
 
 ## 3. File map (src/, in build order; KB = size)
@@ -74,6 +93,7 @@ Data & state: `S` (saved state, c_core) · `ui` (view state) · matches in `matc
 - `y24_swipe.js` 6 · finger-following section swipe: `swipeLock/swipeMove/swipeEnd`, preview `.view-peek` drawn from `VIEWS`
   (x_nav.js keeps `swipeBlocked`, `swipeTarget(dir)`, `swipeSection(dir)`); commit = pushState + route() in one frame
 - `k_firebase.js` 7 · Firebase sign-in/storage · `z_boot.js` · boot, flush on pagehide · `build.sh` · `README.md`
+Tests `tests/`: `check.sh` (run before every push) · `serve.py` test server · `mock-firebase-init.js` fake sign-in · `crawl.cjs`.
 Root: `index.html` (BUILT, 1.4 MB: never edit or read whole) · `version.json` · `sw.js` (service worker: share target,
 notifications) · `manifest.webmanifest` · `privacy.html` · `native-signin.html` · `firestore.rules` · `tracker-rules.json`
 (Android tracker words, versioned) · `seed.json` · icons.
@@ -94,7 +114,9 @@ Google sign-in open as a second WebView over the shop via onCreateWindow, so win
   wraps last→first, Back works); Playwright swipe test passed. Web shop: Google sign-in ended on a blank white page because
   the WebView had no pop-up support (GSI popup replaced the shop, then had no opener); fixed in WebShopActivity, untested on a
   real phone yet. Earlier: 65 automatic Playwright tests + a full page crawl passed (Oct 30 update)
-  (the tests live in the old session's scratchpad, not in the repo: adding them under `tests/` is a to-do).
+  In the repo now: `tests/check.sh` (serves the root via `tests/serve.py` with `tests/mock-firebase-init.js`, a fake offline
+  sign-in, then `tests/crawl.cjs` opens every page and panel, dark + light, signed out + in; about 1.5 min). The other 64
+  feature tests stayed in the old session (some used Ryan's real exports, so they can't go in this public repo).
 - Locked working features (don't change without being asked): match tracking (manual, AI screenshots, Android Track & play,
   PC tracker), SnapVault sync, game-file import, collection/variants/cosmetics, decks, stats & rank maths, seasons/events/
   shops/missions, alliance & social, profile pictures, widget & notifications, self-update, history import.
@@ -102,4 +124,4 @@ Google sign-in open as a second WebView over the shop via onCreateWindow, so win
 - Open decisions: deleted SnapVault decks return on next sync; two phones saving the same week at once (last save wins);
   News needs a daily news job; no retreat-on-final-turn PC game seen yet.
 - Next tech to-dos: split the GIANT files (l_features, n_more, q_auto, c_core, a_head CSS), add a global error toast +
-  preview toggle, commit the test suite.
+  preview toggle, write feature tests (made-up data only) under `tests/`.
