@@ -42,7 +42,8 @@ Live: https://rhaddaddy.github.io/snap-stat/ · Repo: rhaddaddy/snap-stat · Fir
 - EVERY push that adds, changes or removes a feature adds entries at the top of `CHANGES` in `src/b4_changes.js` (id, date, kind
   new/better/fixed/removed, title, body, where, test steps). It drives What's new for everyone and the owner's "Test this update"
   checklist (Settings › App owner, pops up once per build). Never skip it.
-- Firestore rules changes: tell Ryan to paste `firestore.rules` (Firebase › Firestore › Rules › Publish). `bugs/{id}` + `files/{n}` added Oct 31.
+- Firestore rules changes: tell Ryan to paste `firestore.rules` (Firebase › Firestore › Rules › Publish). Oct 31: `bugs/{id}`+`files/{n}`, then
+  `config/flags`, `h2h/{uid}`, `ally/{key}/m/{uid}` (chat + bounty claims), `races/{id}`.
 - Rules: never put the owner's email, account ids, tokens, purchases or payment data anywhere, including this file and tests
   (`tests/check.sh` stops if any email address is in `index.html`). Web shop window must never save card/bank details. Never copy values from Ryan's real game
   files or data request into code or tests. Never suggest turning Play Protect off.
@@ -64,51 +65,49 @@ Live: https://rhaddaddy.github.io/snap-stat/ · Repo: rhaddaddy/snap-stat · Fir
 - Actions: buttons use `data-a="name"` → `A.name(el, e)` (object `A` in i_actions.js; later files `Object.assign(A, {...})`).
 - Extension points (`src/b3_ext.js`, `EXT.*`): homeTop, homeStats, homeSubs, cardsSubs, socialSubs, settingsSubs, settingsApp,
   settingsData, cardSheet, deckSheet, deckTabs, matchSheet, liveMatch, profile, onMatch, afterRender, alerts, topBar, styles,
-  search. New features should be a new `src/y2N_*.js` (next free number) that registers here instead of editing shared views.
+  search, about, owner (+ y-file hooks: settingsAndroid, alliance, playerSheet, reviewTools). New features = a new `src/yN_*.js`.
+  Feature switches: `flagOn(id)` (y32, list in y32a_data.js FLAG_LIST, owner sets Off/Just me/Everyone in config/flags).
+  Wrapping a shared function is done by reassigning it (`const _x = fn; fn = () => …`, see profileExtras, widgetState).
+  Global names must be unique across src (one scope): check with a duplicate-name scan before building.
 - Problems on screen (`src/b5_errors.js`): `errNote(where, e, quiet)` logs to `ERRLOG` (last 30, sent with bug reports) and shows a red
   bar with Report it; `render()`, `refreshSheet()`, every `data-a` button and every EXT hook are wrapped, so a failing page shows
-  `errPageHtml()` instead of going blank. Not built yet: a Dev/Preview toggle.
+  `errPageHtml()` instead of going blank. Owner Preview panel (y32): tour, safe page, problem bar, update notes, store shots.
 
 ## 3. File map (src/, in build order; KB = size)
 Data & state: `S` (saved state, c_core) · `ui` (view state) · matches in `matchWeeks` via `realMatches() putMatch(m) removeMatch(id)`
 · `card(k) allCards() allVariants() S.decks seasons() events() statsFor(ms) periods()` · `save()` writes device + Firestore.
-- `a_head.html` 66 · page shell, all CSS and themes (GIANT: split CSS into a separate file later)
-- `b_data.js` 10 · starter card list · `b2_cards.js` 10 · deck-code card ids · `b3_ext.js` 3 · EXT extension lists
-- `c_core.js` 66 · helpers, S/ui, matches, stats, cardChip/cardFace, toast, sheets, save (GIANT: split later)
-- `c2_catalog.js` 17 · card-data.json (CAT), art, variants, imgTag/artFail · `c3_extras.js` 59 · balance history, notifications,
-  account delete, misc (GIANT) · `c4_clock.js` 9 · 19:00 UTC reset clock, countdowns
-- `d_home_play.js` 39 · Home overview, period chips, play views · `e_collection.js` 32 · Cards tab, cosmetics, variants
-- `f_decks.js` 27 · decks and deck sheet · `g_social.js` 28 · onboarding, profile setup, social feed
-- `h_more.js` 37 · shops, promos, seasons, events, locations views · `j_import.js` 15 · SnapVault import
-- `i_actions.js` 57 · render(), routing, VIEWS, the `A` actions object (GIANT) · `l_features.js` 85 · insights, albums, planner,
-  splits, deck versions, alliance week, tournaments (GIANTEST: split first) · `n_more.js` 68 · draw odds, rivals, coach chat,
-  missions, credits planner (GIANT) · `p_more.js` 47 · timeline, pack planner, replays, recaps
-- `q_auto.js` 67 · AI screenshot reading, auto-fill numbers, shared files (GIANT) · `r_native.js` 18 · Android bridge
-  (`window.SnapStatNative`) · `t_progress.js` 26 · boosters, upgrades, splits, borders · `u_look.js` 27 · profile pictures, banners
-- `w_wish.js` 11 · owned-variant fill, wishlist alerts · `x_nav.js` 20 · bottom tabs Home/Cards/Social/Profile/Settings + sections
-- `y_data.js` 2 · promo/season-art/card-back data · `y2_more.js` 55 · locations, deck icons, card backs, PC collection file (GIANT)
-- `y3_ideas.js` 14 · matchups, variant goals · `y4_more.js` 38 · Track & play, web shop, numbers, event passes, alliance, deck tags
-- `y5_emotes.js` 10 · `y6_auto.js` 10 · albums/missions from screenshots · `y7_more.js` 33 · weekly challenge, bundles, pass track
-- `y8_plans.js` 14 · mission/bounty decks, pass pace, token planner · `y9_turns.js` 13 · event currencies, play-by-play
-- `y10_update.js` 3 · self-update · `y11_collect.js` 13 · collectibles · `y12_looks.js` 22 · Custom Cards, avatars, titles
-- `y13_sweep.js` 7 · Update everything · `y14_pc.js` 41 · PC tracker (File System Access API on the game's nvprod folder)
-- `y15_stats.js` 33 · stats & coaching · `y16_decks.js` 31 · deck tools · `y17_collection.js` 34 · Cards › Plan
-- `y18_home.js` 44 · search, shortcuts, Home layout switches (`homeShow(id)`) · `y19_social.js` 37 · share pictures, bounties
-- `y20_knowledge.js` 45 · glossary, tips, News (needs a news.json job) · `y21_tracker.js` 14 · tracker health, match buzz
-- `y22_live.js` 26 · live match helper · `y23_history.js` 10 · data-request history import (milestone dates only)
-- `y24_swipe.js` 9 · section swipe from anywhere (document listeners + listeners on the touched element, so a redraw can't lose the
-  let-go), `swipeHolding()` makes `render()` wait, `swipeReset()` on touch/Back/hide, 4 s watchdog; loops both ways. x_nav.js keeps
-  `swipeBlocked(el, dx)` (sideways rows hand over at their end) and `swipeTarget(dir)`. `body { touch-action: pan-y }` unless zoomed
-- `b4_changes.js` · CHANGES list (What's new + owner tests) · `b5_errors.js` · on-screen errors (see §2)
-- `y25_report.js` 15 · Report a bug for everyone: `bugOpen(opts)`, `bugBuild()`, `bugDevice()`, queue in localStorage when signed out
-  or blocked (`bugFlush`), `S.myBugs` + `bugAboutHtml()` (Settings › About)
-- `y26_owner.js` 17 · owner: `ob` (onSnapshot on `bugs`), `ownerBugsHtml()`, `obSheet`, `obCompile(list)` markdown for Claude,
-  `zipStore(files)` (.zip writer), `ownerTestsHtml()` / `ownerTestsSheet` (S.ownerTests.marks/popped), owner Home card
-- `y27_reading.js` 6 · Review screenshots: `rvLiveHtml()` Reading now, `rvWhy(r)` reasons, `rvRetryFailed()`
-- `y28_months.js` 4 · Profile history month → `histMonthSheet` · `y29_decklook.js` 4 · `deckAutoLook(d, x, src)`: deck card back
-  and icon follow the game (match/pc/file) unless `backBy`/`coverBy` is "hand"; `gameDeckLooks(deck)`, `deckLooksFromFile()`
-- `y30_mastery_data.js` · MASTERY_XP (30 levels), rewards, slot 2 at 22 · `y31_mastery.js` 9 · `masteryOf(k)`, card-page panel,
-  Cards › Custom cards Mastery list, Custom Card 2 = `S.looks2` (`noteLook2`, editor `le.slot`), `readMasteryXp(ss)` (prog.mx)
+- `a_head.html` 66 page shell + all CSS (GIANT) · `b_data` starter cards · `b2_cards` deck-code ids · `b3_ext` EXT lists · `b4_changes`
+  CHANGES · `b5_errors` on-screen errors · `c_core` 66 helpers, S/ui, matches, stats, sheets, save (GIANT) · `c2_catalog` CAT, art,
+  variants · `c3_extras` 59 balance, notifications, AI calls (`aiJson(prompt, {images})`, `aiOn()`) · `c4_clock` reset clock, widgetState
+- `d_home_play` Home, play views, match form `mf` · `e_collection` Cards · `f_decks` decks + deck sheet · `g_social` onboarding,
+  profile, feed (`allPosts`, `postHtml`, `reactionsFor`) · `h_more` shops, promos, seasons, events, About · `j_import` SnapVault
+- `i_actions` render(), routing, `A`, loadExamples · `l_features` 85 insights, albums, deck versions (`d.history`), alliance week,
+  tournaments (GIANTEST) · `n_more` 68 draw odds, rivals, goals (`GOAL_KINDS`), BADGES, credits · `p_more` timeline, packs, replays,
+  overlay · `q_auto` 67 AI screenshot reading (GIANT) · `r_native` Android bridge (`NATIVE`, `natCan`, `natInfo`) · `t_progress`
+  boosters/upgrades/splits (`prog(k)`, `STEP`) · `u_look` pictures, banners (`lookOf`) · `w_wish` wishlist alerts · `x_nav` tabs, NAV
+- `y_data` · `y2_more` locations, card backs, PC file · `y3_ideas` matchups, variant goals · `y4_more` Track & play, web shop,
+  alliance · `y5_emotes` · `y6_auto` missions from shots · `y7_more` weekly challenge, bundles, `shotLogAll()` · `y8_plans` mission
+  decks (`missionTest`), pass pace · `y9_turns` event currencies, play-by-play · `y10_update` · `y11_collect` · `y12_looks` Custom
+  Cards (S.looks) · `y13_sweep` · `y14_pc` PC tracker · `y15_stats` · `y16_decks` · `y17_collection` Cards › Plan · `y18_home`
+  search, Home switches (`homeShow`, `.ext = {id,label}`), reminders (EXT.alerts) · `y19_social` share pictures (`makePic`),
+  `profileExtras` · `y20_knowledge` · `y21_tracker` tracker health, `buzz()` · `y22_live` live helper · `y23_history`
+- `y24_swipe` swipe anywhere (`swipeHolding()`, `swipeReset()`, x_nav `swipeBlocked`/`swipeTarget`; `.hscroll`/[data-noswipe])
+- `y25_report` Report a bug (`bugOpen`, queue `snapstat.bugQueue`, `S.myBugs`, `bugCheckMine`) · `y26_owner` bug inbox, owner tests
+- `y27_reading` · `y28_months` · `y29_decklook` · `y30_mastery_data` · `y31_mastery` `masteryOf(k)`, `masteryWays`, S.looks2
+- Oct 31 batch (Ryan's 100 ideas, #2-100; #1 shared AI skipped): `y32a_data`/`y32_publish` tour, safe-mode hooks (inline script at
+  the top of a_head.html, `window.__snapBootOk`), Status in About, store screenshot mode, `allMyData()`, flags, bug alerts, update
+  notes · `y33a_data`/`y33_fun` trivia, card of the day, BADGES+12, overlay styles (wraps overlayData/Html/Panel), seasonal looks,
+  sfx(), new-card quiz, What-if board, photo mode, Year in SNAP · `y34_matches` opp deck guess, snapCall(), retreat regrets, deck
+  location tab, replay viewer, rematch alerts, autoTags(), voice notes (IndexedDB snapstat-voice), battery saver, session card ·
+  `y35_coach` tilt 2.0, break/hour/snap stats, Infinite date, meta, h2h (h2h/{uid}), weekly goals, AI letter, luck() · `y36b_qr`
+  QR encoder (verified with OpenCV) · `y36_decks` link import, health, swap test, folders + auto-retire (`deckInFolder` in vDecks),
+  timeline, cheat sheet, hand odds, QR sheet, Build around · `y37_collect` Cards › More tools (10 tools: Mastery 22, splits, cache
+  log, price log, artists, value, Series watch, Spotlight, Custom Card gallery, albums) · `y38_seasons` pass date, event shop plan,
+  Home › Mission helper (missions from matches, weekly route, Conquest, event currency), season story, .ics export, missed rewards
+  · `y39_shops` Home › Shop helper (9 tabs; wishlist in profileExtras) · `y40_social` alliance chat + bounty claims, races, Deck
+  lab, alliance board, badges, auto banner, follow suggestions, live tourney scores, post later · `y41_android` lock-screen note
+  route `#quicklog=W` / `#playdeck=id` (wraps window.snapNative.on), pop-up tip + mini layout, vibration patterns, deck shortcuts,
+  widget wallpaper/offline (wraps widgetLook/widgetState), weekly backup + Drive share, battery & data. `terms.html` at the root.
 - `k_firebase.js` 7 · Firebase sign-in/storage · `z_boot.js` · boot, flush on pagehide · `build.sh` · `README.md`
 Tests `tests/`: `check.sh` (run before every push) · `serve.py` test server · `mock-firebase-init.js` fake sign-in · `crawl.cjs`.
 Root: `index.html` (BUILT, 1.4 MB: never edit or read whole) · `version.json` · `sw.js` (service worker: share target,
@@ -122,28 +121,29 @@ Android `android/app/src/main/java/com/rhaddaddy/snapstat/`: `MainActivity` WebV
 screen-capture tracker · `Screenshots` + `ShotQueue` picture reading queue · `Rules` tracker rules · `Usage` usage access ·
 `Updater` self-update from releases · `Alerts` notifications · `Widget` home widget · `WebShopActivity` web shop window (pop-ups like
 Google sign-in open as a second WebView over the shop via onCreateWindow, so window.opener works) ·
-`TrackerTile` Quick Settings tile. Res: `values/themes.xml` + `values-night/`, `xml/shortcuts.xml`.
+`TrackerTile` Quick Settings tile · `StatusNote` lock-screen reset countdown + Won/Lost/Tie · `EventWidget` event countdown
+widget (layout widget_event, xml/event_widget_info) · Bridge: setStatusNote, setBatterySaver, trackerStats, setDeckShortcuts. Res: `values/themes.xml` + `values-night/`, `xml/shortcuts.xml`.
 Widget colours: the web app sends `look` (mode, black, accent a/b/ink/text/lightText) in `widgetState()`; `Widget.paint()` tints
 ImageView layers (`w_bg`, `w_glow`, `w_edge`, `w_play_bg/hi`) and texts (ids in `WidgetIds.kt`); Auto follows the phone on 12+ via
 `RemoteViews.setColorInt`. No Android SDK in the sandbox: Kotlin is only checked by the GitHub build (see android-build-log).
 
 ## 4. Status (October 31, 2026)
-- Last working code commit before this push: `babc6dc`. This push: "Bug reports, test lists, Mastery, swipe fix, widget colours".
+- Last working code commit before this push: `78beb41`. This push: "Ryan's 100 ideas (#2-100)" (y32-y41, Android 1.23).
   UNDO = `git revert` that commit (bots commit data files to main in between, so revert, don't reset).
-- Oct 31: swipe works from anywhere and can't get stuck; widget follows the app's look (Android 1.22); Report a bug + owner review
-  and compile for Claude (.md / .zip); What's new and owner test list from CHANGES; on-screen errors; Mastery levels/XP/rewards +
-  Custom Card 2; Review screenshots live panel + failure reasons + retry (garbled/empty AI answers retried, next Gemini model);
-  tappable season months; decks follow the game's card back and avatar. 38 browser tests + a 242-button click-through (dark and
-  light) passed with an in-memory Firebase stand-in (session scratchpad). The repo's own `tests/check.sh` (serve.py +
-  mock-firebase-init.js + crawl.cjs: every page and panel, dark + light, signed out + in) must print ALL GOOD before each push.
+- Earlier Oct 31: swipe anywhere, widget colours (1.22), bug reports + owner inbox, What's new/owner tests, on-screen errors,
+  Mastery + Custom Card 2, Review screenshots panel. `tests/check.sh` must print ALL GOOD (signed out + in) before each push.
 - Locked working features (don't change without being asked): match tracking (manual, AI screenshots, Android Track & play,
   PC tracker), SnapVault sync, game-file import, collection/variants/cosmetics, decks, stats & rank maths, seasons/events/
   shops/missions, alliance & social, profile pictures, widget & notifications, self-update, history import, bug reports.
-- Waiting on Ryan: paste the new firestore.rules (bug reports), install Android 1.22, run the owner test list, send failed-picture
+- Oct 31 (2nd push): 99 ideas built (see the y32-y41 line in §3); check.sh ALL GOOD both ways; per-file Playwright checks with a
+  fake Android bridge. Kotlin untested locally: if the Android run fails, read the android-build-log branch and fix.
+  Substitutes: lock screen/AOD → ongoing notification; Wear tile → watch-mirrored notification; floating bubble → Samsung pop-up
+  view tip (no overlay permission); Drive → share sheet; Spotlight/Series data → manual planner + watch from daily data.
+- Waiting on Ryan: paste the new firestore.rules, install Android 1.23, run the owner test list, send failed-picture
   reasons. Unknowns: where the game files keep Mastery XP and a deck's avatar (read generically; ask Ryan for "Copy what's in the
   files, for Claude").
 - AI: every player uses their own key (Settings › AI); nothing is shared. AI reads screenshots/tracker pictures and powers the deck
   builder, swaps, coach and opponent guesses. PC tracker, game files, SnapVault and daily data need no AI.
-- Next tech to-dos: split the GIANT files (l_features, n_more, q_auto, c_core, a_head CSS), Dev/Preview toggle, add feature tests (made-up data only) to `tests/`,
-  Ryan's 100-idea list is in the project doc "SNAP Stat 100 ideas" (wait for his picks).
+- Next tech to-dos: split the GIANT files (l_features, n_more, q_auto, c_core, a_head CSS); add feature tests (made-up data) to
+  `tests/`. The 100-idea list (project doc "SNAP Stat 100 ideas") is built except #1 (shared AI, on hold).
 - Open decisions: deleted SnapVault decks return on sync; two phones saving one week (last wins); News needs a daily job.

@@ -37,7 +37,9 @@ object Widget {
     private const val STATE = "widget.json"
 
     fun save(ctx: Context, json: String): Boolean = try {
-        File(ctx.filesDir, STATE).writeText(JSONObject(json).toString()); refresh(ctx); true
+        File(ctx.filesDir, STATE).writeText(JSONObject(json).toString()); refresh(ctx)
+        try { EventWidgets.refresh(ctx) } catch (e: Exception) { TrackerLog.add("Event widget failed: ${e.message}") }
+        true
     } catch (e: Exception) { false }
 
     fun count(ctx: Context): Int = try {
@@ -104,8 +106,15 @@ object Widget {
         val lk = j.optJSONObject("look")
         val mode = lk?.optString("mode") ?: "auto"
         val black = lk?.optBoolean("black") == true
-        val L = pal(lk, true, black); val D = pal(lk, false, black)
-        val a = col(lk?.optString("a"), 0xFFFFD23F.toInt()); val b = col(lk?.optString("b"), 0xFFFF7A1A.toInt()); val ink = col(lk?.optString("ink"), 0xFF1A0E00.toInt())
+        var L = pal(lk, true, black); var D = pal(lk, false, black)
+        var a = col(lk?.optString("a"), 0xFFFFD23F.toInt()); var b = col(lk?.optString("b"), 0xFFFF7A1A.toInt()); var ink = col(lk?.optString("ink"), 0xFF1A0E00.toInt())
+        // "Wallpaper colours" (Settings › Android): the phone's own Material You colours, light or dark with the phone
+        if (mode == "wallpaper" && Build.VERSION.SDK_INT >= 31) {
+            val c = { id: Int -> ctx.getColor(id) }
+            L = Pal(c(android.R.color.system_neutral1_50), c(android.R.color.system_neutral1_900), c(android.R.color.system_neutral2_600), c(android.R.color.system_accent1_600), c(android.R.color.system_accent1_200), 255, 40, R.drawable.widget_tile_light, 0xFF1E8E5A.toInt())
+            D = Pal(c(android.R.color.system_neutral1_900), c(android.R.color.system_neutral1_50), c(android.R.color.system_neutral2_300), c(android.R.color.system_accent1_200), c(android.R.color.system_accent1_700), 255, 70, R.drawable.widget_tile_dark, 0xFF3DD68C.toInt())
+            a = c(android.R.color.system_accent1_200); b = c(android.R.color.system_accent1_500); ink = c(android.R.color.system_neutral1_900)
+        }
         val followPhone = mode != "dark" && mode != "light" && Build.VERSION.SDK_INT >= 31
         val night = when (mode) {
             "dark" -> true; "light" -> false
@@ -155,10 +164,14 @@ object Widget {
         v.setChronometer(R.id.w_reset, SystemClock.elapsedRealtime() + (reset - now), null, true)
         v.setChronometerCountDown(R.id.w_reset, true)
         v.setTextViewText(R.id.w_reset_at, "at " + DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(reset)))
-        val alert = j.optString("alert")
+        val sent = j.optLong("sentAt"); val stale = sent > 0L && now - sent > 36 * 3_600_000L
+        val alert = j.optString("alert").ifEmpty {
+            if (j.optBoolean("offline")) "● Offline: open SNAP Stat when you're back online"
+            else if (stale) "● Not updated since " + DateFormat.getDateInstance(DateFormat.SHORT).format(Date(sent)) + ": open SNAP Stat" else ""
+        }
         v.setTextViewText(R.id.w_alert, alert)
         v.setViewVisibility(R.id.w_alert, if (alert.isNotEmpty()) View.VISIBLE else View.GONE)
-        v.setOnClickPendingIntent(R.id.w_root, open(ctx, 9, if (alert.isNotEmpty()) "#home/shops" else "#home"))
+        v.setOnClickPendingIntent(R.id.w_root, open(ctx, 9, if (j.optString("alert").isNotEmpty()) "#home/shops" else "#home"))
         if (!big) return v
 
         // The rank tile's extra line: cubes toward the next rank
@@ -322,6 +335,7 @@ class ResetAlarm : BroadcastReceiver() {
         TrackerLog.attach(ctx.applicationContext)
         try { ResetClock.fired(ctx, intent.getLongExtra("slot", 0L)) } catch (e: Exception) { TrackerLog.add("Reset alarm failed: ${e.message}") }
         Widget.refresh(ctx)
+        try { EventWidgets.refresh(ctx); StatusNote.refresh(ctx) } catch (e: Exception) { TrackerLog.add("Reset refresh failed: ${e.message}") }
         ResetClock.schedule(ctx)
     }
 }
@@ -331,5 +345,6 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED && intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
         ResetClock.schedule(ctx); Widget.refresh(ctx)
+        try { EventWidgets.refresh(ctx); StatusNote.refresh(ctx) } catch (e: Exception) { TrackerLog.add("Start-up refresh failed: ${e.message}") }
     }
 }

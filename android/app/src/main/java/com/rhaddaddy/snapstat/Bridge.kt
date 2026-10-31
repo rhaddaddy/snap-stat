@@ -205,6 +205,61 @@ class Bridge(private val act: MainActivity) {
     @JavascriptInterface fun resetAlarms(): Boolean { ResetClock.schedule(ctx); return true }
     @JavascriptInterface fun checkAlertsNow() { kotlin.concurrent.thread { try { Alerts.check(ctx) } catch (e: Exception) { TrackerLog.add("Alert check failed: ${e.message}") } } }
 
+    // ---- October 31 additions ----
+    /** The lock-screen reset countdown with Won / Lost / Tie buttons (see StatusNote). */
+    @JavascriptInterface fun setStatusNote(on: Boolean) {
+        if (on && !Alerts.canNotify(ctx)) act.runOnUiThread { act.askNotify() }
+        StatusNote.setOn(ctx, on)
+    }
+    @JavascriptInterface fun statusNote(): Boolean = StatusNote.isOn(ctx)
+
+    /** The tracker skips reading the screen while the battery is under [pct]% and not charging. */
+    @JavascriptInterface fun setBatterySaver(on: Boolean, pct: Int) {
+        ctx.getSharedPreferences("snapstat", 0).edit().putBoolean("batSaver", on).putInt("batPct", pct.coerceIn(5, 50)).apply()
+    }
+
+    /** For Settings › Android › Battery and data: the battery now and how much the tracker has run. */
+    @JavascriptInterface fun trackerStats(): String {
+        val bm = ctx.getSystemService(android.os.BatteryManager::class.java)
+        val pct = try { bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY) } catch (e: Exception) { -1 }
+        val charging = try { bm.isCharging } catch (e: Exception) { false }
+        val sp = ctx.getSharedPreferences("snapstat", 0)
+        val runNow = if (TrackerService.running) maxOf(0L, System.currentTimeMillis() - TrackerService.startedAt(ctx)) else 0L
+        return JSONObject()
+            .put("battery", pct).put("charging", charging)
+            .put("running", TrackerService.running).put("runNowMs", runNow)
+            .put("runTotalMs", sp.getLong("trackerRunMs", 0L) + runNow)
+            .put("runDay", sp.getString("trackerRunDay", "")).put("runDayMs", sp.getLong("trackerRunDayMs", 0L))
+            .put("paused", TrackerService.pausedForBattery)
+            .put("queue", ShotQueue.count(ctx))
+            .toString()
+    }
+
+    /** Press-and-hold shortcuts for your most played decks: [{id, name}], up to 3. */
+    @JavascriptInterface fun setDeckShortcuts(json: String): Boolean {
+        return try {
+            val a = org.json.JSONArray(json)
+            val sm = ctx.getSystemService(android.content.pm.ShortcutManager::class.java) ?: return false
+            val list = ArrayList<android.content.pm.ShortcutInfo>()
+            for (i in 0 until minOf(3, a.length())) {
+                val d = a.optJSONObject(i) ?: continue
+                val id = d.optString("id").filter { it.isLetterOrDigit() }.take(40); val name = d.optString("name").trim()
+                if (id.isEmpty() || name.isEmpty()) continue
+                val intent = Intent(ctx, MainActivity::class.java).setAction(Intent.ACTION_VIEW)
+                    .putExtra("route", "#playdeck=$id").putExtra("trackPlay", d.optBoolean("track", false))
+                list.add(android.content.pm.ShortcutInfo.Builder(ctx, "deck-$i")
+                    .setShortLabel(name.take(10))
+                    .setLongLabel(("Play " + name).take(25))
+                    .setIcon(android.graphics.drawable.Icon.createWithResource(ctx, R.mipmap.ic_launcher))
+                    .setIntent(intent)
+                    .setRank(i)
+                    .build())
+            }
+            sm.setDynamicShortcuts(list)
+            true
+        } catch (e: Exception) { TrackerLog.add("Deck shortcuts failed: ${e.message}"); false }
+    }
+
     @JavascriptInterface fun openSnap() {
         act.runOnUiThread {
             val i = ctx.packageManager.getLaunchIntentForPackage(ShotQueue.SNAP_PACKAGE)

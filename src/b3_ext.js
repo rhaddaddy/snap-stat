@@ -24,6 +24,8 @@ const EXT = {
   topBar: [],        // () => html · small buttons in the top bar, next to your profile chip
   styles: [],        // css text, added to the page once
   search: [],        // (q) => [{ label, sub, route }] · results for the global search
+  about: [],         // () => html · Settings › About, under Report a bug
+  owner: [],         // () => html · Settings › App owner, before Social admins
 };
 // Runs each registered function and joins what they return; a broken one is logged and skipped.
 function extHtml(list, ...args) {

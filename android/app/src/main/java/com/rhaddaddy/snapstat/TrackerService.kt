@@ -48,6 +48,9 @@ class TrackerService : Service() {
         /** When the tracker last saved any picture (a match's end, a turn or a screen), so the app can tell it's idle. */
         @Volatile var lastShotAt = 0L
             private set
+        /** True while the battery saver has paused reading the screen (battery low and not charging). */
+        @Volatile var pausedForBattery = false
+            private set
         private const val PREFS = "snapstat"
         private const val STARTED_AT = "trackerStartedAt"
         private const val STOPPED_AT = "trackerStoppedAt"
@@ -200,11 +203,29 @@ class TrackerService : Service() {
         } finally { img.close() }
     }
 
+    private var batCheckedAt = 0L
+    /** The battery saver (Settings › Android): skip the screen while the battery is under the chosen level and not charging. */
+    private fun batteryLow(now: Long): Boolean {
+        if (now - batCheckedAt < 30_000L) return pausedForBattery
+        batCheckedAt = now
+        val sp = getSharedPreferences(PREFS, 0)
+        val low = try {
+            if (!sp.getBoolean("batSaver", true)) false else {
+                val bm = getSystemService(android.os.BatteryManager::class.java)
+                val pct = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+                pct in 0 until sp.getInt("batPct", 15) && !bm.isCharging
+            }
+        } catch (e: Exception) { false }
+        if (low != pausedForBattery) { pausedForBattery = low; TrackerLog.add(if (low) "Battery low: tracker paused" else "Battery fine: tracker reading again") }
+        return low
+    }
+
     private fun tick() {
         val h = handler ?: return
         h.postDelayed(::tick, rules.intervalMs)
         if (busy) return
         val now = System.currentTimeMillis()
+        if (batteryLow(now)) { try { reader?.acquireLatestImage()?.close() } catch (_: Throwable) {}; return }
         val front = usage.update()
         // Only look while the game is in front. With usage access that's checked here, whatever the rules say; without
         // it the app can't tell, so it looks at the screen but keeps other apps' words out of its log.
@@ -388,7 +409,16 @@ class TrackerService : Service() {
 
     override fun onDestroy() {
         // Only a tracker that had really started counts as stopping (a Stop tap on a stopped one also lands here)
-        if (running) getSharedPreferences(PREFS, 0).edit().putLong(STOPPED_AT, System.currentTimeMillis()).apply()
+        if (running) {
+            val now = System.currentTimeMillis(); val sp = getSharedPreferences(PREFS, 0)
+            // How long the tracker ran, in total and today, for Settings › Android › Battery and data
+            val ran = (now - sp.getLong(STARTED_AT, now)).coerceIn(0L, 24 * 3_600_000L)
+            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date(now))
+            val dayMs = if (sp.getString("trackerRunDay", "") == today) sp.getLong("trackerRunDayMs", 0L) else 0L
+            sp.edit().putLong(STOPPED_AT, now).putLong("trackerRunMs", sp.getLong("trackerRunMs", 0L) + ran)
+                .putString("trackerRunDay", today).putLong("trackerRunDayMs", dayMs + ran).apply()
+        }
+        pausedForBattery = false
         running = false; Widget.refresh(this); TrackerTile.refresh(this)
         // The capture is closed on the tracker's own thread, so a picture being read right now finishes first
         val h = handler; handler = null

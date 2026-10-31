@@ -131,7 +131,7 @@ function updateSheet() {
   if (!natUpdateReady()) return `${sheetHead("You have the newest app")}<p class="muted small">SNAP Stat for Android ${esc(natInfo().version || "")} is up to date.</p>`;
   const busy = nat.pct >= 0;
   return `${sheetHead("App update ready", `SNAP Stat for Android 1.${esc(nat.update.latest)} · you have ${esc(natInfo().version || "an older one")}`)}
-    <p class="small">It takes a few seconds: tap <b>Update now</b>, then <b>Update</b> (or <b>Install</b>) in Android's window.${nat.update.canInstall === false ? " Android will first ask you to allow SNAP Stat to install apps: turn it on, then come back." : ""}</p>
+    ${typeof updNotesHtml === "function" ? updNotesHtml() : ""}<p class="small">It takes a few seconds: tap <b>Update now</b>, then <b>Update</b> (or <b>Install</b>) in Android's window.${nat.update.canInstall === false ? " Android will first ask you to allow SNAP Stat to install apps: turn it on, then come back." : ""}</p>
     <div class="row"><button class="btn snap" data-a="natUpdate" ${busy ? "disabled" : ""}>${busy ? `Downloading… ${nat.pct}%` : "Update now"}</button><button class="btn ghost" data-a="close">Later</button></div>
     <span class="muted small">If Google Play Protect says <b>Harmful app blocked</b>: tap <b>More details</b>, then <b>Install anyway</b>. Apps from outside the Play Store that record the screen get this warning until Google reviews them. This update is SNAP Stat's own, from its GitHub page.</span>
     ${nat.tried ? `<span class="muted small">Didn't update? <button class="btn sm ghost" data-a="natGetApk">Download it in Chrome</button> and open the file to install it.</span>` : ""}`;

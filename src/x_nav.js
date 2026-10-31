@@ -114,8 +114,8 @@ function vSettingsTab() {
         <span class="muted">${!window.SNAPSTAT_STANDALONE ? "It works in the SNAP Stat app, not in this view." : SLOT ? "It uses your main account. Switch back to it in Profile › MARVEL SNAP accounts to turn it on." : "Sign in to turn it on."}</span>${window.SNAPSTAT_STANDALONE && !SLOT && store.mode !== "cloud" && store.fb ? `<div><button class="btn sm snap" data-a="signIn">Sign in</button></div>` : ""}</div></section>`,
     account: () => `<section class="sec"><h2>Account</h2><div class="panel stack small"><p class="muted">${esc(sync)}${SLOT ? " · " + esc(currentAccountName()) : ""}</p>
         ${store.provider === "firebase" ? `<p><b>${accountLine()}</b></p><p>${store.mode === "cloud" ? "Your data follows you to any device where you sign in." : "Sign in to keep your data across devices and use the social features. Anything saved here moves into your account when you sign in."}</p>${store.mode === "cloud" ? `<div><button class="btn sm" data-a="signOut">Sign out</button></div>` : store.fb ? `<div><button class="btn sm snap" data-a="signIn">Sign in</button></div>` : ""}` : `<p>${store.mode === "cloud" ? "You're signed in with your Claude account, and your data follows you across devices." : "Your data is saved on this device."}</p>`}</div></section>${dangerPanel()}`,
-    owner: () => `${ownerPanel()}${ownerTestsHtml()}${ownerBugsHtml()}${adminsPanel()}`,
-    about: () => `${bugAboutHtml()}${vAbout()}`,
+    owner: () => `${ownerPanel()}${ownerTestsHtml()}${ownerBugsHtml()}${extHtml(EXT.owner)}${adminsPanel()}`,
+    about: () => `${bugAboutHtml()}${extHtml(EXT.about)}${vAbout()}`,
   }[s] || extBody(EXT.settingsSubs, s) || (() => appPanel());
   return `${tabHead("settings")}${s !== "android" ? natUpdateBanner() : ""}${body()}<section class="sec"><p class="muted small"><button class="bug-foot" data-a="bugOpen">Found a bug? Report it</button> · ${window.SNAPSTAT_STANDALONE ? privacyLink() + " · " : ""}Unofficial fan-made app. Not affiliated with or endorsed by Marvel or Second Dinner.</p></section>`;
 }

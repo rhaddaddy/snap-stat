@@ -1,5 +1,67 @@
 <title>SNAP Stat</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<script>
+/* Crash-free mode (y32_publish.js): if SNAP Stat doesn't start twice in a row, a simple safe page opens over it with
+   Try again, Reset view and Report a bug. It never deletes data. window.__snapBootOk() is called after the first page draws. */
+(function () {
+  var K = "snapstat.bootFails", n = 0, counted = false, errs = [];
+  try { n = +localStorage.getItem(K) || 0; } catch (e) { n = 0; }
+  function count() { if (counted || window.__snapBooted) return; counted = true; n++; try { localStorage.setItem(K, String(n)); } catch (e) { /* storage blocked */ } }
+  window.__snapBootOk = function () { window.__snapBooted = true; try { localStorage.removeItem(K); } catch (e) { /* storage blocked */ } var el = document.getElementById("safe-mode"); if (el && !el.getAttribute("data-preview")) el.remove(); };
+  function h(t) { return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function bugId() { var d = new Date(), p = function (x) { return (x < 10 ? "0" : "") + x; }, ab = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", r = ""; for (var i = 0; i < 4; i++) r += ab[Math.floor(Math.random() * ab.length)]; return "BUG-" + String(d.getUTCFullYear()).slice(2) + p(d.getUTCMonth() + 1) + p(d.getUTCDate()) + "-" + r; }
+  window.__snapSafe = function (preview) {
+    if (document.getElementById("safe-mode")) return;
+    var box = document.createElement("div"); box.id = "safe-mode"; if (preview) box.setAttribute("data-preview", "1");
+    box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "SNAP Stat safe page");
+    box.style.cssText = "position:fixed;inset:0;z-index:2147483000;overflow:auto;background:var(--bg,#0A0918);color:var(--fg,#ECEAF8);font:16px/1.5 system-ui,sans-serif;padding:24px 16px 48px";
+    var btn = "display:block;width:100%;min-height:46px;margin:8px 0;border-radius:12px;border:1px solid var(--line,#2B2650);background:var(--surface,#16132E);color:inherit;font:600 16px system-ui,sans-serif;cursor:pointer";
+    box.innerHTML = '<div style="max-width:520px;margin:0 auto">' +
+      '<h1 style="font-size:26px;margin:0 0 6px">SNAP Stat had trouble starting</h1>' +
+      '<p style="margin:0 0 12px;opacity:.85">' + (preview ? "This is a preview of the safe page the app owner sees in Settings › App owner." : "It didn't start the last " + n + " times, so this simple page opened instead. Your matches, collection and account are safe.") + "</p>" +
+      '<button data-sm="try" style="' + btn + ';background:var(--snap-a,#FFD23F);color:var(--snap-ink,#1A0E00);border:0">Try again</button>' +
+      '<button data-sm="reset" style="' + btn + '">Reset view and app files</button>' +
+      '<p style="font-size:13px;opacity:.7;margin:0 0 14px">Reset opens SNAP Stat on Home and fetches fresh app files. It keeps everything you saved.</p>' +
+      '<h2 style="font-size:18px;margin:18px 0 6px">Report a bug</h2>' +
+      '<textarea id="sm-text" maxlength="4000" placeholder="What were you doing when it stopped?" style="width:100%;box-sizing:border-box;min-height:110px;border-radius:12px;border:1px solid var(--line,#2B2650);background:var(--surface,#16132E);color:inherit;font:15px system-ui,sans-serif;padding:10px"></textarea>' +
+      '<button data-sm="send" style="' + btn + '">Send the report</button><p id="sm-msg" style="font-size:14px;margin:4px 0"></p>' +
+      (errs.length ? '<details style="margin-top:10px;font-size:13px;opacity:.8"><summary>What went wrong</summary><ul>' + errs.map(function (e) { return "<li>" + h(e) + "</li>"; }).join("") + "</ul></details>" : "") +
+      (preview ? '<button data-sm="close" style="' + btn + '">Close the preview</button>' : "") + "</div>";
+    box.addEventListener("click", function (e) {
+      var b = e.target && e.target.closest ? e.target.closest("[data-sm]") : null; if (!b) return; var a = b.getAttribute("data-sm");
+      if (a === "close") { box.remove(); return; }
+      if (a === "try") { if (!preview) { try { localStorage.removeItem(K); } catch (x) { /* blocked */ } } location.reload(); return; }
+      if (a === "reset") {
+        if (preview) { document.getElementById("sm-msg").textContent = "In a real start-up problem this would reset the view and reload."; return; }
+        try { sessionStorage.clear(); } catch (x) { /* blocked */ }
+        try { localStorage.removeItem(K); } catch (x) { /* blocked */ }
+        var go = function () { location.replace(location.pathname + location.search.replace(/[?&]v=\d+/, "")); };
+        var jobs = [];
+        try { if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); })); } catch (x) { /* none */ }
+        try { if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })); } catch (x) { /* none */ }
+        Promise.all(jobs).then(go, go); return;
+      }
+      if (a === "send") {
+        var t = (document.getElementById("sm-text").value || "").trim(), msg = document.getElementById("sm-msg");
+        if (!t) { msg.textContent = "Write a few words first."; return; }
+        var r = { id: bugId(), by: "", handle: "", account: "Main account", kind: "bug", text: t.slice(0, 4000), title: t.split("\n")[0].slice(0, 90), where: "Starting the app (safe page)", route: "", change: "", build: String(window.SNAPSTAT_BUILD || ""),
+          device: { app: window.SnapStatNative ? "Android app" : "Website", appVer: "", kind: /Mobi|Android/.test(navigator.userAgent) ? "Phone" : "Computer", os: (/Android ([\d.]+)/.exec(navigator.userAgent) || [])[1] ? "Android " + /Android ([\d.]+)/.exec(navigator.userAgent)[1] : "", model: "", browser: "", screen: screen.width + "×" + screen.height, view: innerWidth + "×" + innerHeight, dpr: devicePixelRatio || 1, lang: navigator.language || "", id: "" },
+          errors: errs.slice(0, 15).map(function (e) { return { at: Date.now(), where: "Starting the app", msg: e, stack: "" }; }), log: "", files: 0, fileNames: [], at: Date.now(), status: "new" };
+        if (preview) { msg.textContent = "Preview: nothing was sent."; return; }
+        try { var q = JSON.parse(localStorage.getItem("snapstat.bugQueue") || "[]"); if (!Array.isArray(q)) q = []; q.push({ r: r, files: [] }); localStorage.setItem("snapstat.bugQueue", JSON.stringify(q.slice(-5))); msg.textContent = "Saved as " + r.id + ". It's sent the next time SNAP Stat starts while you're signed in."; }
+        catch (x) { msg.textContent = "Couldn't save it on this phone. Please write to the app owner instead."; }
+      }
+    });
+    (document.body || document.documentElement).appendChild(box);
+  };
+  window.addEventListener("error", function (e) {
+    if (window.__snapBooted) return; errs.push(String((e && e.message) || "Unknown problem").slice(0, 200));
+    setTimeout(function () { if (window.__snapBooted) return; count(); if (n >= 2) window.__snapSafe(false); }, 3000);
+  });
+  setTimeout(function () { if (window.__snapBooted) return; count(); if (n >= 2) window.__snapSafe(false); }, 15000);
+  if (n >= 2) document.addEventListener("DOMContentLoaded", function () { setTimeout(function () { if (!window.__snapBooted) window.__snapSafe(false); }, 1500); });
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow:wght@400;500;600;700&family=Saira+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,700;1,800&display=swap">

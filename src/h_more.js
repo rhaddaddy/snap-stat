@@ -252,4 +252,4 @@ function vAccount() {
   ${dangerPanel()}
   <section class="sec"><p class="muted small">${privacyLink()} · <a href="#about">About & legal</a></p></section>`;
 }
-function privacyLink() { return window.SNAPSTAT_STANDALONE ? `<a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a>` : "Privacy: your data stays in your Claude account"; }
+function privacyLink() { return window.SNAPSTAT_STANDALONE ? `<a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms & rules</a>` : "Privacy: your data stays in your Claude account"; }

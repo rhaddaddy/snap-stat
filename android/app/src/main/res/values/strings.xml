@@ -15,6 +15,10 @@
     <string name="shortcut_live_long">Track the match you\'re in</string>
     <string name="shortcut_collection">Collection</string>
     <string name="shortcut_collection_long">Your cards and collection</string>
+    <!-- The event countdown widget -->
+    <string name="event_widget_label">SNAP event</string>
+    <string name="event_widget_ends">ends in</string>
+    <string name="event_widget_description">The MARVEL SNAP event that\'s on, with a countdown to its end.</string>
     <!-- The Quick Settings tile -->
     <string name="tile_label">SNAP tracker</string>
 </resources>

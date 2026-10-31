@@ -129,6 +129,19 @@
                 android:resource="@xml/snap_widget_info" />
         </receiver>
 
+        <!-- A small widget with the current event's countdown -->
+        <receiver
+            android:name=".EventWidget"
+            android:exported="false"
+            android:label="@string/event_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/event_widget_info" />
+        </receiver>
+
         <!-- The game's daily reset and mission refreshes (every 8 hours): updates the widget and sends the reset notifications -->
         <receiver
             android:name=".ResetAlarm"
