@@ -16,6 +16,8 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Keeping the sale and event checks scheduled after the phone restarts -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- The short buzz when a match is logged (the page's navigator.vibrate needs this inside the app) -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <queries>
         <package android:name="com.nvsgames.snap" />
@@ -44,6 +46,7 @@
         <activity
             android:name=".WebShopActivity"
             android:exported="false"
+            android:theme="@style/Theme.SnapStat.Dark"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|density" />
 
         <activity
@@ -72,6 +75,12 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/json" />
             </intent-filter>
+            <!-- Text shared to SNAP Stat, like a deck code from a post or a chat -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
             <!-- Coming back from Google sign-in in Chrome -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -79,6 +88,10 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="snapstat" android:host="signin" />
             </intent-filter>
+            <!-- Press and hold the app icon: Log a match, Live match, Collection -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <service
@@ -90,6 +103,18 @@
             android:name=".AlertJob"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <!-- A Quick Settings tile to start and stop the match tracker -->
+        <service
+            android:name=".TrackerTile"
+            android:exported="true"
+            android:icon="@drawable/ic_notify"
+            android:label="@string/tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
 
         <!-- The home-screen widget -->
         <receiver

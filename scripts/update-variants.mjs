@@ -62,7 +62,8 @@ for (const c of queue) {
     const pic = (block.match(/card_variant_images\/([A-Za-z0-9_]+-[0-9a-f]{16,}\.webp)/) || [])[1];
     const d = { n: name, s: field("Source"), r: field("Rarity"), t: field("Vault Tier"), d: field("Released"), a: [...new Set(artists)].join(" & "), i: pic || "" };
     for (const k of Object.keys(d)) if (!d[k] || d[k] === "Unknown") delete d[k];
-    variants[id] = d; n++;
+    // On top of what was known, so a detail the page no longer shows the same way (a renamed label) isn't wiped
+    variants[id] = { ...(variants[id] || {}), ...d }; n++;
   }
   seen[c.id] = { count: c.variants.length, found: n, at: today, img: 1 };
   read++;

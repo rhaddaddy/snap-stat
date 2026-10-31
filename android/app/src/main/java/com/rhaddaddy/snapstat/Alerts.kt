@@ -31,16 +31,21 @@ import kotlin.concurrent.thread
 object Alerts {
     private const val JOB_ID = 4711
     const val CHANNEL = "alerts"
+    /** Reminders (daily goals, the checklist, the web shop's free credits, the resets, and the web app's own reminders), apart from sales and from the tracker's notices */
+    const val REMIND = "reminders"
     private const val STATE = "alerts.json"
     private const val SEEN = "alerts-seen.json"
     @Volatile private var lastRun = 0L
 
+    /** Creates the two channels. Creating one that's there already only updates its name and description. */
     fun channel(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java)
-        if (nm.getNotificationChannel(CHANNEL) == null)
-            nm.createNotificationChannel(NotificationChannel(CHANNEL, "Sales, events and reminders", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "Wishlist items on sale, events starting, and your daily reminders"
-            })
+        nm.createNotificationChannel(NotificationChannel(CHANNEL, "Sales and events", NotificationManager.IMPORTANCE_DEFAULT).apply {
+            description = "Wishlist items on sale, bundles worth a look, events starting and the season ending"
+        })
+        nm.createNotificationChannel(NotificationChannel(REMIND, "Reminders", NotificationManager.IMPORTANCE_DEFAULT).apply {
+            description = "Daily goals, the daily checklist, free web shop credits, the game's resets and your summary of the day"
+        })
     }
 
     fun canNotify(ctx: Context): Boolean =
@@ -75,13 +80,13 @@ object Alerts {
 
     private fun cancel(ctx: Context) { ctx.getSystemService(JobScheduler::class.java).cancel(JOB_ID) }
 
-    /** Shows a notification now. [route] is the part of the app to open, like "#shops". */
-    fun show(ctx: Context, title: String, body: String, tag: String, route: String): Boolean {
+    /** Shows a notification now. [route] is the part of the app to open, like "#shops"; [ch] is [CHANNEL] or [REMIND]. */
+    fun show(ctx: Context, title: String, body: String, tag: String, route: String, ch: String = CHANNEL): Boolean {
         if (!canNotify(ctx)) return false
         channel(ctx)
         val open = Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("route", route)
         val pi = PendingIntent.getActivity(ctx, tag.hashCode(), open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val n = android.app.Notification.Builder(ctx, CHANNEL)
+        val n = android.app.Notification.Builder(ctx, if (ch == REMIND) REMIND else CHANNEL)
             .setSmallIcon(R.drawable.ic_notify)
             .setContentTitle(title)
             .setContentText(body)
@@ -114,9 +119,9 @@ object Alerts {
         val cal = Calendar.getInstance(); val today = day(cal)
         val tomorrow = day((cal.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 1) })
         val hour = cal.get(Calendar.HOUR_OF_DAY); val now = System.currentTimeMillis()
-        data class Note(val tag: String, val title: String, val body: String, val route: String)
+        data class Note(val tag: String, val title: String, val body: String, val route: String, val ch: String)
         val notes = mutableListOf<Note>()
-        fun once(id: String, title: String, body: String, route: String) { if (!seen.has(id) && notes.none { it.tag == id }) notes.add(Note(id, title, body, route)) }
+        fun once(id: String, title: String, body: String, route: String, ch: String = CHANNEL) { if (!seen.has(id) && notes.none { it.tag == id }) notes.add(Note(id, title, body, route, ch)) }
 
         val wishCats = arr(st, "wishCats"); val wishCards = arr(st, "wishCards")
         if (prefs.optBoolean("wish") && (wishCats.length() > 0 || wishCards.length() > 0)) {
@@ -128,6 +133,13 @@ object Alerts {
                 val s = shops.optJSONObject(i) ?: continue
                 val end = s.optString("end")
                 if (end.isNotEmpty() && end < today) continue
+                // Not on sale yet: a bundle starts at the 19:00 UTC reset on its start day
+                val start = s.optString("start")
+                if (start.length == 10) {
+                    val utc = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+                    val startMs = try { utc.parse("$start 19:00")?.time ?: 0L } catch (e: Exception) { 0L }
+                    if (startMs > System.currentTimeMillis()) continue
+                }
                 val items = arr(s, "items")
                 for (n in 0 until items.length()) {
                     val it = items.optJSONObject(n) ?: continue
@@ -147,30 +159,39 @@ object Alerts {
         }
         if (prefs.optBoolean("goals", true) && hour >= 18) {
             val gs = arr(st, "goals")
-            for (i in 0 until gs.length()) { val g = gs.optJSONObject(i) ?: continue; if (g.optString("day") == today && g.optInt("left") > 0) once("goal:${g.optString("id")}:$today", "Today's goal", "${g.optString("text")}: ${g.optInt("left")} to go.", "#home") }
+            for (i in 0 until gs.length()) { val g = gs.optJSONObject(i) ?: continue; if (g.optString("day") == today && g.optInt("left") > 0) once("goal:${g.optString("id")}:$today", "Today's goal", "${g.optString("text")}: ${g.optInt("left")} to go.", "#home", REMIND) }
         }
         val mi = st.optJSONObject("missions")
         if (prefs.optBoolean("missions", true) && mi != null && mi.optInt("left") > 0) {
             val reset = mi.optLong("resetAt")
-            if (reset > now && reset - now < 3 * 3600_000L) { val left = mi.optInt("left"); once("missions:${mi.optString("key")}", "Daily checklist", "$left thing${if (left > 1) "s" else ""} left before the game's day resets.", "#home") }
+            if (reset > now && reset - now < 3 * 3600_000L) { val left = mi.optInt("left"); once("missions:${mi.optString("key")}", "Daily checklist", "$left thing${if (left > 1) "s" else ""} left before the game's day resets.", "#home", REMIND) }
         }
         val td = st.optJSONObject("today")
         if (prefs.optBoolean("daily", true) && td != null && td.optString("day") == today && td.optInt("games") > 0 && hour >= 21) {
             val g = td.optInt("games"); val t = td.optInt("t"); val cubes = td.optInt("cubes")
-            once("daily:$today", "Your day in MARVEL SNAP", "$g game${if (g > 1) "s" else ""} · ${td.optInt("w")}-${td.optInt("l")}${if (t > 0) "-$t" else ""} · ${if (cubes > 0) "+" else ""}$cubes cubes", "#home")
+            once("daily:$today", "Your day in MARVEL SNAP", "$g game${if (g > 1) "s" else ""} · ${td.optInt("w")}-${td.optInt("l")}${if (t > 0) "-$t" else ""} · ${if (cubes > 0) "+" else ""}$cubes cubes", "#home", REMIND)
         }
         // The web shop's free credits: a second nudge later in the game's day if they haven't been claimed
         val web = st.optJSONObject("webshop")
         if (prefs.optBoolean("webshop", true) && web != null) {
             val gd = ResetClock.gameDay(ctx, now); val left = ResetClock.nextDaily(ctx, now) - now
-            if (web.optString("claimed") != gd && left in 3_600_000L..(14 * 3_600_000L)) once("webshop-late:$gd", "Free web shop credits", "You haven't claimed today's free web shop credits yet. Tap to open the web shop.", "#webshop")
+            if (web.optString("claimed") != gd && left in 3_600_000L..(14 * 3_600_000L)) once("webshop-late:$gd", "Free web shop credits", "You haven't claimed today's free web shop credits yet. Tap to open the web shop.", "#webshop", REMIND)
         }
         val season = st.optJSONObject("season")
         if (prefs.optBoolean("season") && season != null && season.optString("end") == tomorrow)
             once("season:${season.optString("id")}", "The season ends tomorrow", "${season.optString("name")}: finish your pass and climb while you can.", "#seasons")
+        // Reminders the web app worked out itself (series drops, the spotlight reset, bounties…): each between its start and end, when its preference is on
+        val extra = arr(st, "alerts")
+        for (i in 0 until extra.length()) {
+            val a = extra.optJSONObject(i) ?: continue
+            val id = a.optString("id"); val title = a.optString("title"); if (id.isEmpty() || title.isEmpty()) continue
+            val at = a.optLong("at"); val until = a.optLong("until", at + 12 * 3_600_000L); if (now < at || now > until) continue
+            val pref = a.optString("pref"); if (pref.isNotEmpty() && prefs.has(pref) && !prefs.optBoolean(pref, true)) continue
+            once("x:$id", title, a.optString("body"), a.optString("route", "#home"), REMIND)
+        }
 
         // Up to five at a time. Each is remembered only once it was shown.
-        for (n in notes.take(5)) if (show(ctx, n.title, n.body, n.tag, n.route)) seen.put(n.tag, now)
+        for (n in notes.take(5)) if (show(ctx, n.title, n.body, n.tag, n.route, n.ch)) seen.put(n.tag, now)
         val old = mutableListOf<String>()
         seen.keys().forEach { k -> if (now - seen.optLong(k) > 60 * 86400_000L) old.add(k) }
         old.forEach { seen.remove(it) }

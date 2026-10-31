@@ -44,6 +44,10 @@ for pg in range(1, 8):
     if not new: break
 print(len(borders), "borders listed")
 if len(borders) < 30: sys.exit("Too few borders found; leaving the old files alone.")
+# A page of the list that didn't load would drop every border on it (borders are never taken out of the game)
+try: prev_n = len(json.load(open("borders.json")).get("borders") or [])
+except Exception: prev_n = 0
+if len(borders) < prev_n * 0.9: sys.exit(f"Only {len(borders)} borders found (last time {prev_n}); leaving the old files alone.")
 
 # snap.fan's names, where Marvel Snap Zone only has the id (e.g. "Champion" is the Grand Arena Border)
 try:

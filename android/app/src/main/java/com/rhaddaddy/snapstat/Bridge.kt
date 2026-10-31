@@ -1,6 +1,7 @@
 package com.rhaddaddy.snapstat
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -34,6 +35,9 @@ class Bridge(private val act: MainActivity) {
         .put("autoShots", Screenshots.isOn(ctx))
         .put("tracking", TrackerService.running)
         .put("captured", TrackerService.captured)
+        .put("startedAt", TrackerService.startedAt(ctx))
+        .put("stoppedAt", TrackerService.stoppedAt(ctx))
+        .put("lastShotAt", TrackerService.lastShotAt)
         .put("queue", ShotQueue.count(ctx))
         .put("snap", isInstalled(ShotQueue.SNAP_PACKAGE))
         .put("versionCode", Updater.current(ctx))
@@ -105,7 +109,10 @@ class Bridge(private val act: MainActivity) {
                 intent = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
             }
             if (j.optString("title").isNotBlank()) intent.putExtra(Intent.EXTRA_SUBJECT, j.optString("title"))
-            act.runOnUiThread { act.startActivity(Intent.createChooser(intent, j.optString("title").ifBlank { "Share" })) }
+            // SNAP Stat takes shared text and pictures itself now, so it leaves itself out of its own share menu
+            val chooser = Intent.createChooser(intent, j.optString("title").ifBlank { "Share" })
+                .putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf<android.os.Parcelable>(ComponentName(ctx, MainActivity::class.java)))
+            act.runOnUiThread { act.startActivity(chooser) }
         } catch (e: Exception) {
             toast("Couldn't share that")
         }

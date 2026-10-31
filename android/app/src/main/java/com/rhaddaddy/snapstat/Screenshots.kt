@@ -70,7 +70,8 @@ object Screenshots {
                     if (!(path + name).lowercase().contains("screenshot")) continue
                     val taken = c.getLong(iTaken).takeIf { it > 0 } ?: (addedAt * 1000)
                     val inSnap = if (usage) Usage.foregroundAt(ctx, taken) == ShotQueue.SNAP_PACKAGE || looksLikeSnap(name) else looksLikeSnap(name)
-                    TrackerLog.add("Screenshot $name: ${if (inSnap) "from MARVEL SNAP, queued" else "not from MARVEL SNAP, skipped"}")
+                    // Other apps' screenshot names stay out of the log (Samsung puts the app's name in them, like _Messages)
+                    TrackerLog.add(if (inSnap) "Screenshot $name: from MARVEL SNAP, queued" else "A screenshot from another app was skipped")
                     if (!inSnap) continue
                     val uri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, c.getLong(iId))
                     if (ShotQueue.addUri(ctx, uri, taken, "screenshot", c.getString(iMime))) added++

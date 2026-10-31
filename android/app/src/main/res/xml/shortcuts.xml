@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Press and hold SNAP Stat's icon for these. Each opens MainActivity with a "route" extra, the same way a tapped
+     notification or the widget does, and MainActivity hands the route to the page. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="log"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_log"
+        android:shortcutLongLabel="@string/shortcut_log_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.rhaddaddy.snapstat"
+            android:targetClass="com.rhaddaddy.snapstat.MainActivity">
+            <extra android:name="route" android:value="#quicklog" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="live"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_live"
+        android:shortcutLongLabel="@string/shortcut_live_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.rhaddaddy.snapstat"
+            android:targetClass="com.rhaddaddy.snapstat.MainActivity">
+            <extra android:name="route" android:value="#home/live" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="collection"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_collection"
+        android:shortcutLongLabel="@string/shortcut_collection_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.rhaddaddy.snapstat"
+            android:targetClass="com.rhaddaddy.snapstat.MainActivity">
+            <extra android:name="route" android:value="#cards/cards" />
+        </intent>
+    </shortcut>
+</shortcuts>

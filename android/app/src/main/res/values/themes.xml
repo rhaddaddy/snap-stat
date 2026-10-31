@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.SnapStat" parent="android:Theme.Material.NoActionBar">
+    <!-- The parent theme tells the page whether the phone is in light or dark mode (values-night has the dark one), so the app's "Auto" look follows the phone -->
+    <style name="Theme.SnapStat" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:navigationBarColor">@color/bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+    <!-- The web shop screen keeps its dark bar and buttons whatever the phone's mode -->
+    <style name="Theme.SnapStat.Dark" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/bg</item>
         <item name="android:statusBarColor">@color/bg</item>
         <item name="android:navigationBarColor">@color/bg</item>

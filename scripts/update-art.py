@@ -61,7 +61,12 @@ for pg in range(1, 12):
                       "img": img.group(1) if img else f"https://static.marvelsnap.pro/cardbacks/{cid}.webp"})
     if not new: break
 print(len(backs), "card backs")
-if len(backs) < 20: backs = prev.get("cardbacks") or backs
+prev_backs = [dict(b) for b in (prev.get("cardbacks") or []) if isinstance(b, dict) and b.get("id")]
+if len(backs) < 20: backs = prev_backs or backs
+elif len(backs) < len(prev_backs) * 0.9:
+    # A page of the list didn't load: keep the card backs it would have listed (card backs are never taken out of the game)
+    have = {b["id"] for b in backs}; backs += [b for b in prev_backs if b["id"] not in have]
+    print("kept", len(backs) - len(have), "card backs from last time")
 
 # ---------- Checking each card back's picture ----------
 # Some card backs move in the game, and their still pictures come out wrong: black with "X Cardback" written on it,
@@ -163,8 +168,12 @@ if have_cv and backs:
         if cid not in known: backs.append({"id": cid, "name": sf_names.get(cid) or cid, "added": "", "img": ""})
     tally = {}
     for b in backs:
-        cid, m_url, f_url = b["id"], b.get("img") or f"https://static.marvelsnap.pro/cardbacks/{b['id']}.webp", sf.get(b["id"], "")
+        # (one kept from last time may already point at snap.fan's picture or a fixed copy: Marvel Snap Zone's is checked)
+        img0 = str(b.get("img") or "")
+        cid, m_url, f_url = b["id"], img0 if img0.startswith("http") and "snap.fan" not in img0 else f"https://static.marvelsnap.pro/cardbacks/{b['id']}.webp", sf.get(b["id"], "")
         old = checked.get(cid) or {}
+        # snap.fan's list didn't load: use last time's link to its picture, so a good snap.fan picture isn't dropped for a day
+        if not sf and old.get("sf"): f_url = old["sf"]
         # Check again when snap.fan's picture changes, every week for ones that weren't fine, and once a month for the rest.
         age = (datetime.now(timezone.utc).timestamp() - float(old.get("at", 0))) / 86400
         if old and old.get("v") == CHECK_V and old.get("sf") == f_url and (age < 7 or old.get("use") == "msz" and age < 30):

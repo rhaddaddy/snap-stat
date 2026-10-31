@@ -45,6 +45,15 @@ class TrackerService : Service() {
             private set
         @Volatile var captured = 0
             private set
+        /** When the tracker last saved any picture (a match's end, a turn or a screen), so the app can tell it's idle. */
+        @Volatile var lastShotAt = 0L
+            private set
+        private const val PREFS = "snapstat"
+        private const val STARTED_AT = "trackerStartedAt"
+        private const val STOPPED_AT = "trackerStoppedAt"
+        /** When tracking last started and stopped (kept across restarts), for the web app's tracker health card. */
+        fun startedAt(ctx: Context): Long = ctx.getSharedPreferences(PREFS, 0).getLong(STARTED_AT, 0L)
+        fun stoppedAt(ctx: Context): Long = ctx.getSharedPreferences(PREFS, 0).getLong(STOPPED_AT, 0L)
         /** The app read everything that was waiting, so the "matches to log" count starts again (and its notification goes). */
         fun queueRead(ctx: Context) {
             captured = 0
@@ -97,6 +106,7 @@ class TrackerService : Service() {
     private var screenKind = ""
     private var screenHits = 0
     private var shotsSaved = 0
+    private var toldNoUsage = false
     // The bot check: how long you wait for the opponent after ending each turn ("PLAYING...").
     // A bot ends its turns at once; a person usually takes a while on some of them.
     private var turnState = ""
@@ -128,7 +138,7 @@ class TrackerService : Service() {
         val b = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(this, CH_RUN) else @Suppress("DEPRECATION") Notification.Builder(this)
         return b.setSmallIcon(R.drawable.ic_notify)
             .setContentTitle("Tracking your matches")
-            .setContentText(if (captured == 0 && shotsSaved == 0) "Play MARVEL SNAP. Matches, your alliance, event passes and shops are saved as you go."
+            .setContentText(if (captured == 0 && shotsSaved == 0) (if (Usage.hasAccess(this)) "Play MARVEL SNAP. Matches, your alliance, event passes and shops are saved as you go." else "Play MARVEL SNAP. The end of each match is saved as you go.")
                 else listOfNotNull(if (captured > 0) "$captured match${if (captured == 1) "" else "es"}" else null, if (shotsSaved > 0) "$shotsSaved screen${if (shotsSaved == 1) "" else "s"}" else null).joinToString(" and ") + " saved. Open SNAP Stat to update.")
             .setOngoing(true)
             .setContentIntent(openApp())
@@ -170,7 +180,9 @@ class TrackerService : Service() {
         reader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
         display = mp.createVirtualDisplay("SNAP Stat tracker", width, height, m.densityDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, reader!!.surface, null, handler)
         recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-        running = true; captured = 0; Widget.refresh(this)
+        running = true; captured = 0; lastShotAt = 0L; Widget.refresh(this)
+        getSharedPreferences(PREFS, 0).edit().putLong(STARTED_AT, System.currentTimeMillis()).apply()
+        TrackerTile.refresh(this)
         TrackerLog.add("Tracking started (${width}x$height, every ${rules.intervalMs} ms)")
         onState?.invoke()
         handler?.postDelayed(::tick, rules.intervalMs)
@@ -196,7 +208,7 @@ class TrackerService : Service() {
         val front = usage.update()
         // Only look while the game is in front. With usage access that's checked here, whatever the rules say; without
         // it the app can't tell, so it looks at the screen but keeps other apps' words out of its log.
-        if (usage.access && front != ShotQueue.SNAP_PACKAGE) { try { reader?.acquireLatestImage()?.close() } catch (_: Throwable) {}; hits = 0; return }
+        if ((usage.access && front != ShotQueue.SNAP_PACKAGE) || MainActivity.focused) { try { reader?.acquireLatestImage()?.close() } catch (_: Throwable) {}; hits = 0; return }
         if (now < cooldownUntil) { try { reader?.acquireLatestImage()?.close() } catch (_: Throwable) {}; return }
         val bmp = try { grab() } catch (e: Throwable) { TrackerLog.add("Couldn't read the screen: ${e.javaClass.simpleName}"); null } ?: return
         busy = true
@@ -224,7 +236,10 @@ class TrackerService : Service() {
             if (!match) watchTurns(flat.lowercase(), bmp)
             hits = if (match) hits + 1 else 0
             val sig = fingerprint(bmp); val steady = prevSig?.let { sigSim(it, sig) >= STEADY } ?: false; prevSig = sig
-            if (!match) saveScreen(flat, bmp, sig, steady)
+            // Other screens (alliance, shops, rewards, your collection…) are matched by everyday words, so without usage
+            // access they'd be saved from any app (a chat saying "you got", SNAP Stat's own Collection tab) and sent to the AI
+            if (!match && usage.access) saveScreen(flat, bmp, sig, steady)
+            else if (!match && !toldNoUsage) { toldNoUsage = true; TrackerLog.add("Usage access is off, so only the end of each match is saved. Turn it on to save other game screens too.") }
             if (hits >= rules.frames) {
                 hits = 0
                 cooldownUntil = System.currentTimeMillis() + rules.cooldownSec * 1000L
@@ -236,7 +251,7 @@ class TrackerService : Service() {
                 val meta = if (note.length() > 0) note.toString() else ""
                 resetTurns()
                 if (ShotQueue.addBitmap(this, bmp, System.currentTimeMillis(), "tracker", hint, meta)) {
-                    captured++
+                    captured++; lastShotAt = System.currentTimeMillis()
                     TrackerLog.add("Saved the end of a match")
                     notifyCaptured()
                     onQueued?.invoke()
@@ -273,7 +288,7 @@ class TrackerService : Service() {
         else if (log.any { similarity(flat, it.second) > s.same }) return
         log.addLast(Saved(now, flat, sig)); screenHits = 0
         if (ShotQueue.addBitmap(this, bmp, now, "tracker", "screen:" + s.kind)) {
-            shotsSaved++
+            shotsSaved++; lastShotAt = now
             TrackerLog.add("Saved the ${s.kind} screen (${log.size} of up to ${s.maxPer}${if (s.still) if (steady) ", stopped" else ", still moving" else ""})")
             getSystemService(NotificationManager::class.java).notify(ID_RUN, runningNote())
             onQueued?.invoke()
@@ -311,7 +326,7 @@ class TrackerService : Service() {
                 val n = turnNo.find(t)?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it in 1..8 && it > lastTurnNo } ?: (lastTurnNo + 1)
                 lastTurnNo = n; turnShots++
                 val meta = org.json.JSONObject().put("session", session.toString()).put("turn", n).toString()
-                if (ShotQueue.addBitmap(this, bmp, now, "tracker", "turn:$n", meta)) TrackerLog.add("Saved turn $n's board")
+                if (ShotQueue.addBitmap(this, bmp, now, "tracker", "turn:$n", meta)) { lastShotAt = now; TrackerLog.add("Saved turn $n's board") }
             }
         }
         turnState = state
@@ -372,7 +387,9 @@ class TrackerService : Service() {
     }
 
     override fun onDestroy() {
-        running = false; Widget.refresh(this)
+        // Only a tracker that had really started counts as stopping (a Stop tap on a stopped one also lands here)
+        if (running) getSharedPreferences(PREFS, 0).edit().putLong(STOPPED_AT, System.currentTimeMillis()).apply()
+        running = false; Widget.refresh(this); TrackerTile.refresh(this)
         // The capture is closed on the tracker's own thread, so a picture being read right now finishes first
         val h = handler; handler = null
         val release = {

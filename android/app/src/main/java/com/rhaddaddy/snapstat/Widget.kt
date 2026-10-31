@@ -108,8 +108,11 @@ object Widget {
         val climb = j.optJSONObject("climb")
         v.setTextViewText(R.id.w_rank_sub, if (climb != null && climb.optInt("rank") in 1..99) "${climb.optInt("cubes")}/${climb.optInt("per", 7)} to next" else "")
         val missions = j.optInt("missionsLeft", -1)
+        // Two or more wins in a row today shows instead of the game count (the record above already has the games)
+        val streak = if (played) td!!.optInt("streak") else 0
         v.setTextViewText(R.id.w_today_sub, listOfNotNull(
-            if (played && td!!.optInt("games") > 0) "${td.optInt("games")} game${if (td.optInt("games") == 1) "" else "s"}" else null,
+            if (streak >= 2) "$streak wins in a row"
+            else if (played && td!!.optInt("games") > 0) "${td.optInt("games")} game${if (td.optInt("games") == 1) "" else "s"}" else null,
             if (missions > 0) "$missions mission${if (missions == 1) "" else "s"} left" else if (missions == 0) "missions done" else null
         ).joinToString(" · "))
         val refresh = ResetClock.nextRefresh(ctx, now)
@@ -252,9 +255,9 @@ object ResetClock {
         val refreshName = st?.optJSONObject("clock")?.optString("refreshName")?.ifBlank { null } ?: "Mission refresh"
         val tag = "reset:" + java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date(slot)) + ":" + h
         val web = prefs.optBoolean("webshop", true)
-        if (daily && prefs.optBoolean("resetDaily")) Alerts.show(ctx, "MARVEL SNAP's daily reset", items("daily", "Free shop credits, the daily offer, free Collector's Tokens and Gold Pass gold") + " are ready." + if (web) " Tap to claim your free web shop credits." else "", tag, if (web) "#webshop" else "#home")
-        else if (daily && web) Alerts.show(ctx, "Free web shop credits", "Today's free credits are waiting in the web shop. Tap to claim them.", "webshop:$tag", "#webshop")
-        else if (prefs.optBoolean("reset8h")) Alerts.show(ctx, refreshName, items("refresh", "2 new daily missions and new Collector's Token shop cards").replaceFirstChar { it.uppercase() } + " are here.", tag, "#home/missions")
+        if (daily && prefs.optBoolean("resetDaily")) Alerts.show(ctx, "MARVEL SNAP's daily reset", items("daily", "Free shop credits, the daily offer, free Collector's Tokens and Gold Pass gold") + " are ready." + if (web) " Tap to claim your free web shop credits." else "", tag, if (web) "#webshop" else "#home", Alerts.REMIND)
+        else if (daily && web) Alerts.show(ctx, "Free web shop credits", "Today's free credits are waiting in the web shop. Tap to claim them.", "webshop:$tag", "#webshop", Alerts.REMIND)
+        else if (prefs.optBoolean("reset8h")) Alerts.show(ctx, refreshName, items("refresh", "2 new daily missions and new Collector's Token shop cards").replaceFirstChar { it.uppercase() } + " are here.", tag, "#home/missions", Alerts.REMIND)
     }
 }
 

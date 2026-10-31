@@ -183,12 +183,16 @@ for (const [id, e] of Object.entries(events)) {
   if (end < nowMs || start > nowMs + 14 * 864e5 || !e.link) continue;
   const page = await get(e.link.replace("https://snap.fan", "")); await sleep(800);
   const shopHtml = page ? (page.match(/<h2>Shop<\/h2>([\s\S]*?)(?:<h2>|<\/main>)/) || [])[1] || "" : "";
+  let got = 0;
   for (const part of shopHtml.split(/(?=<div class="event-card__section">)|(?=<div class="event-card__offer">)/)) {
     const items = itemsFrom(part), cost = part.match(/([\d,]+)\s*<span class="event-card__cost-label">([^<]+)<\/span>(?:\s*<span class="event-card__gold">\(≈ ([\d,]+) Gold\))?/);
     if (!items.length || !cost) continue;
     const sec = strip((part.match(/event-card__section-name">([^<]+)</) || [])[1]);
     shops.push({ source: "event", eventId: id, shop: `${e.name} shop`, title: sec && !/all offers/i.test(sec) ? sec : "", start: e.start, end: shopEnd, price: Number(cost[1].replace(/,/g, "")), currency: "event", gold: cost[3] ? Number(cost[3].replace(/,/g, "")) : "", items });
+    got++;
   }
+  // The event's page didn't load (or its shop couldn't be read): keep last time's offers for it rather than losing them
+  if (!got) { const kept = (prev.shops || []).filter((s) => s && s.source === "event" && s.eventId === id); if (kept.length) { console.log(`Couldn't read ${e.name}'s shop, so last time's ${kept.length} offers were kept.`); shops.push(...kept); } }
 }
 console.log(`Found ${shops.length} shop offers.`);
 

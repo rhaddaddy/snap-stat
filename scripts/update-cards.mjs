@@ -124,7 +124,8 @@ try {
   locations = ll.map((l) => ({ id: String(pick(l, "carddefid", "defId", "id")), name: strip(l.name), ability: strip(pick(l, "ability")).replace(/^!+\s*/, ""), art: String(pick(l, "art")), status: strip(pick(l, "status")) })).filter((l) => l.name);
   console.log(`Found ${locations.length} locations.`);
 } catch (e) { console.log("Locations didn't download: " + e.message); }
-if (locations.length < 50) { try { locations = JSON.parse(readFileSync(OUT, "utf8")).locations || []; } catch { locations = []; } }
+// (their pictures are relative to last time's artBase, so they're made whole again before the new artBase is taken off)
+if (locations.length < 50) { try { const o = JSON.parse(readFileSync(OUT, "utf8")); locations = (o.locations || []).map((l) => ({ ...l, art: /^https?:\/\//.test(String(l.art || "")) || !l.art ? String(l.art || "") : (o.artBase || "") + l.art })); } catch { locations = []; } }
 if (artBase) for (const l of locations) if (l.art.startsWith(artBase)) l.art = l.art.slice(artBase.length);
 
 const body = JSON.stringify({ artBase, cards, locations });
