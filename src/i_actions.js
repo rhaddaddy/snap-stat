@@ -2,8 +2,12 @@
 const VIEWS = { home: vHomeTab, cards: vCardsTab, social: vSocialTab, profile: vProfileTab, settings: vSettingsTab };
 function render() {
   if (window.__overlay) return;
+  if (swipeHolding()) { pendingRender = true; return; } // never redraw the page under a finger that's swiping it
   applyLook();
-  keepFocus(() => { $("#view").innerHTML = (VIEWS[ui.tab] || VIEWS.home)(); });
+  keepFocus(() => {
+    let html; try { html = (VIEWS[ui.tab] || VIEWS.home)(); } catch (e) { const w = `${obj(NAV[ui.tab]).title || "this"} page`; errNote(w, e); html = errPageHtml(w, e); }
+    $("#view").innerHTML = html;
+  });
   // A swipe to the next section slides it in from that side
   if (ui.swipeDir) { const v = $("#view"), c = ui.swipeDir > 0 ? "swipe-l" : "swipe-r"; ui.swipeDir = 0; v.classList.remove("swipe-l", "swipe-r"); void v.offsetWidth; v.classList.add(c); setTimeout(() => v.classList.remove(c), 260); }
   const sn = document.querySelector("#view .subnav"), cur = sn && sn.querySelector('[aria-current="page"]');
@@ -177,7 +181,7 @@ const A = {
     if (picker.mode === "mf") { const n = card(k).name; const i = mf.oppCards.indexOf(n); if (i >= 0) mf.oppCards.splice(i, 1); else mf.oppCards.push(n); refreshSheet(); return; }
     if (picker.mode === "deck") { const d = deckEdit(); if (!d) return; const i = d.cards.indexOf(k); if (i >= 0) d.cards.splice(i, 1); else if (d.cards.length < 12) d.cards.push(k); else { toast("A deck holds 12 cards"); return; } save(); refreshSheet(); return; }
     if (picker.mode === "avatar") { S.me.avatar = { kind: "card", ref: k }; save(); closeSheet(); render(); toast("Profile picture updated"); return; }
-    if (picker.mode === "cover") { const d = deckEdit(); if (d) { d.cover = k; save(); } openDeck(deId); return; }
+    if (picker.mode === "cover") { const d = deckEdit(); if (d) { d.cover = k; d.coverBy = "hand"; save(); } openDeck(deId); return; }
   },
   pickNew: () => { const name = picker.q.trim(); if (!name) return; const k = keyOf(name); if (!allCards().some((c) => c.key === k)) { S.addedCards.push({ key: k, name, cost: 0, power: 0, tags: [], ability: "", series: "" }); save(); } picker.q = ""; A.pick({ dataset: { k } }); if (picker.mode !== "opp") refreshSheet(); },
   pickDone: () => { if (picker.mode === "deck") openDeck(deId); else if (picker.mode === "mf") openSheet(matchSheet); },
@@ -412,7 +416,11 @@ const A = {
 document.addEventListener("click", (e) => {
   if (e.target.id === "sheet") { closeSheet(); return; }
   const el = e.target.closest("[data-a]"); if (!el || el.disabled) return;
-  const fn = A[el.dataset.a]; if (fn) { e.preventDefault(); fn(el, e); }
+  const fn = A[el.dataset.a]; if (!fn) return;
+  e.preventDefault();
+  // A button that fails says which one on screen (errors.js), instead of doing nothing
+  const where = `the "${(el.textContent || el.getAttribute("aria-label") || el.dataset.a).trim().replace(/\s+/g, " ").slice(0, 40)}" button`;
+  try { const r = fn(el, e); if (r && typeof r.catch === "function") r.catch((err) => errNote(where, err)); } catch (err) { errNote(where, err); }
 });
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && sheetFn) closeSheet();

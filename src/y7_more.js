@@ -227,6 +227,8 @@ async function shotLogSave(x) {
     await shotStore("readwrite", (st) => st.put(rec));
     const all = await shotStore("readonly", (st) => st.getAllKeys());
     if (all.length > SHOTLOG_MAX) { const recs = await shotLogAll(); const drop = recs.slice(SHOTLOG_MAX); await shotStore("readwrite", (st) => drop.forEach((r) => st.delete(r.id))); }
+    // The review window, if it's open, shows the new one straight away
+    if (sheetFn === reviewSheet && !rv.busy) { rv.list = await shotLogAll(); refreshSheet(); }
   } catch { /* the review page is a convenience; reading still worked */ }
 }
 async function shotLogAll() { const list = await shotStore("readonly", (st) => st.getAll()).catch(() => []); return arr(list).sort((a, b) => b.at - a.at); }
@@ -243,14 +245,15 @@ function reviewSheet() {
   const list = rv.list;
   if (!list) return `${sheetHead("Screenshots SNAP Stat read")}<p class="muted small">Loading…</p>`;
   const checked = list.filter((r) => r.verdict), right = checked.filter((r) => r.verdict === "right").length;
-  const shown = list.filter((r) => !rv.session || r.session === rv.session).filter((r) => rv.filter === "all" || (rv.filter === "wrong" ? r.verdict === "wrong" : rv.filter === "todo" ? !r.verdict : r.kind === rv.filter));
+  const shown = list.filter((r) => !rv.session || r.session === rv.session).filter((r) => rv.filter === "all" || (rv.filter === "wrong" ? r.verdict === "wrong" : rv.filter === "todo" ? !r.verdict : rv.filter === "failed" ? rvFailed(r) : r.kind === rv.filter));
   const ch = (v, l, n) => `<button class="chip" data-a="rvFilter" data-v="${v}" aria-pressed="${rv.filter === v}">${l} <span class="num muted">${n}</span></button>`;
   return `${sheetHead("Screenshots SNAP Stat read", `${list.length} kept on this phone${checked.length ? ` · you checked ${checked.length}: ${right} right (${Math.round((right / checked.length) * 100)}%)` : ""}`)}
+    ${typeof rvLiveHtml === "function" ? rvLiveHtml() : ""}
     ${rv.session ? `<p class="small">One match's pictures, a turn at a time. <button class="linkbtn" data-a="rvAll">Show every screenshot</button></p>` : ""}
-    <div class="chips">${ch("all", "All", list.length)}${ch("todo", "Not checked", list.filter((r) => !r.verdict).length)}${ch("wrong", "Marked wrong", list.filter((r) => r.verdict === "wrong").length)}${ch("match", "Matches", list.filter((r) => r.kind === "match").length)}${ch("numbers", "Numbers", list.filter((r) => r.kind === "numbers").length)}${ch("shop", "Shops", list.filter((r) => r.kind === "shop").length)}</div>${extHtml(EXT.reviewTools, list, shown)}
+    <div class="chips">${ch("all", "All", list.length)}${ch("todo", "Not checked", list.filter((r) => !r.verdict).length)}${ch("wrong", "Marked wrong", list.filter((r) => r.verdict === "wrong").length)}${ch("match", "Matches", list.filter((r) => r.kind === "match").length)}${ch("numbers", "Numbers", list.filter((r) => r.kind === "numbers").length)}${ch("shop", "Shops", list.filter((r) => r.kind === "shop").length)}${list.some(rvFailed) ? ch("failed", "Couldn't read", list.filter(rvFailed).length) : ""}</div>${extHtml(EXT.reviewTools, list, shown)}
     ${shown.length ? `<div class="list">${shown.slice(0, 60).map((r) => `<div class="li rvrow" style="align-items:flex-start;gap:10px">${r.img ? `<img src="${esc(rvUrl(r))}" alt="" class="shot-thumb" style="width:72px;height:auto;border-radius:8px" data-a="rvBig" data-id="${esc(r.id)}">` : ""}<div class="grow stack" style="gap:4px;min-width:0">
         <div class="row between nowrap"><b class="small">${esc(r.status || "Read")}</b>${r.verdict ? `<span class="pill ${r.verdict === "right" ? "W" : "L"}">${r.verdict === "right" ? "Right" : "Wrong"}</span>` : ""}</div>
-        ${r.detail ? `<span class="small">${esc(r.detail)}</span>` : ""}
+        ${rvFailed(r) && typeof rvWhy === "function" ? `<span class="small"><b>Why:</b> ${esc(rvWhy(r))}</span>` : ""}${r.detail ? `<span class="small">${esc(r.detail)}</span>` : ""}
         <span class="muted small">${esc(agoTxt(r.at))}${r.hint ? ` · ${esc(/^screen:/.test(r.hint) ? "saved on the " + (SCREEN_NAMES[r.hint.slice(7)] || r.hint.slice(7)) + " screen" : "after " + r.hint)}` : ""}${r.kind ? ` · read as ${esc(r.kind)}` : ""}</span>
         ${rv.open === r.id ? `<div class="panel small" style="max-height:260px;overflow:auto">${(() => { try { return readable(JSON.parse(r.data || "{}")); } catch { return esc(String(r.data || "").slice(0, 2000)) + "…"; } })() || "Nothing was read."}</div>` : ""}
         <div class="row"><button class="btn sm ghost" data-a="rvOpen" data-id="${esc(r.id)}">${rv.open === r.id ? "Hide" : "What it read"}</button><button class="btn sm ${r.verdict === "right" ? "snap" : "ghost"}" data-a="rvMark" data-id="${esc(r.id)}" data-v="right">✓ Right</button><button class="btn sm ${r.verdict === "wrong" ? "snap" : "ghost"}" data-a="rvMark" data-id="${esc(r.id)}" data-v="wrong">✗ Wrong</button>${canReadShots() ? `<button class="btn sm ghost" data-a="rvAgain" data-id="${esc(r.id)}" ${rv.busy ? "disabled" : ""}>${rv.busy === r.id ? "Reading…" : "Read again"}</button>` : ""}</div></div></div>`).join("")}</div>`

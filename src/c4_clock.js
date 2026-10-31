@@ -68,7 +68,13 @@ function widgetState() {
     wallet: { credits: num(S.wallet.credits), gold: num(S.wallet.gold), tokens: num(S.wallet.tokens), wild: num(S.wallet.wild), cl: num(S.me.colLevel) },
     webshop: { claimed: String(obj(S.webshop).claimed || "") },
     alliance: allyKey(S.me.alliance) ? { name: String(S.me.alliance).slice(0, 30), points: num(obj(D.my).points) || num(S.alliance.points), bounties: arr(D.mine).length } : null,
-    alert: alerts ? `${alerts} wishlist item${alerts > 1 ? "s" : ""} on sale` : "" };
+    alert: alerts ? `${alerts} wishlist item${alerts > 1 ? "s" : ""} on sale` : "", look: widgetLook() };
+}
+// The app's colours for the widget: light, dark or the phone's setting, true black, and the accent you picked
+function widgetLook() {
+  const L = obj(S.look), mode = ["dark", "light"].includes(L.mode) ? L.mode : "auto";
+  const t = (typeof LOOKS === "object" && LOOKS[L.accent]) || { a: "#FFD23F", b: "#FF7A1A" };
+  return { mode, black: !!L.black, a: t.a, b: t.b, ink: t.ink || "#1A0E00", text: t.text || "#FFC53D", lightText: t.lightText || "#985600" };
 }
 let _widgetSig = "";
 function pushWidget() {

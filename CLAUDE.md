@@ -39,6 +39,10 @@ Live: https://rhaddaddy.github.io/snap-stat/ · Repo: rhaddaddy/snap-stat · Fir
 - Daily data (`.github/workflows/update-cards.yml`, 10:23 and 19:17 UTC; `update-faces.yml` 20:41 UTC) run `scripts/*` and
   commit the JSON data files. Bots commit to main often: always `git pull --rebase` before pushing.
 - Commits end with the Co-Authored-By and Claude-Session lines from the session's attribution reminder.
+- EVERY push that adds, changes or removes a feature adds entries at the top of `CHANGES` in `src/b4_changes.js` (id, date, kind
+  new/better/fixed/removed, title, body, where, test steps). It drives What's new for everyone and the owner's "Test this update"
+  checklist (Settings › App owner, pops up once per build). Never skip it.
+- Firestore rules changes: tell Ryan to paste `firestore.rules` (Firebase › Firestore › Rules › Publish). `bugs/{id}` + `files/{n}` added Oct 31.
 - Rules: never put the owner's email, account ids, tokens, purchases or payment data anywhere, including this file and tests
   (`tests/check.sh` stops if any email address is in `index.html`). Web shop window must never save card/bank details. Never copy values from Ryan's real game
   files or data request into code or tests. Never suggest turning Play Protect off.
@@ -61,7 +65,9 @@ Live: https://rhaddaddy.github.io/snap-stat/ · Repo: rhaddaddy/snap-stat · Fir
 - Extension points (`src/b3_ext.js`, `EXT.*`): homeTop, homeStats, homeSubs, cardsSubs, socialSubs, settingsSubs, settingsApp,
   settingsData, cardSheet, deckSheet, deckTabs, matchSheet, liveMatch, profile, onMatch, afterRender, alerts, topBar, styles,
   search. New features should be a new `src/y2N_*.js` (next free number) that registers here instead of editing shared views.
-- Not built yet (from the new project rules): an on-screen global error toast and a Dev/Preview toggle.
+- Problems on screen (`src/b5_errors.js`): `errNote(where, e, quiet)` logs to `ERRLOG` (last 30, sent with bug reports) and shows a red
+  bar with Report it; `render()`, `refreshSheet()`, every `data-a` button and every EXT hook are wrapped, so a failing page shows
+  `errPageHtml()` instead of going blank. Not built yet: a Dev/Preview toggle.
 
 ## 3. File map (src/, in build order; KB = size)
 Data & state: `S` (saved state, c_core) · `ui` (view state) · matches in `matchWeeks` via `realMatches() putMatch(m) removeMatch(id)`
@@ -90,8 +96,19 @@ Data & state: `S` (saved state, c_core) · `ui` (view state) · matches in `matc
 - `y18_home.js` 44 · search, shortcuts, Home layout switches (`homeShow(id)`) · `y19_social.js` 37 · share pictures, bounties
 - `y20_knowledge.js` 45 · glossary, tips, News (needs a news.json job) · `y21_tracker.js` 14 · tracker health, match buzz
 - `y22_live.js` 26 · live match helper · `y23_history.js` 10 · data-request history import (milestone dates only)
-- `y24_swipe.js` 6 · finger-following section swipe: `swipeLock/swipeMove/swipeEnd`, preview `.view-peek` drawn from `VIEWS`
-  (x_nav.js keeps `swipeBlocked`, `swipeTarget(dir)`, `swipeSection(dir)`); commit = pushState + route() in one frame
+- `y24_swipe.js` 9 · section swipe from anywhere (document listeners + listeners on the touched element, so a redraw can't lose the
+  let-go), `swipeHolding()` makes `render()` wait, `swipeReset()` on touch/Back/hide, 4 s watchdog; loops both ways. x_nav.js keeps
+  `swipeBlocked(el, dx)` (sideways rows hand over at their end) and `swipeTarget(dir)`. `body { touch-action: pan-y }` unless zoomed
+- `b4_changes.js` · CHANGES list (What's new + owner tests) · `b5_errors.js` · on-screen errors (see §2)
+- `y25_report.js` 15 · Report a bug for everyone: `bugOpen(opts)`, `bugBuild()`, `bugDevice()`, queue in localStorage when signed out
+  or blocked (`bugFlush`), `S.myBugs` + `bugAboutHtml()` (Settings › About)
+- `y26_owner.js` 17 · owner: `ob` (onSnapshot on `bugs`), `ownerBugsHtml()`, `obSheet`, `obCompile(list)` markdown for Claude,
+  `zipStore(files)` (.zip writer), `ownerTestsHtml()` / `ownerTestsSheet` (S.ownerTests.marks/popped), owner Home card
+- `y27_reading.js` 6 · Review screenshots: `rvLiveHtml()` Reading now, `rvWhy(r)` reasons, `rvRetryFailed()`
+- `y28_months.js` 4 · Profile history month → `histMonthSheet` · `y29_decklook.js` 4 · `deckAutoLook(d, x, src)`: deck card back
+  and icon follow the game (match/pc/file) unless `backBy`/`coverBy` is "hand"; `gameDeckLooks(deck)`, `deckLooksFromFile()`
+- `y30_mastery_data.js` · MASTERY_XP (30 levels), rewards, slot 2 at 22 · `y31_mastery.js` 9 · `masteryOf(k)`, card-page panel,
+  Cards › Custom cards Mastery list, Custom Card 2 = `S.looks2` (`noteLook2`, editor `le.slot`), `readMasteryXp(ss)` (prog.mx)
 - `k_firebase.js` 7 · Firebase sign-in/storage · `z_boot.js` · boot, flush on pagehide · `build.sh` · `README.md`
 Tests `tests/`: `check.sh` (run before every push) · `serve.py` test server · `mock-firebase-init.js` fake sign-in · `crawl.cjs`.
 Root: `index.html` (BUILT, 1.4 MB: never edit or read whole) · `version.json` · `sw.js` (service worker: share target,
@@ -106,22 +123,27 @@ screen-capture tracker · `Screenshots` + `ShotQueue` picture reading queue · `
 `Updater` self-update from releases · `Alerts` notifications · `Widget` home widget · `WebShopActivity` web shop window (pop-ups like
 Google sign-in open as a second WebView over the shop via onCreateWindow, so window.opener works) ·
 `TrackerTile` Quick Settings tile. Res: `values/themes.xml` + `values-night/`, `xml/shortcuts.xml`.
+Widget colours: the web app sends `look` (mode, black, accent a/b/ink/text/lightText) in `widgetState()`; `Widget.paint()` tints
+ImageView layers (`w_bg`, `w_glow`, `w_edge`, `w_play_bg/hi`) and texts (ids in `WidgetIds.kt`); Auto follows the phone on 12+ via
+`RemoteViews.setColorInt`. No Android SDK in the sandbox: Kotlin is only checked by the GitHub build (see android-build-log).
 
-## 4. Status (October 30, 2026)
-- Last working code commit before this push: `b81d70e`. This push: "Swipe pages follow your finger; web shop Google sign-in".
+## 4. Status (October 31, 2026)
+- Last working code commit before this push: `babc6dc`. This push: "Bug reports, test lists, Mastery, swipe fix, widget colours".
   UNDO = `git revert` that commit (bots commit data files to main in between, so revert, don't reset).
-- Oct 30 night: section swipe now follows the finger (preview of the next section, springs back under 30%, flick works,
-  wraps last→first, Back works); Playwright swipe test passed. Web shop: Google sign-in ended on a blank white page because
-  the WebView had no pop-up support (GSI popup replaced the shop, then had no opener); fixed in WebShopActivity, untested on a
-  real phone yet. Earlier: 65 automatic Playwright tests + a full page crawl passed (Oct 30 update)
-  In the repo now: `tests/check.sh` (serves the root via `tests/serve.py` with `tests/mock-firebase-init.js`, a fake offline
-  sign-in, then `tests/crawl.cjs` opens every page and panel, dark + light, signed out + in; about 1.5 min). The other 64
-  feature tests stayed in the old session (some used Ryan's real exports, so they can't go in this public repo).
+- Oct 31: swipe works from anywhere and can't get stuck; widget follows the app's look (Android 1.21); Report a bug + owner review
+  and compile for Claude (.md / .zip); What's new and owner test list from CHANGES; on-screen errors; Mastery levels/XP/rewards +
+  Custom Card 2; Review screenshots live panel + failure reasons + retry (garbled/empty AI answers retried, next Gemini model);
+  tappable season months; decks follow the game's card back and avatar. 38 browser tests + a 242-button click-through (dark and
+  light) passed with an in-memory Firebase stand-in (session scratchpad). The repo's own `tests/check.sh` (serve.py +
+  mock-firebase-init.js + crawl.cjs: every page and panel, dark + light, signed out + in) must print ALL GOOD before each push.
 - Locked working features (don't change without being asked): match tracking (manual, AI screenshots, Android Track & play,
   PC tracker), SnapVault sync, game-file import, collection/variants/cosmetics, decks, stats & rank maths, seasons/events/
-  shops/missions, alliance & social, profile pictures, widget & notifications, self-update, history import.
-- Waiting on Ryan: install 1.20, try the PC tracker, import his history zip.
-- Open decisions: deleted SnapVault decks return on next sync; two phones saving the same week at once (last save wins);
-  News needs a daily news job; no retreat-on-final-turn PC game seen yet.
-- Next tech to-dos: split the GIANT files (l_features, n_more, q_auto, c_core, a_head CSS), add a global error toast +
-  preview toggle, write feature tests (made-up data only) under `tests/`.
+  shops/missions, alliance & social, profile pictures, widget & notifications, self-update, history import, bug reports.
+- Waiting on Ryan: paste the new firestore.rules (bug reports), install Android 1.21, run the owner test list, send failed-picture
+  reasons. Unknowns: where the game files keep Mastery XP and a deck's avatar (read generically; ask Ryan for "Copy what's in the
+  files, for Claude").
+- AI: every player uses their own key (Settings › AI); nothing is shared. AI reads screenshots/tracker pictures and powers the deck
+  builder, swaps, coach and opponent guesses. PC tracker, game files, SnapVault and daily data need no AI.
+- Next tech to-dos: split the GIANT files (l_features, n_more, q_auto, c_core, a_head CSS), Dev/Preview toggle, add feature tests (made-up data only) to `tests/`,
+  Ryan's 100-idea list is in the project doc "SNAP Stat 100 ideas" (wait for his picks).
+- Open decisions: deleted SnapVault decks return on sync; two phones saving one week (last wins); News needs a daily job.

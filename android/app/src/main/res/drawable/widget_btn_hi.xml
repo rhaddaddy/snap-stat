@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Track & play: the lighter accent fading in from the top, like the app's buttons (tinted at runtime) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="12dp" />
+    <gradient android:angle="270" android:startColor="#FFFFFFFF" android:endColor="#00FFFFFF" />
+</shape>

@@ -8,6 +8,9 @@ import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
+import android.graphics.Color
+import android.os.Build
 import android.os.SystemClock
 import android.view.View
 import android.widget.RemoteViews
@@ -76,6 +79,60 @@ object Widget {
     }
 
     private fun views(ctx: Context, j: JSONObject, big: Boolean): RemoteViews {
+        val v = fill(ctx, j, big)
+        try { paint(ctx, v, j, big) } catch (e: Exception) { TrackerLog.add("Widget colours failed: ${e.message}") }
+        return v
+    }
+
+    /** One set of colours for the widget, matching the app's light, dark or true-black look. */
+    private class Pal(val bg: Int, val fg: Int, val muted: Int, val accent: Int, val edge: Int, val edgeAlpha: Int, val glowAlpha: Int, val tile: Int, val win: Int)
+    private fun col(s: String?, def: Int): Int = try { if (s.isNullOrBlank()) def else Color.parseColor(s) } catch (e: Exception) { def }
+    private fun pal(lk: JSONObject?, light: Boolean, black: Boolean): Pal {
+        val b = col(lk?.optString("b"), 0xFFFF7A1A.toInt())
+        return when {
+            light -> Pal(0xFFF6F3FF.toInt(), 0xFF17132E.toInt(), 0xFF5B557C.toInt(), col(lk?.optString("lightText"), 0xFF985600.toInt()), 0xFFD9D1F2.toInt(), 255, 34, R.drawable.widget_tile_light, 0xFF1E8E5A.toInt())
+            black -> Pal(0xFF000000.toInt(), 0xFFF5F0FF.toInt(), 0xFFBDAFE6.toInt(), col(lk?.optString("text"), 0xFFFFC53D.toInt()), 0xFF2A2440.toInt(), 255, 0, R.drawable.widget_tile_black, 0xFF3DD68C.toInt())
+            else -> Pal(0xFF1A0E3D.toInt(), 0xFFF5F0FF.toInt(), 0xFFBDAFE6.toInt(), col(lk?.optString("text"), 0xFFFFC53D.toInt()), b, 110, 84, R.drawable.widget_tile_dark, 0xFF3DD68C.toInt())
+        }
+    }
+
+    /**
+     * Gives the widget the app's look (Settings › App › Look): the accent colour you picked, and light, dark or
+     * true black. On "Auto" it follows the phone's light or dark setting by itself on Android 12 and later.
+     */
+    private fun paint(ctx: Context, v: RemoteViews, j: JSONObject, big: Boolean) {
+        val lk = j.optJSONObject("look")
+        val mode = lk?.optString("mode") ?: "auto"
+        val black = lk?.optBoolean("black") == true
+        val L = pal(lk, true, black); val D = pal(lk, false, black)
+        val a = col(lk?.optString("a"), 0xFFFFD23F.toInt()); val b = col(lk?.optString("b"), 0xFFFF7A1A.toInt()); val ink = col(lk?.optString("ink"), 0xFF1A0E00.toInt())
+        val followPhone = mode != "dark" && mode != "light" && Build.VERSION.SDK_INT >= 31
+        val night = when (mode) {
+            "dark" -> true; "light" -> false
+            else -> (ctx.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        }
+        // One value for light and one for dark: Android picks between them as the phone changes (12+), or we pick now
+        fun set(id: Int, method: String, light: Int, dark: Int) {
+            if (followPhone && Build.VERSION.SDK_INT >= 31) v.setColorInt(id, method, light, dark) else v.setInt(id, method, if (night) dark else light)
+        }
+        set(R.id.w_bg, "setColorFilter", L.bg, D.bg)
+        v.setInt(R.id.w_glow, "setColorFilter", b); set(R.id.w_glow, "setImageAlpha", L.glowAlpha, D.glowAlpha)
+        set(R.id.w_edge, "setColorFilter", L.edge, D.edge); set(R.id.w_edge, "setImageAlpha", L.edgeAlpha, D.edgeAlpha)
+        for (id in if (big) WidgetIds.FG_BIG else WidgetIds.FG_SMALL) set(id, "setTextColor", L.fg, D.fg)
+        for (id in if (big) WidgetIds.MUTED_BIG else WidgetIds.MUTED_SMALL) set(id, "setTextColor", L.muted, D.muted)
+        for (id in if (big) WidgetIds.COUNT_BIG else WidgetIds.COUNT_SMALL) set(id, "setTextColor", L.fg, D.fg)
+        set(R.id.w_rank, "setTextColor", L.accent, D.accent)
+        if (!big) return
+        for (id in WidgetIds.TILES) set(id, "setBackgroundResource", L.tile, D.tile)
+        // Track & play looks like the app's main buttons: the accent, lighter at the top
+        v.setInt(R.id.w_play_bg, "setColorFilter", b); v.setInt(R.id.w_play_hi, "setColorFilter", a)
+        v.setTextColor(R.id.w_play, ink)
+        // The web shop line: green once claimed, the accent while credits are waiting
+        val claimed = j.optJSONObject("webshop")?.optString("claimed") == ResetClock.gameDay(ctx, System.currentTimeMillis())
+        if (claimed) set(R.id.w_web, "setTextColor", L.win, D.win) else set(R.id.w_web, "setTextColor", L.accent, D.accent)
+    }
+
+    private fun fill(ctx: Context, j: JSONObject, big: Boolean): RemoteViews {
         val now = System.currentTimeMillis()
         val v = RemoteViews(ctx.packageName, if (big) R.layout.widget_big else R.layout.widget)
         val rank = j.optString("rank")
@@ -143,7 +200,6 @@ object Widget {
         // The web shop's free credits
         val claimed = j.optJSONObject("webshop")?.optString("claimed") == ResetClock.gameDay(ctx, now)
         v.setTextViewText(R.id.w_web, if (claimed) "✓ Claimed today" else "Free credits ready")
-        v.setTextColor(R.id.w_web, if (claimed) 0xFF7CE3A1.toInt() else 0xFFFFD23F.toInt())
         v.setTextViewText(R.id.w_web_sub, if (claimed) "more after the reset" else "tap to claim them")
         v.setOnClickPendingIntent(R.id.w_t_web, open(ctx, 12, "#webshop"))
         v.setOnClickPendingIntent(R.id.w_webbtn, open(ctx, 13, "#webshop"))

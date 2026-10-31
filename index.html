@@ -668,7 +668,7 @@ tr.me td { font-weight: 800; color: var(--cube); }
 </style>
 
 <style>html, body { margin: 0; } :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); } img { max-width: 100%; }</style>
-<script>window.SNAPSTAT_BUILD = "8ac3406e2426"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
+<script>window.SNAPSTAT_BUILD = "be33919e2d90"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
 <script src="firebase-config.js"></script>
 <script type="module" src="firebase-init.js"></script>
 </head>
@@ -1299,10 +1299,10 @@ const EXT = {
 // Runs each registered function and joins what they return; a broken one is logged and skipped.
 function extHtml(list, ...args) {
   let out = "";
-  for (const f of arr(list)) { try { out += f(...args) || ""; } catch (e) { console.error("extension", e); } }
+  for (const f of arr(list)) { try { out += f(...args) || ""; } catch (e) { console.error("extension", e); if (typeof errNote === "function") errNote(`a panel${f.name ? ` (${f.name})` : ""}`, e); } }
   return out;
 }
-function extRun(list, ...args) { for (const f of arr(list)) { try { f(...args); } catch (e) { console.error("extension", e); } } }
+function extRun(list, ...args) { for (const f of arr(list)) { try { f(...args); } catch (e) { console.error("extension", e); if (typeof errNote === "function") errNote(`a background step${f.name ? ` (${f.name})` : ""}`, e); } } }
 // An optional 4th item says whether the section shows right now (it stays reachable by its address)
 function extSubs(list) { return arr(list).filter((x) => { if (!Array.isArray(x) || !x[0] || !x[1]) return false; try { return typeof x[3] !== "function" || !!x[3](); } catch { return false; } }).map(([k, l]) => [k, l]); }
 function extBody(list, key) { const x = arr(list).find((x) => Array.isArray(x) && x[0] === key); return x ? () => extHtml([x[2]]) : null; }
@@ -1310,6 +1310,111 @@ let extStyled = false;
 function extStyles() {
   if (extStyled || !EXT.styles.length) return; extStyled = true;
   const st = document.createElement("style"); st.id = "ext-styles"; st.textContent = EXT.styles.join("\n"); document.head.appendChild(st);
+}
+/* ============ What changed in SNAP Stat: the one list ============
+   Every update adds its entries at the top (newest first). Everyone sees them in "What's new"; the app owner also gets
+   each entry's "test" steps as a checklist (Settings › App owner › Test this update). Keep it data only.
+   kind: "new" (a new feature) · "better" (an existing one changed) · "fixed" (a bug fix) · "removed"
+   where: the page it's on (opens when tapped) · test: what to try in the app to make sure it works */
+const CHANGES = [
+  { id: "1031-report", date: "2026-10-31", kind: "new", title: "Report a bug", where: "settings/about",
+    body: "Found something wrong? Settings › About › Report a bug (also in search and at the bottom of every Settings page). Write what happened and add screenshots; each report gets an ID like BUG-261031-K7QZ and you can see when it's fixed.",
+    test: ["Settings › About › Report a bug: type a test, add 2 screenshots, tap Send. You get a BUG-… number.", "Settings › About › Your reports shows it as New.", "Open it from another phone or the website: the same report shows in Settings › App owner."] },
+  { id: "1031-owner-bugs", date: "2026-10-31", kind: "new", title: "Bug reports for the app owner", where: "settings/owner",
+    body: "Settings › App owner lists every report with who sent it, their device and whether it was the app or the website. Mark each one seen, fixed or won't fix, and Copy for Claude or Save for Claude (a zip with the pictures) puts them all together.",
+    test: ["Settings › App owner › Bug reports: your test report is there with your device and 'Android app'.", "Open it: both pictures show. Mark it Fixed: Your reports (on the sending phone) says Fixed.", "Tap Copy for Claude and paste it in a note: every report is there.", "Tap Save for Claude: a .zip is saved with report.md and the pictures."] },
+  { id: "1031-tests", date: "2026-10-31", kind: "new", title: "What to test after each update (owner only)", where: "settings/owner",
+    body: "When an update arrives, the app owner gets this list of what changed with what to try. Tick each one Works, or tap Found a bug to report it with the change already filled in.",
+    test: ["After the update loads, the 'Test this update' window opens by itself once.", "Tick a few as Works; the count on Settings › App owner goes down.", "Tap Found a bug on one: the report form opens with that change named."] },
+  { id: "1031-errors", date: "2026-10-31", kind: "new", title: "Problems show on screen", where: "",
+    body: "If part of the app fails, a small bar says which part and what went wrong, with a button to report it (the details are added for you).",
+    test: ["Nothing to do unless it appears. If a red bar shows, tap Report it and send it."] },
+  { id: "1031-swipe", date: "2026-10-31", kind: "fixed", title: "Swiping between sections", where: "home/overview",
+    body: "Swipe left or right anywhere on the page: the top bar, the cards, the empty space or the tab bar. It goes round both ways, a row that scrolls sideways hands over to the page at its end, and a swipe can't get stuck half-way any more (even if the page updates under your finger).",
+    test: ["Home: swipe left from the top bar, from a card and from the empty space at the bottom: each moves to the next section.", "On Overview, swipe right: it goes round to the last section.", "Swipe half-way and let go: it springs back. Swipe while the tracker is reading pictures: it never stays half-way.", "On a row of chips that scrolls sideways, scroll it to the end, then keep swiping: the page moves."] },
+  { id: "1031-widget", date: "2026-10-31", kind: "better", title: "The widget matches your colours", where: "settings/app",
+    body: "The home-screen widget takes the app's look: your accent colour, light or dark (or your phone's setting) and true black. Needs Android app 1.21.",
+    test: ["Update the Android app, then open SNAP Stat once.", "The widget turns Spider red and black like the app.", "Settings › App › Look: pick another colour or Light, go to the home screen: the widget follows within a few seconds.", "With Auto, switch the phone to light mode: the widget turns light too."] },
+  { id: "1031-mastery", date: "2026-10-31", kind: "new", title: "Mastery levels and both Custom Cards", where: "cards/custom",
+    body: "Each card's page shows its Mastery level and XP, the XP to the next level, what that level gives and the quickest way there (Infinity Splits or variants you don't have yet), plus all 30 levels. Mastery level 22 gives a card a second Custom Card: both are kept (Custom Card 1 and 2) and both can be edited. Cards › Custom cards has a Mastery list with the cards closest to their next level.",
+    test: ["Import the game's files on PC (CharacterMasteryState.json): Cards › Custom cards › Mastery lists your levels.", "Open a card: Mastery shows its level, XP and the next reward.", "A card with two Custom Cards shows Custom Card 1 and Custom Card 2."] },
+  { id: "1031-live-read", date: "2026-10-31", kind: "better", title: "See pictures being read live", where: "settings/android",
+    body: "Settings › Android › Review screenshots has a 'Reading now' panel at the top: the picture the AI is reading this second, the ones lined up after it and how many are still waiting on the phone. It updates by itself.",
+    test: ["Take two MARVEL SNAP screenshots, open SNAP Stat, then Settings › Android › Review screenshots: 'Reading now' shows each one as it's read.", "When nothing is waiting, the panel goes away."] },
+  { id: "1031-failed-shots", date: "2026-10-31", kind: "fixed", title: "Fewer pictures that couldn't be read", where: "settings/android",
+    body: "When the AI's answer comes back empty, cut off or garbled, SNAP Stat now asks again straight away (and tries the next Gemini model) instead of giving up. Each picture that still couldn't be read says why, Tracker health counts the reasons, and 'Read all failed again' tries them all once more. Problems inside SNAP Stat itself go with your bug reports.",
+    test: ["Settings › Android › Tracker health: if any couldn't be read, it lists why. Tap Read them again.", "Review screenshots › Couldn't read: each one has a 'Why:' line.", "Tell Claude which reasons show up most."] },
+  { id: "1031-months", date: "2026-10-31", kind: "fixed", title: "Season months on Profile", where: "profile",
+    body: "Tap a month in your season pass history to see everything for that month: the season, your pass level, matches, wins, cubes, best rank and your decks.",
+    test: ["Profile › season pass months: tap Nov 23 and Oct 26: a window shows that month's details."] },
+  { id: "1031-deck-looks", date: "2026-10-31", kind: "better", title: "Decks take the game's card back and avatar", where: "cards/decks",
+    body: "When SNAP Stat sees the card back and avatar you used with a deck (a match from Track & play or a screenshot, the PC tracker or the game's files), the deck's card back and icon now follow it by themselves, even if it already had one. A card back or icon you pick by hand from now on stays.",
+    test: ["Play a match with Track & play using a deck: Cards › Decks shows that deck with the card back and avatar you used.", "On PC: import CollectionState.json again; decks you already have take the game's card backs.", "Pick a card back by hand on another deck, play with it: your pick stays."] },
+  { id: "1030-search", date: "2026-10-30", kind: "new", title: "Search everything", where: "", body: "Tap the magnifier at the top (or press / on a keyboard) to find any card, deck, location, season, event, player you follow or page in the app." },
+  { id: "1030-home", date: "2026-10-30", kind: "new", title: "Home your way", where: "settings/app", body: "Settings › App lets you switch Home panels off, pick two new colors (pink and teal), turn on a true-black dark mode and make the text smaller or larger." },
+  { id: "1030-reminders", date: "2026-10-30", kind: "new", title: "Reminders", where: "settings/app", body: "Choose reminders for the last days of a season, a new season, events that end tomorrow, your daily checklist, the Tuesday Spotlight change and the end of the alliance week (Settings › App › Reminders, with notifications on)." },
+  { id: "1030-last", date: "2026-10-30", kind: "new", title: "Your last match on Home", where: "home/overview", body: "Under Match stats, the match you just logged, with Edit, and Undo for 10 minutes in case you logged it by mistake." },
+  { id: "1030-decks", date: "2026-10-30", kind: "new", title: "Deck tools", where: "cards/decks", body: "Each deck has new Plan, Trend and Matchups tabs: its energy curve, gameplan notes, how to get the cards you're missing, its win rate over time and how it does against each kind of deck. Pin and sort decks in the list." },
+  { id: "1030-plan", date: "2026-10-30", kind: "new", title: "Cards › Plan", where: "cards/plan", body: "One page for what to do next with your collection: upgrades you can afford, credits to your next Collection Level reward, missing Series 4 and 5 cards, splits, albums close to a reward and a month-by-month chart. Home also shows one of your Custom Cards each day." },
+  { id: "1030-stats", date: "2026-10-30", kind: "new", title: "More stats", where: "home/stats", body: "Home › Stats shows your best hours and days to play, streaks, rivals, deck vs deck, a report card and personal bests. Home can warn you when you're on tilt and track a daily cube goal." },
+  { id: "1030-helper", date: "2026-10-30", kind: "new", title: "Match helper", where: "home/live", body: "While you track a match live: energy and snap hints, retreat math, draw odds for every card left in your deck and warnings from the cards they've played. Add tags when you log a match." },
+  { id: "1030-knowledge", date: "2026-10-30", kind: "new", title: "Game knowledge", where: "", body: "Cards › Glossary explains the game's words, plus tips for each location, an Infinite calculator and the next card releases." },
+  { id: "1030-friends", date: "2026-10-30", kind: "new", title: "Friends and alliance", where: "social/alliance", body: "A picture of your week to share, comparing yourself with a friend, a friends board for the week, feed filters, private notes on players and decks that fit each alliance bounty." },
+  { id: "1030-pc", date: "2026-10-30", kind: "new", title: "PC tracker", where: "settings/data", body: "If you play MARVEL SNAP on a PC, SNAP Stat (in Chrome or Edge on that computer) can follow your games from the game's own files: decks, results and cubes, with no screenshots. Set it up in Settings › Import & backup." },
+  { id: "1030-history", date: "2026-10-30", kind: "new", title: "Your MARVEL SNAP history", where: "settings/data", body: "Asked Second Dinner for a copy of your data? Add it in Settings › Import & backup to see when you first reached Infinite, finished each season pass and more. Only those milestones are read." },
+  { id: "1030-offline", date: "2026-10-30", kind: "new", title: "Offline and saving", where: "", body: "A bar shows when you're offline, the top bar says when your changes are saved, and Settings › Data files shows how fresh the card list and schedule are." },
+];
+/* ============ Problems show on screen ============
+   Anything that fails (a page, a panel, a button, a background job) is written down here. A small bar says which part
+   failed and what went wrong, with "Report it", which opens the bug report with the details already in it.
+   The last 30 problems go with every bug report, so the app owner can see them too. */
+const ERRLOG = [];
+const _errSeen = {};
+const ERR_QUIET = /ResizeObserver loop|^Script error\.?$|Failed to fetch|NetworkError|Load failed|network|AbortError|aborted|The operation was aborted|permission|insufficient permissions|quota|offline|unavailable|Firebase: Error \(auth\/(popup|cancelled|network)/i;
+function errText(e) {
+  if (!e) return "Unknown problem";
+  if (typeof e === "string") return e;
+  return String(e.message || e.reason || e.code || e).slice(0, 400);
+}
+function errEsc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]); }
+// Writes a problem down and, unless it's an everyday one (offline, a sign-in window closed), shows the bar once
+function errNote(where, e, quiet) {
+  const msg = errText(e), stack = String((e && e.stack) || "").split("\n").slice(0, 6).join("\n").slice(0, 900);
+  ERRLOG.unshift({ at: Date.now(), where: String(where || "the app").slice(0, 80), msg, stack });
+  ERRLOG.length = Math.min(ERRLOG.length, 30);
+  if (quiet || ERR_QUIET.test(msg)) return;
+  const key = where + "|" + msg; if (_errSeen[key]) return; _errSeen[key] = 1; // each problem shows once per visit
+  errShow(where, msg);
+}
+function errShow(where, msg) {
+  let bar = document.getElementById("err-toast");
+  if (!bar) { bar = document.createElement("div"); bar.id = "err-toast"; bar.className = "err-toast"; bar.setAttribute("role", "alert"); document.body.appendChild(bar); }
+  bar.innerHTML = `<div class="err-t"><b>Something went wrong in ${errEsc(where)}</b><span>${errEsc(msg)}</span></div>
+    <div class="err-b"><button class="btn sm" data-a="errReport">Report it</button><button class="btn sm ghost" data-a="errHide" aria-label="Hide">✕</button></div>`;
+  bar.hidden = false;
+  clearTimeout(errShow.t); errShow.t = setTimeout(() => { bar.hidden = true; }, 15000);
+}
+window.addEventListener("error", (e) => {
+  if (e && e.target && e.target !== window && (e.target.tagName === "IMG" || e.target.tagName === "SCRIPT" || e.target.tagName === "LINK")) return; // a picture or file that didn't load
+  const f = String((e && e.filename) || "");
+  if (f && !f.startsWith(location.origin)) return; // other sites' scripts (Firebase, browser extensions)
+  errNote(e.lineno ? `the app (line ${e.lineno})` : "the app", e.error || e.message);
+}, true);
+window.addEventListener("unhandledrejection", (e) => errNote("a background job", e && e.reason));
+EXT.styles.push(`
+.err-toast { position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 60; max-width: 720px; margin: 0 auto;
+  display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--loss) 22%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--loss) 60%, var(--line)); color: var(--fg); box-shadow: var(--shadow); }
+.err-toast[hidden] { display: none; }
+.err-toast .err-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.err-toast .err-t span { color: var(--muted); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.err-toast .err-b { display: flex; gap: 6px; flex: none; }
+.err-page { text-align: center; }
+.err-page code { display: block; margin-top: 8px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }`);
+// What a page shows instead of going blank when it fails to draw
+function errPageHtml(where, e) {
+  return `<section class="sec"><div class="panel stack small err-page"><b>This page couldn't load</b><span class="muted">Something in ${errEsc(where)} went wrong. The rest of the app still works.</span><code>${errEsc(errText(e))}</code>
+    <div class="row" style="justify-content:center"><button class="btn sm" data-a="errRetry">Try again</button><button class="btn sm snap" data-a="errReport">Report it</button></div></div></section>`;
 }
 /* ============ Helpers ============ */
 const $ = (s, r = document) => r.querySelector(s);
@@ -2088,7 +2193,11 @@ function keepFocus(fn) {
 }
 let sheetFn = null;
 function openSheet(fn) { sheetFn = fn; $("#sheet").hidden = false; refreshSheet(); const first = $("#sheetBody [data-autofocus]"); if (first) first.focus(); }
-function refreshSheet() { if (!sheetFn) return; keepFocus(() => { $("#sheetBody").innerHTML = sheetFn(); }); extRun(EXT.afterRender); }
+function refreshSheet() {
+  if (!sheetFn) return;
+  keepFocus(() => { let html; try { html = sheetFn(); } catch (e) { errNote("this window", e); html = `${sheetHead("Something went wrong", "")}${errPageHtml("this window", e)}`; } $("#sheetBody").innerHTML = html; });
+  extRun(EXT.afterRender);
+}
 function closeSheet() { sheetFn = null; $("#sheet").hidden = true; $("#sheetBody").innerHTML = ""; if (typeof nat !== "undefined" && nat.popWait) setTimeout(() => { if (typeof updatePopup === "function") updatePopup(); }, 400); if (typeof webUp !== "undefined" && webUp.ready) setTimeout(() => applyWebUpdate(), 600); }
 function sheetHead(title, sub) { return `<div class="sheet-h"><div style="min-width:0"><h2>${title}</h2>${sub ? `<div class="muted small">${sub}</div>` : ""}</div><button class="x" data-a="close" aria-label="Close">${ICON.x}</button></div>`; }
 async function copyText(t, done = "Copied") {
@@ -2776,12 +2885,18 @@ const AI_CALL = {
     for (let i = 0; i < models.length; i++) {
       try {
         const j = await gemFetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(models[i])}:generateContent`, { method: "POST", signal: opts.signal, headers: { "content-type": "application/json" }, body }, key);
-        return arr(obj(obj(arr(j.candidates)[0]).content).parts).map((x) => x.text || "").join("");
+        const c0 = obj(arr(j.candidates)[0]), out = arr(obj(c0.content).parts).filter((x) => !x.thought).map((x) => x.text || "").join("");
+        // No answer (blocked, cut off by length, or nothing at all): say why, and let the next model try
+        if (!out.trim() || (c0.finishReason && !/^STOP$/i.test(c0.finishReason) && !/[}\]]\s*$/.test(out))) {
+          const why = String(c0.finishReason || obj(j.promptFeedback).blockReason || "no answer");
+          throw aiFail("gemini", 0, `Gemini didn't answer properly (${why === "MAX_TOKENS" ? "its answer was cut off" : why.toLowerCase().replace(/_/g, " ")}).`, { empty: true });
+        }
+        return out;
       } catch (e) {
         if (e && e.name === "AbortError") throw e;
         if (e.status === 404 && !err) { err = e; models = await aiModels("gemini", key, true); i = -1; continue; }
         // Busy, overloaded, out of free uses or too slow: the next model has its own allowance and is often free
-        if (!(e.status === 429 || e.status >= 500 || e.slow) || i === models.length - 1) throw e;
+        if (!(e.status === 429 || e.status >= 500 || e.slow || e.empty) || i === models.length - 1) throw e;
         err = e;
       }
     }
@@ -2951,7 +3066,7 @@ function reportSheet() {
 let reports = null;
 async function loadReports() {
   reports = [];
-  try { const snap = await new Promise((res, rej) => { const un = store.db.collection("reports").onSnapshot((s) => { res(s); if (typeof un === "function") un(); }, rej); }); reports = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => num(b.at) - num(a.at)); }
+  try { const snap = await new Promise((res, rej) => { let un = null, got = false; un = store.db.collection("reports").onSnapshot((s) => { res(s); got = true; if (typeof un === "function") un(); }, rej); if (got && typeof un === "function") un(); }); reports = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => num(b.at) - num(a.at)); }
   catch { reports = "error"; }
   render();
 }
@@ -3099,7 +3214,13 @@ function widgetState() {
     wallet: { credits: num(S.wallet.credits), gold: num(S.wallet.gold), tokens: num(S.wallet.tokens), wild: num(S.wallet.wild), cl: num(S.me.colLevel) },
     webshop: { claimed: String(obj(S.webshop).claimed || "") },
     alliance: allyKey(S.me.alliance) ? { name: String(S.me.alliance).slice(0, 30), points: num(obj(D.my).points) || num(S.alliance.points), bounties: arr(D.mine).length } : null,
-    alert: alerts ? `${alerts} wishlist item${alerts > 1 ? "s" : ""} on sale` : "" };
+    alert: alerts ? `${alerts} wishlist item${alerts > 1 ? "s" : ""} on sale` : "", look: widgetLook() };
+}
+// The app's colours for the widget: light, dark or the phone's setting, true black, and the accent you picked
+function widgetLook() {
+  const L = obj(S.look), mode = ["dark", "light"].includes(L.mode) ? L.mode : "auto";
+  const t = (typeof LOOKS === "object" && LOOKS[L.accent]) || { a: "#FFD23F", b: "#FF7A1A" };
+  return { mode, black: !!L.black, a: t.a, b: t.b, ink: t.ink || "#1A0E00", text: t.text || "#FFC53D", lightText: t.lightText || "#985600" };
 }
 let _widgetSig = "";
 function pushWidget() {
@@ -4481,8 +4602,12 @@ function missingBanner() {
 const VIEWS = { home: vHomeTab, cards: vCardsTab, social: vSocialTab, profile: vProfileTab, settings: vSettingsTab };
 function render() {
   if (window.__overlay) return;
+  if (swipeHolding()) { pendingRender = true; return; } // never redraw the page under a finger that's swiping it
   applyLook();
-  keepFocus(() => { $("#view").innerHTML = (VIEWS[ui.tab] || VIEWS.home)(); });
+  keepFocus(() => {
+    let html; try { html = (VIEWS[ui.tab] || VIEWS.home)(); } catch (e) { const w = `${obj(NAV[ui.tab]).title || "this"} page`; errNote(w, e); html = errPageHtml(w, e); }
+    $("#view").innerHTML = html;
+  });
   // A swipe to the next section slides it in from that side
   if (ui.swipeDir) { const v = $("#view"), c = ui.swipeDir > 0 ? "swipe-l" : "swipe-r"; ui.swipeDir = 0; v.classList.remove("swipe-l", "swipe-r"); void v.offsetWidth; v.classList.add(c); setTimeout(() => v.classList.remove(c), 260); }
   const sn = document.querySelector("#view .subnav"), cur = sn && sn.querySelector('[aria-current="page"]');
@@ -4656,7 +4781,7 @@ const A = {
     if (picker.mode === "mf") { const n = card(k).name; const i = mf.oppCards.indexOf(n); if (i >= 0) mf.oppCards.splice(i, 1); else mf.oppCards.push(n); refreshSheet(); return; }
     if (picker.mode === "deck") { const d = deckEdit(); if (!d) return; const i = d.cards.indexOf(k); if (i >= 0) d.cards.splice(i, 1); else if (d.cards.length < 12) d.cards.push(k); else { toast("A deck holds 12 cards"); return; } save(); refreshSheet(); return; }
     if (picker.mode === "avatar") { S.me.avatar = { kind: "card", ref: k }; save(); closeSheet(); render(); toast("Profile picture updated"); return; }
-    if (picker.mode === "cover") { const d = deckEdit(); if (d) { d.cover = k; save(); } openDeck(deId); return; }
+    if (picker.mode === "cover") { const d = deckEdit(); if (d) { d.cover = k; d.coverBy = "hand"; save(); } openDeck(deId); return; }
   },
   pickNew: () => { const name = picker.q.trim(); if (!name) return; const k = keyOf(name); if (!allCards().some((c) => c.key === k)) { S.addedCards.push({ key: k, name, cost: 0, power: 0, tags: [], ability: "", series: "" }); save(); } picker.q = ""; A.pick({ dataset: { k } }); if (picker.mode !== "opp") refreshSheet(); },
   pickDone: () => { if (picker.mode === "deck") openDeck(deId); else if (picker.mode === "mf") openSheet(matchSheet); },
@@ -4891,7 +5016,11 @@ const A = {
 document.addEventListener("click", (e) => {
   if (e.target.id === "sheet") { closeSheet(); return; }
   const el = e.target.closest("[data-a]"); if (!el || el.disabled) return;
-  const fn = A[el.dataset.a]; if (fn) { e.preventDefault(); fn(el, e); }
+  const fn = A[el.dataset.a]; if (!fn) return;
+  e.preventDefault();
+  // A button that fails says which one on screen (errors.js), instead of doing nothing
+  const where = `the "${(el.textContent || el.getAttribute("aria-label") || el.dataset.a).trim().replace(/\s+/g, " ").slice(0, 40)}" button`;
+  try { const r = fn(el, e); if (r && typeof r.catch === "function") r.catch((err) => errNote(where, err)); } catch (err) { errNote(where, err); }
 });
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && sheetFn) closeSheet();
@@ -5716,7 +5845,8 @@ function shotInput(kind) {
 async function imageForAI(file) {
   const url = URL.createObjectURL(file);
   try {
-    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("The picture couldn't be opened (it may be empty or damaged).")); i.src = url; });
+    if (!img.width || !img.height) throw new Error("The picture is empty.");
     const sc = Math.min(1, 1568 / Math.max(img.width, img.height));
     const cv = document.createElement("canvas"); cv.width = Math.round(img.width * sc); cv.height = Math.round(img.height * sc);
     cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
@@ -6934,7 +7064,7 @@ ${/^screen:/.test(hint || "") ? `This picture was saved automatically while the 
  "match": {"result": "W" | "L" | "T" | "" (from the player's side at the bottom), "cubes": cubes won or lost as a positive number (0 if not shown), "medals": Conquest medals won or lost as a positive number (0 if none), "retreated": true if the player retreated, "oppRetreated": true if the opponent retreated, "snapped": true if the player snapped, "oppSnapped": true if the opponent snapped, "mode": one of the game modes and events above, or the mode or event name shown, or "", "oppName": "", "locations": [{"name": "", "my": bottom player's power, "opp": top player's power, "myCards": [{"card": "each of the player's cards here", "power": number, "variant": "its art variant if you can tell (the artist or style, like Kael Ngu, Pixel or Baby), else empty", "border": "its border if it has a special one, else empty", "finish": "its finish if it has one (like Ink, Gold, Foil, Prism or Glitch), else empty", "flare": "its flare if one is showing (like Glimmer, Comic, Kirby or Sparkle), else empty"}], "oppCards": [{"card": "each opponent card here", "power": number, "variant": "its art variant if you can tell (the artist or style, like Kael Ngu, Pixel or Baby), else empty", "border": "its border if it has a special one, else empty", "finish": "its finish if it has one (like Ink, Gold, Foil, Prism or Glitch), else empty", "flare": "its flare if one is showing (like Glimmer, Comic, Kirby or Sparkle), else empty"}]}] (left to right), "me": {"avatar": "the player's avatar at the bottom: the character or name if you can tell, else empty", "title": "the player's title if shown", "cardback": "the player's card back (on their deck pile or cards in hand): its name or the character on it, else empty", "emotes": ["any emote the player is showing"]}, "opp": {"avatar": "the opponent's avatar at the top: the character or name", "title": "the opponent's title if shown", "cardback": "the opponent's card back: its name or the character on it", "emotes": ["each emote the opponent is showing, by its name or what it shows"]}, "eventGain": {"name": "an event currency won this match, like Bubs", "amount": number written in full (+1.2K is 1200)}, "oppCards": ["card names on the top side"], "myCards": ["card names on the bottom side"], "turn": final turn number or null, "boosters": [{"card": "card name", "n": boosters this card earned, as shown on the results}]},
  "numbers": {"topLeft": {"amount": the number at the top left of the top bar or null, "icon": "credits" (blue crystal, blue box) | "tokens" (purple token, purple box) | "other"}, "topRight": {"amount": the number at the top right or null, "icon": "gold" | "other"}, "rank": rank number 1-99, or "Infinite", or null, "rankCubes": cubes toward the next rank (the 4 in 4/7) or null, "rankCubesNeed": cubes the next rank needs (the 7 in 4/7) or null, "collectionLevel": the Collection Level (in a green badge) or null, "clNextReward": "the next big Collection Level reward if shown, like 3000 Collector's Tokens", "clNextIn": Collection Levels until it or null, "credits": Credits (blue crystal icon) or null, "gold": Gold (gold bar icon) or null, "tokens": Collector's Tokens (purple token icon) or null, "passLevel": season pass level or null, "passXp": points toward the next season pass level or null, "passXpNext": points that level needs in all or null, "passTier": "free" | "premium" | "premium+" | "" (which season pass the player has, if you can tell), "rerollCoins": Split Reroll Coins or null, "wildBoosters": Wild Boosters or null, "medals": Conquest medals or null, "goldPassDays": days left on the Gold Pass if shown or null, "goldPassClaimIn": "time until the Gold Pass's daily gold can be claimed, as shown, or empty", "freeTokensClaimed": true if today's free Collector's Tokens show as claimed, false if they can be claimed, else null, "freeCreditsIn": "time until the shop's free credits can be claimed again, as shown, like 7h 22m, or empty"},
  "deck": {"name": "", "cards": ["card names"]},
- "card": {"card": "card name", "variant": "variant name if shown, else empty", "rarity": "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Ultra" | "Infinity" | "", "boosters": this card's boosters or null, "splits": number of Infinity Splits if shown or null, "finish": "split finish if shown", "flare": "split flare if shown", "border": "border name if shown", "masteryLevel": Character Mastery level or null},
+ "card": {"card": "card name", "variant": "variant name if shown, else empty", "rarity": "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Ultra" | "Infinity" | "", "boosters": this card's boosters or null, "splits": number of Infinity Splits if shown or null, "finish": "split finish if shown", "flare": "split flare if shown", "border": "border name if shown", "masteryLevel": Character Mastery level or null, "masteryXp": the Mastery XP shown (the first number of something like 360/405) or null},
  "collection": {"cards": [{"card": "card name", "boosters": "the booster number on the card as shown, like 20 or 99+", "rarity": "upgrade level if you can tell, else empty"}]},
  "split": {"card": "card name", "finish": "finish it got", "flare": "flare it got", "rerolled": true if the player rerolled, "usedCoin": true if a Split Reroll Coin was spent},
  "variants": {"card": "card name", "screen": "editor" if this is the Custom Card editor's art picker (it only lists variants the player owns), otherwise "collection", "count": how many variant pictures you can see, "items": [{"name": "variant name or style if shown", "artist": "artist if shown", "owned": true if the player has it, false if it's greyed out, locked or shows a price}]},
@@ -6948,7 +7078,7 @@ ${/^screen:/.test(hint || "") ? `This picture was saved automatically while the 
  "pass": {"level": season pass level or null, "xp": points toward the next level or null, "xpNext": points it needs or null, "tier": "free" | "premium" | "premium+" | "", "track": [{"level": number, "free": "the free reward at this level, or empty", "premium": "the premium reward at this level, or empty", "got": true if the player has reached it or it shows as claimed}], "spotlight": {"name": "the reward in the spotlight", "unlocksAt": level or null}}}
 If the screen also shows the player's own currencies along the top, or their Collection Level or season pass level, fill "numbers" too, whatever the kind. ${TOP_BAR} ${NOT_YOURS} An event's screens show the event's own currencies along the top instead (like Bubs): those go in "event", never in "numbers".
 Leave out sections that don't apply. Never guess numbers you can't read.`;
-const refreshShots = () => { if (sheetFn === shotsSheet) refreshSheet(); };
+const refreshShots = () => { if (sheetFn === shotsSheet || (typeof reviewSheet === "function" && sheetFn === reviewSheet)) refreshSheet(); };
 function trimShots() { const done = shots.items.filter((x) => x.done); if (done.length <= 40) return; const drop = new Set(done.slice(0, done.length - 40)); drop.forEach((x) => { try { if (x.url) URL.revokeObjectURL(x.url); } catch { /* fine */ } }); shots.items = shots.items.filter((x) => !drop.has(x)); }
 // Lists in what the AI sends back can have empty entries; those are dropped so one can't stop the rest being read
 function cleanAI(v, depth = 0) { if (depth > 8) return null; if (Array.isArray(v)) return v.slice(0, 200).map((e) => (e === null || e === undefined ? {} : cleanAI(e, depth + 1))); if (v && typeof v === "object") { const o = {}; for (const [k, e] of Object.entries(v)) if (k !== "__proto__" && k !== "constructor" && k !== "prototype") o[k] = cleanAI(e, depth + 1); return o; } if (typeof v === "string") return v.slice(0, 600); return v; }
@@ -6969,6 +7099,8 @@ async function aiPace(gap = aiGapMs) { const w = aiLastAt + gap - Date.now(); if
 // The AI being busy or out of free answers for now, or no connection: worth trying again later.
 const aiBusyErr = (e) => !!e && (e.status === 429 || e.status >= 500 || e.reach || e.slow || /busy|limit|resting|none of your ai|timed? ?out|took too long|can't be reached|failed to fetch|network|load failed/i.test(String(e.message || "")));
 const aiSetupErr = (e) => !!e && ([401, 402, 403, 404].includes(e.status) || (e.status === 400 && /api.?key|key not valid|permission|billing|model|credential/i.test(String(e.message || ""))) || /add an ai key|no ai key|set up ai|isn't set up/i.test(String(e.message || "")));
+// An answer that was empty, cut off or not JSON: worth one more try straight away
+const shotRetryable = (e) => !!e && (e.empty || /expected format|didn't answer|empty|cut off|unexpected end|JSON/i.test(String(e.message || "")));
 // How many times a picture timed out, so one the AI can never finish doesn't hold up the queue forever
 const SLOW_KEY = "snapstat.slowShots";
 function slowCount(id, add) { let m = {}; try { m = JSON.parse(localStorage.getItem(SLOW_KEY) || "{}"); } catch { /* none */ } if (add) { m[id] = num(m[id]) + 1; const keys = Object.keys(m); if (keys.length > 50) delete m[keys[0]]; try { localStorage.setItem(SLOW_KEY, JSON.stringify(m)); } catch { /* fine */ } } return num(m[id]); }
@@ -6983,7 +7115,14 @@ async function readShotItemNow(x) {
       // Nothing from this one was saved, so it isn't marked as read
       if (x.hash) S.shotSeen = arr(S.shotSeen).filter((h) => h !== x.hash);
       if (aiSetupErr(e)) { x.status = "Your AI key isn't working, so this one waits"; x.detail = `${e && e.message ? String(e.message).slice(0, 160) + " · " : ""}Fix it in Settings › AI${x.native ? " and the waiting pictures are read next time" : ", then share it again"}.`; x.setup = true; return "retry"; }
-      if (!aiBusyErr(e)) { x.status = "Couldn't read this one"; x.detail = e && e.message ? e.message : "The picture couldn't be opened."; await shotLogSave(x); return "ok"; }
+      // A garbled or empty answer is usually fine the second time (another model is asked if the first one balks)
+      if (!aiBusyErr(e) && shotRetryable(e) && tries < 1) { x.status = "The AI's answer was cut off. Asking again…"; refreshShots(); await aiPace(); x.status = "Reading…"; continue; }
+      if (!aiBusyErr(e)) {
+        const code = e instanceof TypeError || e instanceof ReferenceError || e instanceof RangeError;
+        if (code) errNote("reading a screenshot", e, true); // goes with bug reports, so the owner can see it
+        x.status = "Couldn't read this one"; x.detail = code ? `A problem in SNAP Stat itself (${String(e.message).slice(0, 140)}). It's been noted; Read again after the next update.` : e && e.message ? e.message : "The picture couldn't be opened (it may be empty or damaged).";
+        await shotLogSave(x); return "ok";
+      }
       if (x.native && e && e.slow && slowCount(x.native, true) >= 4) { x.status = "Couldn't read this one"; x.detail = "The AI kept running out of time on this picture, so it was skipped."; await shotLogSave(x); return "ok"; }
       if (tries >= 2) { x.status = "The AI is busy, so this one waits"; x.detail = x.native ? "I'll read it next time you open SNAP Stat." : "Share it again in a few minutes."; return "retry"; }
       x.status = "The AI is busy. Trying again in a minute…"; x.detail = ""; refreshShots();
@@ -7780,6 +7919,7 @@ function applyShotCard(x, cc) {
     }
     if (cc.splits !== null && cc.splits !== undefined && Number(cc.splits) > p.splits.length && Number(cc.splits) < 200) { while (p.splits.length < Number(cc.splits)) p.splits.push({ id: uid(), fin: "", fl: "", r: null, at: 0 }); syncSplitCount(k); done.push(`${p.splits.length} splits`); }
     if (Number(cc.masteryLevel) >= 1) { p.ml = clamp(Math.round(Number(cc.masteryLevel)), 1, 30); progLogAdd({ k, a: "mastery", n: p.ml }); done.push(`Mastery ${p.ml}`); }
+    if (cc.masteryXp !== null && cc.masteryXp !== undefined && Number.isFinite(Number(cc.masteryXp)) && Number(cc.masteryXp) >= 0 && Number(cc.masteryXp) <= 100000) { p.mx = Math.round(Number(cc.masteryXp)); p.mxAt = Date.now(); }
     if (cc.border) { const bd = String(cc.border).slice(0, 40); if (!p.borders.includes(bd)) { p.borders.push(bd); progLogAdd({ k, a: "border", border: bd }); done.push(`${bd} border`); } }
   });
   { const vn = String(cc.variant || "").trim(), v0 = vn ? matchVariant(k, vn, vn) : null; if (noteLook(k, { v: v0 ? (v0.virtual ? "cat:" + v0.cat : v0.id) : "", vname: vn, border: cc.border, finish: cc.finish, flare: cc.flare }, "card")) done.push("Custom Card saved"); }
@@ -8461,10 +8601,10 @@ function vSettingsTab() {
         <span class="muted">${!window.SNAPSTAT_STANDALONE ? "It works in the SNAP Stat app, not in this view." : SLOT ? "It uses your main account. Switch back to it in Profile › MARVEL SNAP accounts to turn it on." : "Sign in to turn it on."}</span>${window.SNAPSTAT_STANDALONE && !SLOT && store.mode !== "cloud" && store.fb ? `<div><button class="btn sm snap" data-a="signIn">Sign in</button></div>` : ""}</div></section>`,
     account: () => `<section class="sec"><h2>Account</h2><div class="panel stack small"><p class="muted">${esc(sync)}${SLOT ? " · " + esc(currentAccountName()) : ""}</p>
         ${store.provider === "firebase" ? `<p><b>${accountLine()}</b></p><p>${store.mode === "cloud" ? "Your data follows you to any device where you sign in." : "Sign in to keep your data across devices and use the social features. Anything saved here moves into your account when you sign in."}</p>${store.mode === "cloud" ? `<div><button class="btn sm" data-a="signOut">Sign out</button></div>` : store.fb ? `<div><button class="btn sm snap" data-a="signIn">Sign in</button></div>` : ""}` : `<p>${store.mode === "cloud" ? "You're signed in with your Claude account, and your data follows you across devices." : "Your data is saved on this device."}</p>`}</div></section>${dangerPanel()}`,
-    owner: () => `${ownerPanel()}${adminsPanel()}`,
-    about: () => vAbout(),
+    owner: () => `${ownerPanel()}${ownerTestsHtml()}${ownerBugsHtml()}${adminsPanel()}`,
+    about: () => `${bugAboutHtml()}${vAbout()}`,
   }[s] || extBody(EXT.settingsSubs, s) || (() => appPanel());
-  return `${tabHead("settings")}${s !== "android" ? natUpdateBanner() : ""}${body()}<section class="sec"><p class="muted small">${window.SNAPSTAT_STANDALONE ? privacyLink() + " · " : ""}Unofficial fan-made app. Not affiliated with or endorsed by Marvel or Second Dinner.</p></section>`;
+  return `${tabHead("settings")}${s !== "android" ? natUpdateBanner() : ""}${body()}<section class="sec"><p class="muted small"><button class="bug-foot" data-a="bugOpen">Found a bug? Report it</button> · ${window.SNAPSTAT_STANDALONE ? privacyLink() + " · " : ""}Unofficial fan-made app. Not affiliated with or endorsed by Marvel or Second Dinner.</p></section>`;
 }
 // The old "‹ More" bar above each section is gone; the section row at the top of each tab does that job now.
 function backBar(t) { return ""; }
@@ -8498,21 +8638,28 @@ Object.assign(A, {
 document.addEventListener("toggle", (e) => { if (e.target && e.target.dataset && e.target.dataset.profedit) ui.profEdit = e.target.open; }, true);
 
 /* ---------- Swipe left or right to move through a tab's sections ---------- */
-// After the last section a swipe goes back to the first. Rows that scroll sideways, fields and open sheets keep their own swipes.
-function swipeBlocked(el) {
-  for (let n = el; n && n !== document.body; n = n.parentElement) {
+// The sections go round in a loop both ways. Fields, drawing areas and open sheets keep their own swipes;
+// a row that scrolls sideways keeps the swipe until it's at its end in that direction (dx > 0 = finger moving right).
+function swipeBlocked(el, dx) {
+  for (let n = el; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
     if (n.nodeType !== 1) continue;
-    if (n.matches("input, textarea, select, .subnav, .board, [data-noswipe], canvas")) return true;
+    if (n.matches("input:not([type=checkbox]):not([type=radio]):not([type=button]), textarea, select, .board, [data-noswipe], canvas, .lk-stage")) return true;
     const ox = getComputedStyle(n).overflowX;
-    if ((ox === "auto" || ox === "scroll") && n.scrollWidth > n.clientWidth + 4) return true;
+    if ((ox === "auto" || ox === "scroll") && n.scrollWidth > n.clientWidth + 4) {
+      if (!dx) return true;
+      const atStart = n.scrollLeft <= 1, atEnd = n.scrollLeft + n.clientWidth >= n.scrollWidth - 2;
+      if ((dx > 0 && atStart) || (dx < 0 && atEnd)) continue; // nothing left to scroll that way: the page swipe takes over
+      return true;
+    }
   }
   return false;
 }
-// The section a swipe lands on (1 = next, -1 = previous), or null if there isn't one
+// The section a swipe lands on (1 = next, -1 = previous), or null if the tab has only one
 function swipeTarget(dir) {
   const n = NAV[ui.tab]; if (!n || !n.subs) return null;
   const subs = n.subs().map(([k]) => k), i = Math.max(0, subs.indexOf(ui[n.key]));
-  let j = i + dir; if (j >= subs.length) j = 0; if (j < 0 || subs[j] === subs[i]) return null;
+  let j = i + dir; if (j >= subs.length) j = 0; if (j < 0) j = subs.length - 1;
+  if (subs[j] === subs[i]) return null;
   return subs[j];
 }
 function swipeSection(dir) {
@@ -8803,11 +8950,14 @@ function readStateFile(ss, fname) {
     (copies[id] = copies[id] || []).push({ v, r: rarityOfId(e.RarityDefId), custom: e.Custom === true, fav: e.Favorite === true || e.IsFavorite === true, fin: String(e.SurfaceEffectDefId || e.FinishDefId || ""), fl: String(e.CardRevealEffectDefId || e.RevealEffectDefId || e.FlareDefId || ""), bd: String(e.BorderDefId || e.CardBorderDefId || "") });
   }
   // Custom Cards (the favourite one when there are several), favourite variants, upgrade levels and splits, per card
-  const looks = {}, favs = {}, prog = {};
+  const looks = {}, looks2 = {}, favs = {}, prog = {};
   const stats = obj(obj(ss.CardDefStats).Stats);
   for (const [id, list] of Object.entries(copies)) {
-    const cus = list.filter((c) => c.custom).sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0))[0];
-    if (cus && (cus.v || cus.fin || cus.fl || cus.bd)) looks[id] = { v: cus.v, finish: effectName(cus.fin), flare: effectName(cus.fl, true), border: cus.bd };
+    // Mastery level 22 gives a card a second Custom Card: the first two custom copies are Custom Card 1 and 2
+    const cusAll = list.filter((c) => c.custom && (c.v || c.fin || c.fl || c.bd)).sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0));
+    const mk = (cus) => ({ v: cus.v, finish: effectName(cus.fin), flare: effectName(cus.fl, true), border: cus.bd });
+    if (cusAll[0]) looks[id] = mk(cusAll[0]);
+    if (cusAll[1]) looks2[id] = mk(cusAll[1]);
     const fav = list.find((c) => c.fav && c.v); if (fav) favs[id] = fav.v;
     const pr = { b: null, base: null, vr: {}, splits: [], borders: [] }, st = obj(stats[id]);
     if (Number.isFinite(Number(st.Boosters)) && Number(st.Boosters) >= 0 && Number(st.Boosters) < 1e6) pr.b = Math.round(Number(st.Boosters));
@@ -8838,10 +8988,10 @@ function readStateFile(ss, fname) {
   for (const d of arr(ss.Decks)) {
     if (!d || typeof d.Name !== "string" || !Array.isArray(d.Cards) || d.Cards.length < 6 || d.Cards.length > 12 || !d.Cards.every((c) => c && typeof c.CardDefId === "string")) continue;
     const back = String(obj(d.CardBack).CardBackDefId || d.CardBackDefId || ""); if (back) cos.cardback.add(back);
-    decks.push({ name: d.Name.slice(0, 60), cards: d.Cards.map((c) => c.CardDefId), vars: d.Cards.map((c) => (typeof c.ArtVariantDefId === "string" ? c.ArtVariantDefId : "")), back });
+    decks.push({ name: d.Name.slice(0, 60), cards: d.Cards.map((c) => c.CardDefId), vars: d.Cards.map((c) => (typeof c.ArtVariantDefId === "string" ? c.ArtVariantDefId : "")), back, av: gameDeckLooks(d).avDef });
   }
   const clRaw = Number(obj(ss.CollectionScore).Amount), cl = Number.isFinite(clRaw) && clRaw > 0 && clRaw < 200000 ? Math.round(clRaw) : null;
-  return { cards: [...cards], vars: [...vars], decks, looks, favs, prog, cos: Object.fromEntries(Object.entries(cos).map(([k, v]) => [k, [...v].slice(0, 3000)])), avatars: avatars.slice(0, 3000), cl, state: true, any: cards.size > 0 };
+  return { cards: [...cards], vars: [...vars], decks, looks, looks2, favs, prog, cos: Object.fromEntries(Object.entries(cos).map(([k, v]) => [k, [...v].slice(0, 3000)])), avatars: avatars.slice(0, 3000), cl, state: true, any: cards.size > 0 };
 }
 // ClanState.json: your alliance, its members with this week's points, and the bounties on offer
 const BOUNTY_TXT = { WinLocationWithHighPower: "Win locations with high power", WinLocationWith4Cards: "Win locations with 4 cards", WinMatchesWithCardInDeck: "Win matches with {c} in your deck", DiscardCards: "Discard cards", MoveFiveCards: "Move cards", Play1CostCards: "Play 1-Cost cards", WinMatchesWithRevealCardPairInDeck: "Win matches with {c} and {c2} in your deck" };
@@ -8906,7 +9056,7 @@ function readCollectionFile(text, fileName) {
   let j; try { j = JSON.parse(String(text || "").replace(/^﻿/, "")); } catch { return null; }
   const fname = String(fileName || ""), isColl = !fname || /collection/i.test(fname), isProfile = /profile/i.test(fname);
   const ss = j && typeof j === "object" && j.ServerState && typeof j.ServerState === "object" ? j.ServerState : null;
-  const mastery = ss ? readMasteryFile(ss) : null, clan = ss && !mastery ? readClanFile(ss, j) : null, evf = ss && !mastery && !clan ? readEventFile(ss) : null;
+  const mastery = ss ? readMasteryFile(ss) : null, masteryXp = mastery ? readMasteryXp(ss) : null, clan = ss && !mastery ? readClanFile(ss, j) : null, evf = ss && !mastery && !clan ? readEventFile(ss) : null;
   const state = ss && Array.isArray(ss.Cards) ? readStateFile(ss, fname) : null;
   const cards = new Set(), vars = new Set(), decks = [], looks = {}, cos = { cardback: new Set(), avatar: new Set(), title: new Set(), emote: new Set() };
   const keys = {}, defs = {};
@@ -8939,7 +9089,7 @@ function readCollectionFile(text, fileName) {
   walk(j, 0, "");
   const summary = { file: fname.slice(0, 60), keys: Object.entries(keys).sort((a, b) => b[1] - a[1]).slice(0, 80).map(([k, n]) => `${k}×${n}`), defIds: Object.fromEntries(Object.entries(defs).slice(0, 40).map(([k, v]) => [k, [...v]])) };
   if (state) return { ...state, summary };
-  if (mastery || clan || evf) return { cards: [], vars: [], decks: [], looks: {}, cos: {}, mastery, clan, events: evf ? evf.events : [], summary, any: true };
+  if (mastery || clan || evf) return { cards: [], vars: [], decks: [], looks: {}, cos: {}, mastery, masteryXp, clan, events: evf ? evf.events : [], summary, any: true };
   // Only the collection file says what you own; the profile file says what you have on
   const cosOk = isColl || isProfile;
   return { cards: isColl ? [...cards] : [], vars: isColl ? [...vars] : [], decks: isColl ? decks : [], looks: isColl ? looks : {}, cos: cosOk ? Object.fromEntries(Object.entries(cos).map(([k, v]) => [k, [...v].slice(0, 2000)])) : {}, summary, any: cards.size > 0 || Object.values(cos).some((x) => x.size) };
@@ -8995,6 +9145,9 @@ function applyGameFiles(files, opts = {}) {
     // Boosters, upgrade levels, splits and borders straight from the game
     for (const [id, pr] of Object.entries(obj(r.prog))) { const c = cardByDefId(id); if (!c || c.unknown) continue; const got = applyProgFile(c.key, pr); if (got.any) progCards++; boostersSet += got.b; levelsSet += got.levels; splitsNew += got.splits; bordersNew += got.borders; }
     for (const [id, lv] of Object.entries(obj(r.mastery))) { const c = cardByDefId(id); if (!c || c.unknown) continue; masteryN++; const p = prog(c.key); if (num(p.ml) < lv) { p.ml = lv; masterySet++; } }
+    for (const [id, xp] of Object.entries(obj(r.masteryXp))) { const c = cardByDefId(id); if (!c || c.unknown) continue; const p = prog(c.key); p.mx = xp; p.mxAt = Date.now(); }
+    // Custom Card 2 (Mastery 22+), next to Custom Card 1
+    for (const [id, L] of Object.entries(obj(r.looks2))) { const c = cardByDefId(id); if (!c) continue; const v = L.v ? variantByDefId(L.v) : null; if (noteLook2(c.key, { v: v ? (v.virtual ? "cat:" + v.cat : v.id) : "", vname: v ? v.name : "", finish: L.finish, flare: L.flare, border: borderLabel(L.border) }, "file")) looksNew++; }
     if (r.cl && r.cl > num(cl)) cl = r.cl;
     if (r.clan && typeof applyShotAlliance === "function") { const x = {}; applyShotAlliance(x, r.clan.alliance, r.clan.time); if (x.detail) notes.push(`Alliance: ${x.detail}`); }
     for (const ev of arr(r.events)) { const t = applyEventFile(ev); if (t) notes.push(t); }
@@ -9002,6 +9155,9 @@ function applyGameFiles(files, opts = {}) {
   // Collection Level only goes up
   if (cl && cl > clWas) { S.me.colLevel = cl; S.colLow = null; }
   for (const { r } of rs) for (const d of r.decks) { const ks = d.cards.map((id) => (cardByDefId(id) || {}).key).filter(Boolean).sort().join(","); if (!have.has(keyOf(d.name) + "|" + ks)) decks.push(d); }
+  // Decks you already have take the card back and avatar the game has on them (y29_decklook.js)
+  let decksLooked = 0; for (const { r } of rs) decksLooked += deckLooksFromFile(r.decks);
+  if (decksLooked) notes.push(`${decksLooked} deck${decksLooked === 1 ? "" : "s"} took the card back and avatar the game has on ${decksLooked === 1 ? "it" : "them"}.`);
   if (cosN || titles) (S.seen = obj(S.seen)).cosfile = Date.now();
   collImp = { cards, cardsNew, vars, varsNew, unknown, decks, cos: cosN, cosNew, looksNew, favsNew, titles, avatars: avatarsN, progCards, boostersSet, levelsSet, splitsNew, bordersNew, masteryN, masterySet, cl: cl && cl > clWas ? cl : null, clSame: cl && cl <= clWas ? cl : null, notes, state: rs.some((x) => x.r.state), files: rs.map((x) => x.r.summary) };
   if (cards) S.collFileAt = Date.now();
@@ -9096,7 +9252,7 @@ Object.assign(A, {
   dkBackOpen: () => { dkb = { q: "", own: cardBacks().some((b) => (backCos(b) || {}).owned), lim: 60 }; openSheet(dkBackSheet); },
   dkbOwn: (el) => { dkb.own = el.dataset.v === "1"; dkb.lim = 60; refreshSheet(); },
   dkbMore: () => { dkb.lim += 60; refreshSheet(); },
-  dkBackPick: (el) => { const d = deckEdit(); if (!d) return; d.back = el.dataset.id || ""; save(); openDeck(deId); toast(d.back ? "Card back set" : "Card back removed"); },
+  dkBackPick: (el) => { const d = deckEdit(); if (!d) return; d.back = el.dataset.id || ""; d.backBy = "hand"; save(); openDeck(deId); toast(d.back ? "Card back set" : "Card back removed"); },
   dkBorderOpen: () => { dkbd = { q: "" }; openSheet(dkBorderSheet); },
   dkBorderPick: (el) => { const d = deckEdit(); if (!d) return; d.coverBorder = el.dataset.v || ""; save(); const keep = $("#sheetBody").scrollTop; refreshSheet(); $("#sheetBody").scrollTop = keep; },
   dkBack: () => openDeck(deId),
@@ -9106,7 +9262,7 @@ Object.assign(A, {
   dkcCard: (el) => { dkc.k = el.dataset.k; dkc.step = "variant"; dkc.vf = "all"; refreshSheet(); $("#sheetBody").scrollTop = 0; },
   dkcStep: (el) => { dkc.step = el.dataset.v; refreshSheet(); },
   dkcVf: (el) => { dkc.vf = el.dataset.v; refreshSheet(); },
-  dkcVar: (el) => { const d = deckEdit(); if (!d) return; d.cover = dkc.k; d.coverVar = el.dataset.id || "base"; save(); openDeck(deId); toast("Deck icon set"); },
+  dkcVar: (el) => { const d = deckEdit(); if (!d) return; d.cover = dkc.k; d.coverVar = el.dataset.id || "base"; d.coverBy = "hand"; save(); openDeck(deId); toast("Deck icon set"); },
   cbOwn: (el) => { const b = cardBackById(el.dataset.id); if (!b) return; const now = !(backCos(b) || {}).owned; setBack(b, "owned", now); if (now) { const c = backCos(b); if (c) c.wish = false; } render(); },
   cbWish: (el) => { const b = cardBackById(el.dataset.id); if (!b) return; setBack(b, "wish", !(backCos(b) || {}).wish); render(); },
   cbF: (el) => { cbv.f = el.dataset.v; cbv.lim = 60; render(); },
@@ -10056,6 +10212,8 @@ async function shotLogSave(x) {
     await shotStore("readwrite", (st) => st.put(rec));
     const all = await shotStore("readonly", (st) => st.getAllKeys());
     if (all.length > SHOTLOG_MAX) { const recs = await shotLogAll(); const drop = recs.slice(SHOTLOG_MAX); await shotStore("readwrite", (st) => drop.forEach((r) => st.delete(r.id))); }
+    // The review window, if it's open, shows the new one straight away
+    if (sheetFn === reviewSheet && !rv.busy) { rv.list = await shotLogAll(); refreshSheet(); }
   } catch { /* the review page is a convenience; reading still worked */ }
 }
 async function shotLogAll() { const list = await shotStore("readonly", (st) => st.getAll()).catch(() => []); return arr(list).sort((a, b) => b.at - a.at); }
@@ -10072,14 +10230,15 @@ function reviewSheet() {
   const list = rv.list;
   if (!list) return `${sheetHead("Screenshots SNAP Stat read")}<p class="muted small">Loading…</p>`;
   const checked = list.filter((r) => r.verdict), right = checked.filter((r) => r.verdict === "right").length;
-  const shown = list.filter((r) => !rv.session || r.session === rv.session).filter((r) => rv.filter === "all" || (rv.filter === "wrong" ? r.verdict === "wrong" : rv.filter === "todo" ? !r.verdict : r.kind === rv.filter));
+  const shown = list.filter((r) => !rv.session || r.session === rv.session).filter((r) => rv.filter === "all" || (rv.filter === "wrong" ? r.verdict === "wrong" : rv.filter === "todo" ? !r.verdict : rv.filter === "failed" ? rvFailed(r) : r.kind === rv.filter));
   const ch = (v, l, n) => `<button class="chip" data-a="rvFilter" data-v="${v}" aria-pressed="${rv.filter === v}">${l} <span class="num muted">${n}</span></button>`;
   return `${sheetHead("Screenshots SNAP Stat read", `${list.length} kept on this phone${checked.length ? ` · you checked ${checked.length}: ${right} right (${Math.round((right / checked.length) * 100)}%)` : ""}`)}
+    ${typeof rvLiveHtml === "function" ? rvLiveHtml() : ""}
     ${rv.session ? `<p class="small">One match's pictures, a turn at a time. <button class="linkbtn" data-a="rvAll">Show every screenshot</button></p>` : ""}
-    <div class="chips">${ch("all", "All", list.length)}${ch("todo", "Not checked", list.filter((r) => !r.verdict).length)}${ch("wrong", "Marked wrong", list.filter((r) => r.verdict === "wrong").length)}${ch("match", "Matches", list.filter((r) => r.kind === "match").length)}${ch("numbers", "Numbers", list.filter((r) => r.kind === "numbers").length)}${ch("shop", "Shops", list.filter((r) => r.kind === "shop").length)}</div>${extHtml(EXT.reviewTools, list, shown)}
+    <div class="chips">${ch("all", "All", list.length)}${ch("todo", "Not checked", list.filter((r) => !r.verdict).length)}${ch("wrong", "Marked wrong", list.filter((r) => r.verdict === "wrong").length)}${ch("match", "Matches", list.filter((r) => r.kind === "match").length)}${ch("numbers", "Numbers", list.filter((r) => r.kind === "numbers").length)}${ch("shop", "Shops", list.filter((r) => r.kind === "shop").length)}${list.some(rvFailed) ? ch("failed", "Couldn't read", list.filter(rvFailed).length) : ""}</div>${extHtml(EXT.reviewTools, list, shown)}
     ${shown.length ? `<div class="list">${shown.slice(0, 60).map((r) => `<div class="li rvrow" style="align-items:flex-start;gap:10px">${r.img ? `<img src="${esc(rvUrl(r))}" alt="" class="shot-thumb" style="width:72px;height:auto;border-radius:8px" data-a="rvBig" data-id="${esc(r.id)}">` : ""}<div class="grow stack" style="gap:4px;min-width:0">
         <div class="row between nowrap"><b class="small">${esc(r.status || "Read")}</b>${r.verdict ? `<span class="pill ${r.verdict === "right" ? "W" : "L"}">${r.verdict === "right" ? "Right" : "Wrong"}</span>` : ""}</div>
-        ${r.detail ? `<span class="small">${esc(r.detail)}</span>` : ""}
+        ${rvFailed(r) && typeof rvWhy === "function" ? `<span class="small"><b>Why:</b> ${esc(rvWhy(r))}</span>` : ""}${r.detail ? `<span class="small">${esc(r.detail)}</span>` : ""}
         <span class="muted small">${esc(agoTxt(r.at))}${r.hint ? ` · ${esc(/^screen:/.test(r.hint) ? "saved on the " + (SCREEN_NAMES[r.hint.slice(7)] || r.hint.slice(7)) + " screen" : "after " + r.hint)}` : ""}${r.kind ? ` · read as ${esc(r.kind)}` : ""}</span>
         ${rv.open === r.id ? `<div class="panel small" style="max-height:260px;overflow:auto">${(() => { try { return readable(JSON.parse(r.data || "{}")); } catch { return esc(String(r.data || "").slice(0, 2000)) + "…"; } })() || "Nothing was read."}</div>` : ""}
         <div class="row"><button class="btn sm ghost" data-a="rvOpen" data-id="${esc(r.id)}">${rv.open === r.id ? "Hide" : "What it read"}</button><button class="btn sm ${r.verdict === "right" ? "snap" : "ghost"}" data-a="rvMark" data-id="${esc(r.id)}" data-v="right">✓ Right</button><button class="btn sm ${r.verdict === "wrong" ? "snap" : "ghost"}" data-a="rvMark" data-id="${esc(r.id)}" data-v="wrong">✗ Wrong</button>${canReadShots() ? `<button class="btn sm ghost" data-a="rvAgain" data-id="${esc(r.id)}" ${rv.busy ? "disabled" : ""}>${rv.busy === r.id ? "Reading…" : "Read again"}</button>` : ""}</div></div></div>`).join("")}</div>`
@@ -10681,7 +10840,7 @@ function lookText(L) { L = obj(L); const v = L.v ? variantAny(L.v) : null; retur
 const LOOK_SRC = { card: "from its screen in the game", match: "from one of your matches", file: "from your PC collection file", reward: "from a reward screen" };
 function myLookHtml(k) {
   const L = obj(obj(S.looks)[k]); const t = lookText(L); if (!t) return "";
-  return `<div class="panel stack small" style="gap:4px"><div class="row between"><b>Your Custom Card in the game</b><button class="btn sm ghost" data-a="lookClear" data-k="${esc(k)}">Clear</button></div><span>${esc(t)}</span><span class="muted">${esc(LOOK_SRC[L.src] || "")}${L.at ? ` · ${esc(agoTxt(L.at))}` : ""}. Screenshot the card in the game after you change it.</span></div>`;
+  return `<div class="panel stack small" style="gap:4px"><div class="row between"><b>${obj(S.looks2)[k] ? "Custom Card 1" : "Your Custom Card in the game"}</b><button class="btn sm ghost" data-a="lookClear" data-k="${esc(k)}">Clear</button></div><span>${esc(t)}</span><span class="muted">${esc(LOOK_SRC[L.src] || "")}${L.at ? ` · ${esc(agoTxt(L.at))}` : ""}. Screenshot the card in the game after you change it.</span></div>`;
 }
 Object.assign(A, { lookClear: (el) => { delete obj(S.looks)[el.dataset.k]; save(); refreshSheet(); toast("Cleared"); } });
 
@@ -10727,7 +10886,8 @@ function applyMatchLooks(m, mm) {
   // Your deck's card back and avatar
   if (d && (me.cardback || me.avatar)) {
     d.seen = { ...obj(d.seen), ...(me.cardback ? { back: me.cardback } : {}), ...(me.avatar ? { avatar: me.avatar } : {}), at: Date.now() };
-    if (!d.back && me.cardback && typeof cardBacks === "function") { const b = pickExact(cardBacks(), me.cardback, (x) => x.name); if (b) { d.back = b.id; d.backBy = "match"; } }
+    // The deck follows what you had on in the game (y29_decklook.js), unless you picked its card back or icon yourself
+    deckAutoLook(d, { cardback: me.cardback, avatar: me.avatar }, "match");
   }
   return got;
 }
@@ -10794,17 +10954,20 @@ function applyShotReward(x, r) {
 if (typeof OWN_BY !== "undefined") Object.assign(OWN_BY, { match: "seen in one of your matches", reward: "from a reward screen" });
 
 /* ---------- Cards › Custom cards: the Custom Cards you've made in the game (and ones opponents use) ---------- */
-let le = { k: "", q: "" };
+let le = { k: "", q: "", slot: 1 };
+// Custom Card 1 is S.looks, Custom Card 2 (from Mastery level 22) is S.looks2
+const leStore = () => (le.slot === 2 ? (S.looks2 = obj(S.looks2)) : (S.looks = obj(S.looks)));
 Object.assign(LOOK_SRC, { you: "set by you" });
 function vGameCustom() {
-  const L = obj(S.looks), q = keyOf(le.q || "");
-  const ks = Object.keys(L).filter((k) => !card(k).unknown && (!q || keyOf(card(k).name).includes(q))).sort((a, b) => card(a).name.localeCompare(card(b).name));
+  const L = obj(S.looks), L2 = obj(S.looks2), q = keyOf(le.q || "");
+  const ks = [...new Set([...Object.keys(L), ...Object.keys(L2)])].filter((k) => !card(k).unknown && (!q || keyOf(card(k).name).includes(q))).sort((a, b) => card(a).name.localeCompare(card(b).name));
   const deckOf = (k) => S.decks.find((d) => d.status !== "retired" && d.cards.includes(k) && obj(d.variants)[k]) || null;
   const row = (k) => { const x = obj(L[k]), v = x.v ? variantAny(x.v) : null;
     return `<div class="li coll"><div class="collart" style="width:74px">${cardChip(k, { noOwn: true, size: "xs", v })}</div><div class="grow"><div class="t">${esc(card(k).name)}</div>
       ${[v ? `${v.name || "Variant"}${byArtist(v)}` : x.vname ? `${x.vname} variant` : "Base art", x.border ? `${x.border} border` : "", x.finish ? `${x.finish} finish` : "", x.flare ? `${x.flare} flare` : ""].filter(Boolean).map((t) => `<div class="s">${esc(t)}</div>`).join("")}
-      <div class="s">${esc(LOOK_SRC[x.src] || "")}${x.at ? ` · ${esc(agoTxt(x.at))}` : ""}</div></div>
-      <div class="collchk"><button class="btn sm" data-a="leOpen" data-k="${esc(k)}">Edit</button></div></div>`; };
+      <div class="s">${esc(LOOK_SRC[x.src] || "")}${x.at ? ` · ${esc(agoTxt(x.at))}` : ""}</div>
+      ${L2[k] ? `<div class="s"><b>Custom Card 2:</b> ${esc(lookText(L2[k]) || "")}</div>` : ""}</div>
+      <div class="collchk stack" style="gap:4px"><button class="btn sm" data-a="leOpen" data-k="${esc(k)}">${L2[k] ? "Edit 1" : "Edit"}</button>${L2[k] ? `<button class="btn sm" data-a="leOpen2" data-k="${esc(k)}">Edit 2</button>` : ""}</div></div>`; };
   // What opponents had on, newest first
   const seen = new Map();
   for (const m of realMatches().slice().sort((a, b) => b.ts - a.ts)) for (const [k, x] of Object.entries(obj(obj(m.opp).looks))) { const key = k + "|" + lookText(x); if (!seen.has(key) && seen.size < 40) seen.set(key, { k, x, who: m.oppName || "an opponent", ts: m.ts }); }
@@ -10813,15 +10976,18 @@ function vGameCustom() {
       <div class="row"><input type="search" id="le-q" data-le="q" value="${esc(le.q || "")}" placeholder="Find a card" style="flex:1"><button class="btn sm" data-a="leAdd">${ICON.plus} Add one</button></div></div>
     ${ks.length ? `<div class="list">${ks.slice(0, 300).map(row).join("")}</div>` : `<div class="empty"><strong>${q ? "No Custom Card for that card yet" : "No Custom Cards saved yet"}</strong><span>Open a card in the game and screenshot it, or play a match with Track & play on.</span></div>`}
     <span class="muted small">${fmt(Object.keys(L).length)} card${Object.keys(L).length === 1 ? "" : "s"} with a Custom Card saved.</span></section>
+    ${typeof masteryListHtml === "function" ? masteryListHtml() : ""}
     ${seen.size ? `<section class="sec"><details class="panel small"><summary><b>Opponents' Custom Cards</b> <span class="muted">(${seen.size})</span></summary><div class="list" style="margin-top:8px">${[...seen.values()].map((s) => `<div class="li coll"><div class="collart" style="width:74px">${cardChip(s.k, { noOwn: true, size: "xs" })}</div><div class="grow"><div class="t">${esc(card(s.k).name)}</div><div class="s">${esc(lookText(s.x))}</div><div class="s">${esc(s.who)} · ${esc(dayStr(s.ts))}</div></div></div>`).join("")}</div></details></section>` : ""}
     ${S.custom.length ? `<section class="sec"><details class="panel small"><summary><b>Cards you designed in SNAP Stat</b> <span class="muted">(${S.custom.length})</span></summary><div class="stack" style="margin-top:8px"><div class="cgrid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${S.custom.map((c) => `<div class="stack" style="align-items:center;gap:6px">${customCardHtml(c, true)}<button class="btn sm ghost" data-a="cdDel" data-id="${esc(c.id)}">Delete</button></div>`).join("")}</div><span class="muted">These were made with the old card designer. They still work in your decks and posts.</span></div></details></section>` : ""}`;
 }
 function leSheet() {
-  const k = le.k, c = card(k), x = obj(obj(S.looks)[k]);
+  const k = le.k, c = card(k), x = obj(leStore()[k]);
   if (!k) return `${sheetHead("Add a Custom Card")}<label class="f">Card<input type="text" id="le-card" list="le-cards" placeholder="Start typing a card" autocomplete="off"></label><datalist id="le-cards">${allCards().filter((y) => !y.unknown && !y.custom).map((y) => `<option value="${esc(y.name)}">`).join("")}</datalist><button class="btn snap" data-a="lePick">Next</button>`;
   const vs = allVariants().filter((v) => v.card === k && (v.owned || v.id === x.v || "cat:" + v.cat === x.v));
   const cur = x.v ? (variantAny(x.v) || {}).id : "";
-  return `${sheetHead(esc(c.name), "Your Custom Card in the game")}
+  const lv = typeof masteryOf === "function" ? masteryOf(k).level : 0;
+  return `${sheetHead(esc(c.name), le.slot === 2 ? "Custom Card 2 in the game" : "Your Custom Card in the game")}
+    <div class="seg"><button data-a="leSlot" data-v="1" aria-pressed="${le.slot !== 2}">Custom Card 1</button><button data-a="leSlot" data-v="2" aria-pressed="${le.slot === 2}">Custom Card 2${lv && lv < MASTERY_SLOT2 ? ` (lvl ${MASTERY_SLOT2})` : ""}</button></div>
     <div class="row" style="justify-content:center">${cardChip(k, { noOwn: true, v: x.v ? variantAny(x.v) : null })}</div>
     <label class="f">Variant<select id="le-v"><option value="">Base art${x.vname && !x.v ? ` (read as ${esc(x.vname)})` : ""}</option>${vs.map((v) => `<option value="${esc(v.virtual ? "cat:" + v.cat : v.id)}" ${v.id === cur ? "selected" : ""}>${esc((v.name || "Variant") + byArtist(v))}</option>`).join("")}</select></label>
     <label class="f">Border<input type="text" id="le-b" list="le-bl" value="${esc(x.border || "")}" placeholder="Standard"></label><datalist id="le-bl">${borderNames().map((n) => `<option value="${esc(n)}">`).join("")}</datalist>
@@ -10831,13 +10997,14 @@ function leSheet() {
     <div class="row"><button class="btn snap" data-a="leSave">Save</button>${x.at ? `<button class="btn danger" data-a="leClear">Remove</button>` : ""}</div>`;
 }
 Object.assign(A, {
-  leOpen: (el) => { le.k = el.dataset.k; openSheet(leSheet); },
-  leAdd: () => { le.k = ""; openSheet(leSheet); },
+  leOpen: (el) => { le.k = el.dataset.k; le.slot = 1; openSheet(leSheet); },
+  leAdd: () => { le.k = ""; le.slot = 1; openSheet(leSheet); },
+  leSlot: (el) => { le.slot = num(el.dataset.v) === 2 ? 2 : 1; refreshSheet(); },
   lePick: () => { const c = fuzzyCard(($("#le-card") || {}).value || ""); if (!c || c.unknown) { toast("Pick a card from the list"); return; } le.k = c.key; refreshSheet(); },
   leSave: () => { const k = le.k; if (!k) return; const v = $("#le-v").value; const vv = v ? variantAny(v) : null;
-    S.looks = obj(S.looks); S.looks[k] = { v, vname: vv ? vv.name || "" : "", border: $("#le-b").value.trim().slice(0, 40), finish: $("#le-fi").value.trim().slice(0, 40), flare: $("#le-fl").value.trim().slice(0, 40), at: Date.now(), src: "you" };
-    save(); closeSheet(); render(); toast("Custom Card saved"); },
-  leClear: () => { delete obj(S.looks)[le.k]; save(); closeSheet(); render(); toast("Removed"); },
+    leStore()[k] = { v, vname: vv ? vv.name || "" : "", border: $("#le-b").value.trim().slice(0, 40), finish: $("#le-fi").value.trim().slice(0, 40), flare: $("#le-fl").value.trim().slice(0, 40), at: Date.now(), src: "you" };
+    save(); closeSheet(); render(); toast(le.slot === 2 ? "Custom Card 2 saved" : "Custom Card saved"); },
+  leClear: () => { delete leStore()[le.k]; save(); closeSheet(); render(); toast("Removed"); },
 });
 document.addEventListener("input", (e) => { const t = e.target; if (t && t.dataset && t.dataset.le === "q") { le.q = t.value; const pos = t.selectionStart; render(); const n = $("#le-q"); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch { /* fine */ } } } });
 /* ============ Update everything: a guided sweep through the game, and how fresh each part is ============
@@ -11003,7 +11170,7 @@ function pcReadGame(text) {
   g.snapped = crm.IsStakesRaisedByPlayer === true || mine.StakesRaised === true || g.mySnapTurn > 0;
   g.oppSnapped = mine.StakesRaisedByOpponent === true || theirs.StakesRaised === true || g.oppSnapTurn > 0;
   g.drawnIds = arr(mine.CardDefIdsDrawn); g.playedIds = arr(mine.CardDefIdsPlayed);
-  const deck = obj(mine.Deck); g.deckName = String(deck.Name || "").slice(0, 60); g.deckIds = arr(deck.Cards).map((c) => pcId(obj(c).CardDefId)).filter(Boolean);
+  const deck = obj(mine.Deck); g.deckLooks = gameDeckLooks(deck); g.deckName = String(deck.Name || "").slice(0, 60); g.deckIds = arr(deck.Cards).map((c) => pcId(obj(c).CardDefId)).filter(Boolean);
   oppIds.push(...arr(theirs.CardsSeen).map((c) => obj(c).Item1), ...arr(theirs.CardDefIdsPlayed));
   // Final power per location: the board, or the result message's own numbers when the board isn't there
   const endDefs = arr(crm.LocationDefIdsAtEndOfGame).map(pcId), mr = arr(mine.LocationResults).map(obj), tr = arr(theirs.LocationResults).map(obj);
@@ -11035,6 +11202,8 @@ function pcLogGame(g, ts) {
   // The same game logged by hand is saved after it ends: a match from more than 5 minutes before this one ended is another game
   const twin = realMatches().find((x) => x.src !== "pc" && x.ts > ts - 5 * 60e3 && x.ts < ts + 20 * 60e3 && x.result === m.result && (!x.oppName || keyOf(x.oppName) === keyOf(m.oppName)));
   if (twin) { const keep = { id: twin.id, ts: twin.ts, notes: twin.notes, bot: twin.bot, tags: twin.tags }; m = { ...twin, ...m, ...Object.fromEntries(Object.entries(keep).filter(([, v]) => v !== undefined)) }; if (twin.deckId && !m.deckId) { m.deckId = twin.deckId; m.deckName = twin.deckName; } }
+  // The deck you played takes the card back and avatar the game had on it
+  const pd = m.deckId ? S.decks.find((x) => x.id === m.deckId) : null; if (pd && g.deckLooks) deckAutoLook(pd, g.deckLooks, "pc");
   putMatch(m); onMatchSaved(m); save();
   toast(`${twin ? "Added the PC details to your match" : "Match logged from PC"}: ${pcResultTxt(m)}`);
   return m;
@@ -12438,7 +12607,7 @@ function gsRow(r, i) {
 }
 function gsResultsHtml() {
   const q = String(gs.q || "").trim();
-  if (!q) return `<div class="list">${[["What's new in SNAP Stat", whatsNewUnseen() ? "New since you last looked" : "The latest changes", "whatsNewOpen"], ["Keyboard shortcuts", "Press ? any time", "shortcutsOpen"]].map(([l, s, a]) => `<button class="li" data-a="${a}"><div class="grow"><div class="t">${l}${a === "whatsNewOpen" && whatsNewUnseen() ? ' <i class="y18-dot inline" aria-hidden="true"></i>' : ""}</div><div class="s">${s}</div></div><span class="muted">›</span></button>`).join("")}</div>
+  if (!q) return `<div class="list">${[["What's new in SNAP Stat", whatsNewUnseen() ? "New since you last looked" : "The latest changes", "whatsNewOpen"], ["Report a bug", "Tell us what went wrong, with screenshots", "bugOpen"], ["Keyboard shortcuts", "Press ? any time", "shortcutsOpen"]].map(([l, s, a]) => `<button class="li" data-a="${a}"><div class="grow"><div class="t">${l}${a === "whatsNewOpen" && whatsNewUnseen() ? ' <i class="y18-dot inline" aria-hidden="true"></i>' : ""}</div><div class="s">${s}</div></div><span class="muted">›</span></button>`).join("")}</div>
     <p class="muted small">Try a card's name or something it does ("destroy"), a deck, a location, a season, a player you follow, or a page like "shops".</p>`;
   const rs = gsResults(q);
   if (!rs.length) return `<div class="empty"><strong>Nothing found for “${esc(q.slice(0, 40))}”</strong><span>Check the spelling, or try fewer letters.</span></div>`;
@@ -12541,30 +12710,19 @@ Object.assign(A, { lookText: (el) => { S.look = { ...obj(S.look), text: el.datas
 document.addEventListener("change", (e) => { const t = e.target; if (t && t.dataset && t.dataset.lookchk) { S.look = { ...obj(S.look), [t.dataset.lookchk]: t.checked }; if (!t.checked) delete S.look[t.dataset.lookchk]; save(); render(); } });
 
 /* ============ 5. What's new ============ */
-// Newest first. The build id is what tells the app you haven't seen the newest version yet.
-const CHANGELOG = [
-  { date: "2026-10-30", title: "Search everything", body: "Tap the magnifier at the top (or press / on a keyboard) to find any card, deck, location, season, event, player you follow or page in the app." },
-  { date: "2026-10-30", title: "Home your way", body: "Settings › App lets you switch Home panels off, pick two new colors (pink and teal), turn on a true-black dark mode and make the text smaller or larger." },
-  { date: "2026-10-30", title: "Reminders", body: "Choose reminders for the last days of a season, a new season, events that end tomorrow, your daily checklist, the Tuesday Spotlight change and the end of the alliance week (Settings › App › Reminders, with notifications on)." },
-  { date: "2026-10-30", title: "Your last match on Home", body: "Under Match stats, the match you just logged, with Edit, and Undo for 10 minutes in case you logged it by mistake." },
-  { date: "2026-10-30", title: "Deck tools", body: "Each deck has new Plan, Trend and Matchups tabs: its energy curve, gameplan notes, how to get the cards you're missing, its win rate over time and how it does against each kind of deck. Pin and sort decks in the list." },
-  { date: "2026-10-30", title: "Cards › Plan", body: "One page for what to do next with your collection: upgrades you can afford, credits to your next Collection Level reward, missing Series 4 and 5 cards, splits, albums close to a reward and a month-by-month chart. Home also shows one of your Custom Cards each day." },
-  { date: "2026-10-30", title: "More stats", body: "Home › Stats shows your best hours and days to play, streaks, rivals, deck vs deck, a report card and personal bests. Home can warn you when you're on tilt and track a daily cube goal." },
-  { date: "2026-10-30", title: "Match helper", body: "While you track a match live: energy and snap hints, retreat math, draw odds for every card left in your deck and warnings from the cards they've played. Add tags when you log a match." },
-  { date: "2026-10-30", title: "Game knowledge", body: "Cards › Glossary explains the game's words, plus tips for each location, an Infinite calculator and the next card releases." },
-  { date: "2026-10-30", title: "Friends and alliance", body: "A picture of your week to share, comparing yourself with a friend, a friends board for the week, feed filters, private notes on players and decks that fit each alliance bounty." },
-  { date: "2026-10-30", title: "PC tracker", body: "If you play MARVEL SNAP on a PC, SNAP Stat (in Chrome or Edge on that computer) can follow your games from the game's own files: decks, results and cubes, with no screenshots. Set it up in Settings › Import & backup." },
-  { date: "2026-10-30", title: "Your MARVEL SNAP history", body: "Asked Second Dinner for a copy of your data? Add it in Settings › Import & backup to see when you first reached Infinite, finished each season pass and more. Only those milestones are read." },
-  { date: "2026-10-30", title: "Offline and saving", body: "A bar shows when you're offline, the top bar says when your changes are saved, and Settings › Data files shows how fresh the card list and schedule are." },
-];
+// The list itself is CHANGES (b4_changes.js). The build id is what tells the app you haven't seen the newest version yet.
 function whatsNewUnseen() { return !!BUILD && obj(S.whatsNew).seenBuild !== BUILD; }
 function whatsNewSheet() {
+  const kinds = { new: ["New", "gold"], better: ["Better", ""], fixed: ["Fixed", "W"], removed: ["Removed", "dim"] };
+  const days = []; for (const c of CHANGES.slice(0, 60)) { const d = days.find((x) => x.date === c.date); if (d) d.items.push(c); else days.push({ date: c.date, items: [c] }); }
   return `${sheetHead("What's new in SNAP Stat", BUILD ? `Version ${esc(BUILD.slice(0, 7))}` : "")}
-    <div class="list">${CHANGELOG.slice(0, 30).map((c) => `<div class="li" style="align-items:flex-start"><div class="grow" style="white-space:normal"><div class="t" style="white-space:normal">${esc(c.title)}</div><div class="s" style="white-space:normal">${esc(c.body)}</div><div class="muted small" style="margin-top:4px">${esc(dateStr(c.date))}</div></div></div>`).join("")}</div>
-    <button class="btn snap block" data-a="close">Done</button>`;
+    ${days.map((d) => `<h3 class="eyebrow" style="margin:14px 0 6px">${esc(dateStr(d.date))}</h3><div class="list">${d.items.map((c) => { const [kl, kc] = kinds[c.kind] || kinds.new;
+      return `<${c.where ? `button class="li" data-a="whatsNewGo" data-to="${esc(c.where)}"` : `div class="li"`} style="align-items:flex-start"><div class="grow" style="white-space:normal"><div class="t" style="white-space:normal">${esc(c.title)} <span class="pill ${kc}">${kl}</span></div><div class="s" style="white-space:normal">${esc(c.body)}</div></div>${c.where ? '<span class="muted">›</span></button>' : "</div>"}`; }).join("")}</div>`).join("")}
+    <div class="row" style="margin-top:12px"><button class="btn snap" data-a="close">Done</button><button class="btn ghost" data-a="bugOpen">Report a bug</button></div>`;
 }
 Object.assign(A, {
   whatsNewOpen: () => { const was = whatsNewUnseen(); if (BUILD) { S.whatsNew = { seenBuild: BUILD }; save(); } openSheet(whatsNewSheet); if (was) render(); },
+  whatsNewGo: (el) => { closeSheet(); go(el.dataset.to); },
 });
 function aboutAppHtml() {
   return `<section class="sec"><h2>About the app</h2><div class="panel stack small">
@@ -13738,7 +13896,7 @@ async function trkHealthLoad() {
     // Seconds from a match's picture being taken to SNAP Stat logging it. An old screenshot shared days later isn't counted.
     const lagOf = (recs) => recs.filter((r) => r.kind === "match" && r.matchId && num(r.taken) > 0 && num(r.at) > num(r.taken) && num(r.at) - num(r.taken) < 12 * 3600e3).map((r) => (num(r.at) - num(r.taken)) / 1000);
     let lags = lagOf(td), scope = "today"; if (!lags.length) { lags = lagOf(list.slice(0, 40)); scope = "recent"; }
-    trkHealth.data = { read: td.length, failed: td.filter(rvFailed).length, lagN: lags.length, avg: lags.length ? lags.reduce((a, b) => a + b, 0) / lags.length : 0, scope, ss: trkStartStop() };
+    trkHealth.data = { read: td.length, failed: td.filter(rvFailed).length, why: typeof rvWhyCounts === "function" ? rvWhyCounts(td.filter(rvFailed)) : [], lagN: lags.length, avg: lags.length ? lags.reduce((a, b) => a + b, 0) / lags.length : 0, scope, ss: trkStartStop() };
   } catch { trkHealth.data = { read: 0, failed: 0, lagN: 0, avg: 0, scope: "today", ss: trkStartStop(), err: true }; }
   trkHealth.at = Date.now(); trkHealth.loading = false;
   if (ui.tab === "settings") refreshView();
@@ -13753,6 +13911,7 @@ function trackerHealthHtml() {
     : ss.stoppedAt ? `Last stopped ${when(ss.stoppedAt)}${ss.startedAt ? `, after starting ${when(ss.startedAt)}` : ""}.` : ss.startedAt ? `Last started ${when(ss.startedAt)}.` : "The tracker hasn't been started on this phone yet.";
   return `<div class="panel stack small trkhealth"><div class="row between"><b>Tracker health</b>${d && !d.err ? `<span class="pill ${d.failed ? "warn" : "W"}">${d.failed ? `${d.failed} couldn't be read` : "All good"}</span>` : ""}</div>
     <div class="tiles"><div class="tile"><div class="k">Pictures read today</div><div class="v num">${d ? fmt(d.read) : "…"}</div></div><div class="tile"><div class="k">Couldn't be read</div><div class="v num ${d && d.failed ? "neg" : ""}">${d ? fmt(d.failed) : "…"}</div></div></div>
+    ${d && d.failed && arr(d.why).length ? `<div class="stack" style="gap:2px"><b class="small">Why they couldn't be read</b>${arr(d.why).map(([w, n]) => `<span class="small">${n} · ${esc(w)}</span>`).join("")}<div class="row" style="margin-top:4px"><button class="btn sm" data-a="rvFailedOpen">See them</button>${canReadShots() ? `<button class="btn sm" data-a="rvRetryFailed">Read them again</button>` : ""}</div></div>` : ""}
     <span>${!d ? "Checking the review log…" : d.lagN ? `Matches are logged about <b>${secsTxt(d.avg)}</b> after their picture is taken${d.scope === "today" ? "" : " (from your last matches)"}. That's the wait until you open SNAP Stat plus the AI's reading time.` : "No matches have been logged from pictures yet, so there's no timing to show."}</span>
     <span>${aiStatusText()}</span>
     <span class="muted">${startStop}</span>
@@ -14217,7 +14376,7 @@ function histHtml() {
   const seasonOf = (k) => seasons().find((s) => s.start && s.start.slice(0, 7) === k);
   // Every month from the first season in the history to now: finished (50), halfway (25) or no record
   const months = []; if (keys.length) { let [y, m] = keys[0].split("-").map(Number); const end = new Date(); while (y < end.getUTCFullYear() || (y === end.getUTCFullYear() && m <= end.getUTCMonth() + 1)) { months.push(`${y}-${String(m).padStart(2, "0")}`); m++; if (m > 12) { m = 1; y++; } if (months.length > 120) break; } }
-  const cell = (k) => { const p = P[k] || ["", ""], s = seasonOf(k), st = p[1] ? "W" : p[0] ? "warn" : "dim"; return `<span class="pill ${st}" title="${esc((s ? s.name + " · " : "") + (p[1] ? "level 50 on " + dateStr(p[1]) : p[0] ? "level 25 on " + dateStr(p[0]) : "no record"))}">${esc(monthLbl(k))}</span>`; };
+  const cell = (k) => { const p = P[k] || ["", ""], s = seasonOf(k), st = p[1] ? "W" : p[0] ? "warn" : "dim"; return `<button class="pill ${st} hist-m" data-a="histMonth" data-k="${esc(k)}" aria-label="${esc(monthLbl(k) + ": " + (s ? s.name + ", " : "") + (p[1] ? "level 50 on " + dateStr(p[1]) : p[0] ? "level 25 on " + dateStr(p[0]) : "no record"))}">${esc(monthLbl(k))}</button>`; };
   const tiles = [
     H.since ? [dateStr(H.since), years >= 1 ? `playing for ${years} year${years === 1 ? "" : "s"}` : "when you started"] : null,
     [fmt(done.length), `season pass${done.length === 1 ? "" : "es"} finished`],
@@ -14229,24 +14388,29 @@ function histHtml() {
   const top = arr(H.top).filter((k) => !card(k).unknown);
   return `<section class="sec"><div class="sec-h"><h2>Your SNAP history</h2><span class="muted small">from your data copy</span></div>
     <div class="tiles">${tiles.map(([v, k]) => `<div class="tile"><div class="v num">${esc(v)}</div><div class="k">${k}</div></div>`).join("")}</div>
-    ${months.length ? `<div class="panel stack small"><span class="eyebrow">Season passes</span><div class="chiplist">${months.map(cell).join("")}</div><span class="muted">Green: level 50 · yellow: level 25 · grey: no record. Tap and hold a month for its date.</span></div>` : ""}
+    ${months.length ? `<div class="panel stack small"><span class="eyebrow">Season passes</span><div class="chiplist">${months.map(cell).join("")}</div><span class="muted">Green: level 50 · yellow: level 25 · grey: no record. Tap a month to see everything from it.</span></div>` : ""}
     ${top.length ? `<div class="panel stack small"><span class="eyebrow">The game's list of your top cards</span><div class="chiplist">${top.map((k) => cardChip(k, { noOwn: true, size: "xs" })).join("")}</div></div>` : ""}
     ${F.split ? `<p class="muted small">First Infinity Split: ${esc(dateStr(F.split))}.${F.eightCube ? ` First 8-cube win: ${esc(dateStr(F.eightCube))}.` : ""}</p>` : ""}</section>`;
 }
 EXT.profile.push(histHtml);
 EXT.search.push((q) => (/histor|data copy|data request|braze|since/i.test(q) ? [{ label: "Your MARVEL SNAP history", sub: "Settings › Import & backup", route: "settings/data" }] : []));
 /* ============ Swipe between a tab's sections: the page follows your finger ============
-   Drag sideways and the page slides with you while the section you're heading to slides in beside it.
-   Let go past about a third of the way (or flick) and it finishes; otherwise it springs back.
-   After the last section the next one is the first again; before the first there's nothing, so it just stretches a little.
-   Rows that scroll sideways, fields and open sheets keep their own swipes (swipeBlocked in x_nav.js). */
+   Drag sideways anywhere on the page (the top bar, the cards, the empty space, the tab bar) and the page slides
+   with you while the section you're heading to slides in beside it. Let go past about a third of the way (or flick)
+   and it finishes; otherwise it springs back. The sections go round in a loop both ways.
+   A row that scrolls sideways keeps the swipe until it reaches its end; then the page takes over.
+   Never stuck: the page isn't redrawn under your finger, the gesture is followed even if the thing you touched
+   disappears, and anything half-way is put back the moment you touch again, go Back or leave the app. */
 EXT.styles.push(`
+html:not(.zoomed) body { touch-action: pan-y pinch-zoom; }
 html.swiping { overflow-x: clip; }
 .view-peek { position: fixed; z-index: 1; display: flex; flex-direction: column; gap: 22px; padding-block: 18px 12px; pointer-events: none; will-change: transform; }
 html.swiping #view { will-change: transform; }`);
 
 const SWIPE_SLOP = 12;
-const swipe = { st: "", sx: 0, sy: 0, ox: 0, lx: 0, lt: 0, vx: 0, dir: 0, key: "", tab: "", peek: null, geo: null, busy: false, cache: {} };
+var swipe = { st: "", sx: 0, sy: 0, ox: 0, lx: 0, lt: 0, vx: 0, dir: 0, key: "", tab: "", peek: null, geo: null, busy: false, cache: {}, target: null, last: 0, timer: 0 };
+// render() waits while a finger is dragging the page or it's sliding into place (see i_actions.js)
+function swipeHolding() { return !!(swipe && (swipe.st === "drag" || swipe.busy)); }
 
 // The next section's page, drawn exactly as it will look, without changing where you are
 function swipePeekHtml(key) {
@@ -14256,7 +14420,16 @@ function swipePeekHtml(key) {
   catch (e) { console.error("swipe preview", e); return tabHead(ui.tab); }
   finally { ui[n.key] = old; ui.more = more; }
 }
-function swipeDropPeek() { if (swipe.peek) swipe.peek.remove(); swipe.peek = null; swipe.key = ""; }
+function swipeDropPeek() { document.querySelectorAll(".view-peek").forEach((p) => p.remove()); swipe.peek = null; swipe.key = ""; }
+// Puts everything back where it belongs: no slide, no preview, nothing waiting
+function swipeReset() {
+  clearTimeout(swipe.timer);
+  const v = $("#view"); if (v) { v.style.transition = ""; v.style.transform = ""; }
+  swipeDropPeek(); document.documentElement.classList.remove("swiping");
+  swipeUnlisten();
+  Object.assign(swipe, { st: "", busy: false, dir: 0, cache: {}, target: null });
+  if (typeof flushPendingRender === "function") setTimeout(flushPendingRender, 0);
+}
 // Puts the section on the side you're dragging toward next to the page (nothing if there isn't one that way)
 function swipePeek(dir) {
   swipeDropPeek(); swipe.dir = dir;
@@ -14283,6 +14456,12 @@ function swipeLock(dx) {
   swipe.st = "drag"; swipe.tab = ui.tab; swipe.cache = {}; swipe.ox = dx > 0 ? SWIPE_SLOP : -SWIPE_SLOP;
   document.documentElement.classList.add("swiping");
   swipePeek(dx < 0 ? 1 : -1);
+  swipeWatch();
+}
+// If the finger's gone quiet for a few seconds mid-drag (the phone ate the "let go"), the page springs back by itself
+function swipeWatch() {
+  clearTimeout(swipe.timer);
+  swipe.timer = setTimeout(() => { if (swipe.st === "drag" && !swipe.busy) { swipeEnd(0, true); swipe.st = ""; } }, 4000);
 }
 function swipeMove(dx) {
   const want = dx < 0 ? 1 : -1;
@@ -14293,64 +14472,784 @@ function swipeMove(dx) {
   swipe.peek.style.transform = `translateX(${swipe.dir * swipe.geo.D + dx}px)`;
 }
 function swipeEnd(dx, cancelled) {
-  const v = $("#view"), p = swipe.peek, D = swipe.geo.D;
+  const v = $("#view"), p = swipe.peek, D = swipe.geo ? swipe.geo.D : window.innerWidth;
   const flick = Math.abs(swipe.vx) > 0.45 && -Math.sign(swipe.vx) === swipe.dir && Math.abs(dx) > 30;
   const done = !cancelled && p && ui.tab === swipe.tab && -Math.sign(dx) === swipe.dir && (Math.abs(dx) > D * 0.3 || flick);
   const left = done ? D - Math.abs(dx) : Math.abs(dx), ms = Math.round(Math.max(120, Math.min(260, left * 0.7)));
   const ease = `transform ${ms}ms cubic-bezier(.2,.75,.3,1)`;
-  swipe.busy = true;
+  swipe.busy = true; swipeUnlisten(); clearTimeout(swipe.timer);
   v.style.transition = ease; v.style.transform = done ? `translateX(${-swipe.dir * D}px)` : "";
   if (p) { p.style.transition = ease; p.style.transform = done ? "translateX(0)" : `translateX(${swipe.dir * D}px)`; }
   const to = done ? `${ui.tab}/${swipe.key}` : "";
-  setTimeout(() => {
+  swipe.timer = setTimeout(() => {
     // All in one go, before the screen redraws: the real section replaces the preview right where it was
-    v.style.transition = ""; v.style.transform = "";
-    swipeDropPeek(); document.documentElement.classList.remove("swiping");
-    swipe.busy = false; swipe.dir = 0; swipe.cache = {};
+    swipeReset();
     if (!to) return;
     try { history.pushState(null, "", "#" + to); route(); } catch { go(to); } // Back still returns to the section you came from
   }, ms + 20);
 }
 
+/* ---------- Following the finger ---------- */
+function swipeOnMove(e) {
+  if (e._swiped) return; e._swiped = true;
+  if (!swipe.st || swipe.busy) return;
+  swipe.last = Date.now();
+  const t = e.touches[0];
+  if (e.touches.length !== 1 || !t) { if (swipe.st === "drag") swipeEnd(0, true); swipe.st = ""; return; }
+  const dx = t.clientX - swipe.sx, dy = t.clientY - swipe.sy;
+  if (swipe.st === "wait") {
+    if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) { swipe.st = ""; swipeUnlisten(); return; } // scrolling up or down
+    if (Math.abs(dx) < SWIPE_SLOP || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    if (!e.cancelable || swipeBlocked(swipe.target, dx)) { swipe.st = ""; swipeUnlisten(); return; } // a row that scrolls sideways, or the page already scrolling
+    swipeLock(dx);
+  }
+  e.preventDefault();
+  swipeWatch();
+  const dt = e.timeStamp - swipe.lt;
+  if (dt > 0) swipe.vx = 0.7 * ((t.clientX - swipe.lx) / dt) + 0.3 * swipe.vx;
+  swipe.lx = t.clientX; swipe.lt = e.timeStamp;
+  swipeMove(dx - swipe.ox);
+}
+function swipeOnEnd(e) {
+  if (e._swiped) return; e._swiped = true;
+  if (swipe.st === "drag" && !swipe.busy) {
+    const t = e.changedTouches && e.changedTouches[0];
+    if (e.timeStamp - swipe.lt > 100) swipe.vx = 0; // held still before letting go: not a flick
+    swipeEnd(t ? t.clientX - swipe.sx - swipe.ox : 0, e.type === "touchcancel");
+  }
+  swipe.st = ""; swipeUnlisten();
+}
+// The touched element hears its own touch even if the page is redrawn and it's taken off the screen mid-swipe
+function swipeListen(el) {
+  swipeUnlisten(); if (!el || !el.addEventListener) return;
+  swipe.target = el;
+  el.addEventListener("touchmove", swipeOnMove, { passive: false });
+  el.addEventListener("touchend", swipeOnEnd, { passive: true });
+  el.addEventListener("touchcancel", swipeOnEnd, { passive: true });
+}
+function swipeUnlisten() {
+  const el = swipe.target; if (!el || !el.removeEventListener) return;
+  el.removeEventListener("touchmove", swipeOnMove, { passive: false });
+  el.removeEventListener("touchend", swipeOnEnd, { passive: true });
+  el.removeEventListener("touchcancel", swipeOnEnd, { passive: true });
+}
+function swipeStartsHere(el) {
+  if (!el || !el.closest) return false;
+  const sh = $("#sheet");
+  if (sh && !sh.hidden) return false;
+  if (window.__overlay || document.documentElement.classList.contains("zoomed")) return false;
+  return !el.closest("#sheet, #toast, .view-peek, dialog, .err-toast");
+}
+
 (() => {
-  const host = document.getElementById("view") || document;
-  host.addEventListener("touchstart", (e) => {
+  document.addEventListener("touchstart", (e) => {
     if (swipe.busy) return;
+    // A touch while something is still half-way (a lost "let go") puts the page straight back first
+    const v = $("#view");
+    if (swipe.st === "drag" || (v && v.style.transform) || document.querySelector(".view-peek")) swipeReset();
     swipe.st = "";
-    const sh = $("#sheet");
-    if (e.touches.length !== 1 || (sh && !sh.hidden) || !e.target.closest || !e.target.closest("#view") || swipeBlocked(e.target)) return;
+    if (e.touches.length !== 1 || !swipeStartsHere(e.target)) return;
     const n = NAV[ui.tab]; if (!n || !n.subs) return;
     const t = e.touches[0];
-    Object.assign(swipe, { st: "wait", sx: t.clientX, sy: t.clientY, lx: t.clientX, lt: e.timeStamp, vx: 0 });
-  }, { passive: true });
-  host.addEventListener("touchmove", (e) => {
-    if (!swipe.st || swipe.busy) return;
-    const t = e.touches[0];
-    if (e.touches.length !== 1 || !t) { if (swipe.st === "drag") swipeEnd(0, true); swipe.st = ""; return; }
-    const dx = t.clientX - swipe.sx, dy = t.clientY - swipe.sy;
-    if (swipe.st === "wait") {
-      if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) { swipe.st = ""; return; } // scrolling up or down
-      if (Math.abs(dx) < SWIPE_SLOP || Math.abs(dx) < Math.abs(dy) * 1.4) return;
-      if (!e.cancelable) { swipe.st = ""; return; } // the page is already scrolling
-      swipeLock(dx);
-    }
-    e.preventDefault();
-    const dt = e.timeStamp - swipe.lt;
-    if (dt > 0) swipe.vx = 0.7 * ((t.clientX - swipe.lx) / dt) + 0.3 * swipe.vx;
-    swipe.lx = t.clientX; swipe.lt = e.timeStamp;
-    swipeMove(dx - swipe.ox);
-  }, { passive: false });
-  const end = (e) => {
-    if (swipe.st === "drag" && !swipe.busy) {
-      const t = e.changedTouches && e.changedTouches[0];
-      if (e.timeStamp - swipe.lt > 100) swipe.vx = 0; // held still before letting go: not a flick
-      swipeEnd(t ? t.clientX - swipe.sx - swipe.ox : 0, e.type === "touchcancel");
-    }
-    swipe.st = "";
-  };
-  host.addEventListener("touchend", end, { passive: true });
-  host.addEventListener("touchcancel", end, { passive: true });
+    Object.assign(swipe, { st: "wait", sx: t.clientX, sy: t.clientY, lx: t.clientX, lt: e.timeStamp, vx: 0, last: Date.now() });
+    swipeListen(e.target);
+  }, { passive: true, capture: true });
+  // Kept on the whole page too: it keeps the browser asking before it scrolls, and catches anything the touched element missed
+  document.addEventListener("touchmove", swipeOnMove, { passive: false });
+  document.addEventListener("touchend", swipeOnEnd, { passive: true });
+  document.addEventListener("touchcancel", swipeOnEnd, { passive: true });
+  // Going Back, switching apps or turning the phone never leaves a page half-way
+  window.addEventListener("popstate", () => { if (!swipe.busy) swipeReset(); });
+  window.addEventListener("hashchange", () => { if (!swipe.busy) swipeReset(); }, true);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") swipeReset(); });
+  window.addEventListener("resize", () => { if (swipe.st === "drag") swipeReset(); });
+  // Zoomed in with two fingers: sideways moves pan the page, not the sections
+  const vv = window.visualViewport;
+  if (vv) vv.addEventListener("resize", () => document.documentElement.classList.toggle("zoomed", vv.scale > 1.05));
 })();
+/* ============ Report a bug (everyone) ============
+   Settings › About › Report a bug, the search window, the foot of every Settings page and the red problem bar open it.
+   A report has an ID (BUG-261031-K7QZ), what you wrote, up to 4 screenshots or small text files, the page you were on,
+   your player name and account, this device (phone/tablet/computer, Android app or website, OS, model, browser, screen),
+   the app version and the app's recent problems. It's saved in Firestore (bugs/{id}, pictures in bugs/{id}/files/{n});
+   only the app owner can read them all (Settings › App owner), and you can see the status of your own.
+   Not signed in: it waits on this device and is sent once you sign in (or Copy report sends it another way). */
+const BUG_KINDS = [["broke", "Something broke"], ["wrong", "Wrong info"], ["looks", "Looks wrong"], ["idea", "Idea"]];
+const BUG_MAX_FILES = 4, BUG_QUEUE = "snapstat.bugQueue";
+const bug = { kind: "broke", text: "", files: [], log: false, errs: true, change: "", sending: false, sent: "", queued: false };
+
+function bugDeviceId() {
+  try { let d = localStorage.getItem("snapstat.deviceId"); if (!d) { d = "d-" + Math.random().toString(36).slice(2, 8); localStorage.setItem("snapstat.deviceId", d); } return d; }
+  catch { return "d-unknown"; }
+}
+function bugNewId() {
+  const d = new Date(), p = (n) => String(n).padStart(2, "0"), ab = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let r = ""; for (let i = 0; i < 4; i++) r += ab[Math.floor(Math.random() * ab.length)];
+  return `BUG-${String(d.getUTCFullYear()).slice(2)}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}-${r}`;
+}
+// The page you're on, in words ("Settings › Android") and as its address
+function bugWhere() {
+  const n = obj(NAV[ui.tab]), sub = n.subs ? (n.subs().find(([k]) => k === ui[n.key]) || [])[1] : "";
+  return { route: location.hash.slice(1) || ui.tab || "home", label: [n.title, String(sub || "").replace(/\s*[●(].*$/, "")].filter(Boolean).join(" › ") || "SNAP Stat" };
+}
+// What kind of device this is, without anything personal
+function bugDevice() {
+  const ua = navigator.userAgent || "", info = NATIVE ? natInfo() : {}, m = (re) => (re.exec(ua) || [])[1] || "";
+  const os = info.android ? `Android ${info.android}` : m(/Android ([\d.]+)/) ? `Android ${m(/Android ([\d.]+)/)}` : /iPhone|iPad|iPod/.test(ua) ? `iOS ${m(/OS ([\d_]+)/).replace(/_/g, ".")}`
+    : /Windows NT/.test(ua) ? "Windows" : /Mac OS X/.test(ua) ? "Mac" : /CrOS/.test(ua) ? "ChromeOS" : /Linux/.test(ua) ? "Linux" : "Unknown";
+  const model = String(info.model || m(/Android [\d.]+; ([^;)]+?)(?: Build[^;)]*)?\)/)).replace(/^K$/, "").trim();
+  const browser = /EdgA?\//.test(ua) ? `Edge ${m(/EdgA?\/(\d+)/)}` : /SamsungBrowser/.test(ua) ? `Samsung Internet ${m(/SamsungBrowser\/(\d+)/)}` : /Firefox\//.test(ua) ? `Firefox ${m(/Firefox\/(\d+)/)}`
+    : /Chrome\//.test(ua) ? `Chrome ${m(/Chrome\/(\d+)/)}` : /Safari\//.test(ua) ? `Safari ${m(/Version\/([\d.]+)/)}` : "Other";
+  let standalone = false; try { standalone = matchMedia("(display-mode: standalone)").matches; } catch { /* old browser */ }
+  const small = Math.min(screen.width || 0, screen.height || 0);
+  const kind = /Mobi|Android|iPhone|iPad/.test(ua) ? (/iPad|Tablet/.test(ua) || (!/Mobi/.test(ua) && /Android/.test(ua)) || small >= 600 ? "Tablet" : "Phone") : "Computer";
+  return { app: NATIVE ? "Android app" : standalone ? "Installed web app" : "Website", appVer: NATIVE ? String(info.version || "") : "", kind, os, model, browser,
+    screen: `${screen.width}×${screen.height}`, view: `${innerWidth}×${innerHeight}`, dpr: Math.round((devicePixelRatio || 1) * 100) / 100, lang: navigator.language || "", id: bugDeviceId() };
+}
+const bugDeviceLine = (d) => [d.app + (d.appVer ? " " + d.appVer : ""), d.kind, [d.os, d.model].filter(Boolean).join(" "), d.browser].filter(Boolean).join(" · ");
+
+// Pictures are made smaller (most screenshots end up 100-300 KB); small text files go as they are
+function bugShrink(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const go = (max, q) => { const sc = Math.min(1, max / Math.max(img.width, img.height)), cv = document.createElement("canvas");
+        cv.width = Math.round(img.width * sc); cv.height = Math.round(img.height * sc); cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); return cv.toDataURL("image/jpeg", q); };
+      let d = go(1600, 0.72); if (d.length > 900000) d = go(1200, 0.6); if (d.length > 900000) d = go(900, 0.5);
+      URL.revokeObjectURL(url); res(d);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("That picture couldn't be opened")); };
+    img.src = url;
+  });
+}
+const bugReadText = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(file); });
+async function bugAddFiles(list) {
+  for (const f of Array.from(list || [])) {
+    if (bug.files.length >= BUG_MAX_FILES) { toast(`Up to ${BUG_MAX_FILES} files`); break; }
+    try {
+      if (/^image\//.test(f.type)) bug.files.push({ name: f.name.replace(/\.[^.]+$/, "") + ".jpg", type: "image/jpeg", data: await bugShrink(f) });
+      else if (f.size <= 300000) bug.files.push({ name: f.name, type: f.type || "text/plain", data: await bugReadText(f) });
+      else toast(`${f.name} is too big. Add screenshots or small text files.`);
+    } catch (e) { toast(errText(e)); }
+  }
+  refreshSheet();
+}
+
+/* ---------- The report itself ---------- */
+function bugBuild() {
+  const w = bugWhere(), text = bug.text.trim().slice(0, 4000);
+  let log = ""; if (bug.log && natCan("log")) { try { log = String(NATIVE.log() || "").split("\n").slice(-80).join("\n").slice(-12000); } catch { /* old app */ } }
+  return { id: bugNewId(), by: store.uid || "", handle: String(S.me.handle || "").slice(0, 40), account: SLOT ? currentAccountName() : "Main account", kind: bug.kind, text,
+    title: text.split("\n")[0].slice(0, 90), where: w.label, route: w.route.slice(0, 80), change: bug.change || "", build: BUILD || "", device: bugDevice(),
+    errors: bug.errs ? ERRLOG.slice(0, 15).map((e) => ({ at: e.at, where: e.where, msg: e.msg, stack: String(e.stack || "").slice(0, 500) })) : [], log,
+    files: bug.files.length, fileNames: bug.files.map((f) => f.name.slice(0, 80)), at: Date.now(), status: "new" };
+}
+function bugText(r) {
+  return `SNAP Stat bug report ${r.id}\n${BUG_KINDS.find(([k]) => k === r.kind)?.[1] || r.kind} · ${r.where}\n${bugDeviceLine(r.device)} · build ${String(r.build).slice(0, 7)}\n\n${r.text}${r.errors.length ? `\n\nRecent problems:\n${r.errors.map((e) => `- ${e.where}: ${e.msg}`).join("\n")}` : ""}`;
+}
+async function bugUpload(r, files) {
+  await store.db.doc("bugs/" + r.id).set(clone({ ...r, by: store.uid, handle: String(S.me.handle || r.handle || "").slice(0, 40) }));
+  for (let i = 0; i < files.length; i++) await store.db.doc(`bugs/${r.id}/files/${i}`).set({ n: i, name: files[i].name, type: files[i].type, data: files[i].data, by: store.uid });
+  S.myBugs = [{ id: r.id, at: r.at, title: r.title, status: "new" }, ...arr(S.myBugs).filter((x) => x.id !== r.id)].slice(0, 40); save();
+}
+function bugQueue() { try { return arr(JSON.parse(localStorage.getItem(BUG_QUEUE) || "[]")); } catch { return []; } }
+function bugQueueSet(q) {
+  try { localStorage.setItem(BUG_QUEUE, JSON.stringify(q)); return true; }
+  catch { try { localStorage.setItem(BUG_QUEUE, JSON.stringify(q.map((x) => ({ ...x, files: [] })))); toast("The pictures were too big to keep on this device; the words are saved."); return true; } catch { return false; } }
+}
+let _bugFlushing = false;
+async function bugFlush() {
+  if (_bugFlushing || store.mode !== "cloud" || !store.db || !store.uid) return;
+  const q = bugQueue(); if (!q.length) return;
+  _bugFlushing = true;
+  try { while (q.length) { const x = q[0]; await bugUpload(x.r, arr(x.files)); q.shift(); bugQueueSet(q); toast(`Report ${x.r.id} sent`); } }
+  catch (e) { errNote("sending a saved bug report", e, true); }
+  finally { _bugFlushing = false; }
+}
+setInterval(() => { try { bugFlush(); } catch { /* try later */ } }, 30000);
+EXT.afterRender.push(function bugFlushSoon() { if (store.mode === "cloud" && bugQueue().length && !_bugFlushing) setTimeout(bugFlush, 2000); });
+
+/* ---------- The window ---------- */
+function bugSheet() {
+  if (bug.sent) return `${sheetHead(bug.queued ? "Saved on this device" : "Thanks! It's sent", "")}<div class="panel stack small">
+      <p>Your report number is <b class="num">${esc(bug.sent)}</b>.${bug.queued ? " It'll be sent by itself once you sign in." : " You can see when it's fixed in Settings › About › Your reports."}</p>
+      <div class="row"><button class="btn" data-a="bugCopyId">${ICON.copy} Copy number</button><button class="btn snap" data-a="bugDone">Done</button></div></div>`;
+  const dev = bugDevice(), w = bugWhere(), ch = bug.change ? CHANGES.find((c) => c.id === bug.change) : null;
+  return `${sheetHead("Report a bug", "Say what went wrong and add screenshots. It really helps.")}
+    <div class="stack">
+      <div class="chips">${BUG_KINDS.map(([k, l]) => `<button class="chip" data-a="bugKind" data-k="${k}" aria-pressed="${bug.kind === k}">${l}</button>`).join("")}</div>
+      ${ch ? `<div class="note">About the update: <b>${esc(ch.title)}</b></div>` : ""}
+      <label class="f"><span>What happened?</span><textarea id="bug-text" rows="6" maxlength="4000" data-bugtext placeholder="What did you tap, what did you expect, and what happened instead?">${esc(bug.text)}</textarea></label>
+      ${bug.files.length ? `<div class="bug-files">${bug.files.map((f, i) => `<div class="bug-file">${/^image\//.test(f.type) ? `<img src="${f.data}" alt="">` : `<span class="small">${esc(f.name)}</span>`}<button class="x" data-a="bugDropFile" data-i="${i}" aria-label="Remove ${esc(f.name)}">${ICON.x}</button></div>`).join("")}</div>` : ""}
+      ${bug.files.length < BUG_MAX_FILES ? `<label class="btn">${ICON.plus} Add screenshots or files<input type="file" accept="image/*,.txt,.log,.json,.csv" multiple hidden data-bugfile></label>` : ""}
+      ${NATIVE ? `<label class="check"><input type="checkbox" data-bugchk="log" ${bug.log ? "checked" : ""}> Add what the match tracker saw (its log)</label>` : ""}
+      <label class="check"><input type="checkbox" data-bugchk="errs" ${bug.errs ? "checked" : ""}> Add the app's recent problems (${ERRLOG.length})</label>
+      <span class="muted small">Sent with it: the page you were on (${esc(w.label)}), your player name, ${esc(dev.app)} on ${esc([dev.os, dev.model].filter(Boolean).join(" "))} and the app version.${store.mode !== "cloud" ? " You're not signed in, so it's kept on this device and sent once you sign in. Copy report sends it another way." : ""}</span>
+      <div class="row"><button class="btn snap" data-a="bugSend" ${bug.sending ? "disabled" : ""}>${bug.sending ? "Sending…" : "Send report"}</button>${store.mode !== "cloud" ? `<button class="btn" data-a="bugCopy">${ICON.copy} Copy report</button>` : ""}</div>
+    </div>`;
+}
+function bugOpen(opts = {}) {
+  if (bug.sent) Object.assign(bug, { sent: "", queued: false, text: "", files: [], change: "" });
+  Object.assign(bug, opts); openSheet(bugSheet);
+  setTimeout(() => { const t = document.getElementById("bug-text"); if (t && !opts.noFocus) t.focus(); }, 60);
+}
+document.addEventListener("input", (e) => { const t = e.target; if (t && t.dataset && t.dataset.bugtext !== undefined) bug.text = t.value; });
+document.addEventListener("change", (e) => {
+  const t = e.target; if (!t || !t.dataset) return;
+  if (t.dataset.bugfile !== undefined) { bugAddFiles(t.files); t.value = ""; }
+  if (t.dataset.bugchk) bug[t.dataset.bugchk] = t.checked;
+});
+Object.assign(A, {
+  bugOpen: (el) => bugOpen({ change: (el && el.dataset.change) || "", kind: (el && el.dataset.kind) || bug.kind }),
+  bugKind: (el) => { bug.kind = el.dataset.k; refreshSheet(); },
+  bugDropFile: (el) => { bug.files.splice(num(el.dataset.i), 1); refreshSheet(); },
+  bugCopy: () => copyText(bugText(bugBuild()), "Report copied"),
+  bugCopyId: () => copyText(bug.sent, "Copied"),
+  bugDone: () => { Object.assign(bug, { sent: "", queued: false, text: "", files: [], change: "", kind: "broke" }); closeSheet(); render(); },
+  bugSend: async () => {
+    if (bug.sending) return;
+    if (bug.text.trim().length < 4 && !bug.files.length) { toast("Write a few words about what happened"); return; }
+    const r = bugBuild(), files = bug.files.slice();
+    if (store.mode !== "cloud" || !store.db || !store.uid) {
+      if (!bugQueueSet([...bugQueue(), { r, files }].slice(-5))) { toast("Couldn't save it here. Tap Copy report instead."); return; }
+      Object.assign(bug, { sent: r.id, queued: true, text: "", files: [], change: "" }); refreshSheet(); return;
+    }
+    bug.sending = true; refreshSheet();
+    try { await bugUpload(r, files); Object.assign(bug, { sent: r.id, queued: false, text: "", files: [], change: "" }); }
+    catch (e) {
+      // Keep it so nothing is lost; the rules may not be pasted yet, or the phone is offline
+      bugQueueSet([...bugQueue(), { r, files }].slice(-5)); Object.assign(bug, { sent: r.id, queued: true, text: "", files: [], change: "" });
+      toast(/permission/i.test(errText(e)) ? "Reports aren't switched on yet (the app owner pastes the new security rules). It's saved here for now." : "Couldn't send it right now. It's saved and will be sent later.");
+    }
+    finally { bug.sending = false; refreshSheet(); }
+  },
+  // The red problem bar (errors.js)
+  errReport: () => { const e = ERRLOG[0]; const b = document.getElementById("err-toast"); if (b) b.hidden = true; bugOpen({ kind: "broke", errs: true, text: e && !bug.text ? `It said: "${e.msg}" (in ${e.where})\n\nWhat I was doing: ` : bug.text }); },
+  errHide: () => { const b = document.getElementById("err-toast"); if (b) b.hidden = true; },
+  errRetry: () => { render(); if (sheetFn) refreshSheet(); },
+});
+
+/* ---------- Your reports (Settings › About) ---------- */
+let _bugChecked = 0;
+async function bugCheckMine(force) {
+  if (store.mode !== "cloud" || !store.db || (!force && Date.now() - _bugChecked < 10 * 60e3)) return;
+  _bugChecked = Date.now(); let changed = false;
+  for (const x of arr(S.myBugs).slice(0, 15)) {
+    if (x.status === "fixed" && !force) continue;
+    try { const s = await store.db.doc("bugs/" + x.id).get(); if (!s.exists) continue; const d = obj(s.data());
+      if (d.status !== x.status || (d.reply || "") !== (x.reply || "")) { x.status = d.status; x.reply = String(d.reply || "").slice(0, 400); x.statusAt = d.statusAt || Date.now(); changed = true; } } catch { /* rules not pasted yet */ }
+  }
+  if (changed) { save(); refreshView(); }
+}
+const BUG_STATUS = { new: ["New", "dim"], seen: ["Seen", ""], fixing: ["Being fixed", "warn"], fixed: ["Fixed", "W"], wontfix: ["Not changing", "dim"], dupe: ["Already reported", "dim"] };
+const bugPill = (s) => { const [l, c] = BUG_STATUS[s] || BUG_STATUS.new; return `<span class="pill ${c}">${l}</span>`; };
+function bugAboutHtml() {
+  const mine = arr(S.myBugs), q = bugQueue();
+  if (mine.length || q.length) setTimeout(() => bugCheckMine(false), 500);
+  return `<section class="sec"><h2>Found a bug?</h2><div class="panel stack small">
+      <p>Tell us what went wrong (and add screenshots). Every report is read.</p>
+      <div class="row"><button class="btn snap" data-a="bugOpen">Report a bug</button><button class="btn ghost" data-a="bugOpen" data-kind="idea">Suggest an idea</button></div>
+      ${q.length ? `<span class="muted">${q.length} report${q.length > 1 ? "s" : ""} waiting to be sent${store.mode === "cloud" ? "" : " (sign in to send)"}.</span>` : ""}</div>
+      ${mine.length ? `<h3 class="small eyebrow" style="margin-top:14px">Your reports</h3><div class="list">${mine.slice(0, 15).map((x) => `<div class="li"><div class="grow"><div class="t">${esc(x.title || "Report")}</div><div class="s"><span class="num">${esc(x.id)}</span> · ${esc(agoTxt(x.at))}${x.reply ? ` · ${esc(x.reply)}` : ""}</div></div>${bugPill(x.status)}</div>`).join("")}</div>
+      <div><button class="btn sm ghost" data-a="bugCheck">Check for updates</button></div>` : ""}</section>`;
+}
+Object.assign(A, { bugCheck: () => { toast("Checking…"); bugCheckMine(true); } });
+EXT.styles.push(`
+.bug-files { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.bug-file { position: relative; aspect-ratio: 9 / 16; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--surface-2); display: grid; place-items: center; text-align: center; padding: 4px; }
+.bug-file img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.bug-file .x { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; border-radius: 999px; background: rgba(0,0,0,.6); color: #fff; border: 0; display: grid; place-items: center; }
+.bug-foot { background: none; border: 0; padding: 0; color: var(--snap-text); font: inherit; text-decoration: underline; cursor: pointer; }`);
+/* ============ For the app owner: bug reports and what to test after each update ============
+   Settings › App owner (only the owner sees it): every bug report people send, grouped by the page it happened on
+   (many players = the whole app, one player = maybe just their account or device), each with the pictures, device,
+   app or website, version and recent problems. Mark them seen / being fixed / fixed / not changing, reply to the player,
+   and put them all together for Claude (Copy for Claude, or Save for Claude: a .zip with report.md and the pictures).
+   "Test this update" lists the newest entries of CHANGES (b4_changes.js) with their test steps, and opens by itself once
+   after an update arrives. */
+const ob = { list: [], sub: null, err: "", filter: "open", open: "", files: {}, loading: "", delArm: "", reply: "" };
+const OB_OPEN = ["new", "seen", "fixing"];
+function obWatch() {
+  if (ob.sub || !isAppOwner() || !store.db) return;
+  ob.sub = "starting"; // set first: the first answer can arrive before onSnapshot returns
+  try {
+    const un = store.db.collection("bugs").onSnapshot((qs) => {
+      ob.err = ""; ob.list = qs.docs.map((d) => ({ ...obj(d.data()), id: d.id })).sort((a, b) => num(b.at) - num(a.at));
+      if ((ui.tab === "settings" && ui.setSub === "owner") || ui.tab === "home" || sheetFn === obSheet) setTimeout(requestRender, 0);
+    }, (e) => { ob.err = errText(e); ob.sub = null; if (ui.tab === "settings") setTimeout(requestRender, 0); });
+    if (ob.sub === "starting") ob.sub = un || "on";
+  } catch (e) { ob.err = errText(e); ob.sub = null; }
+}
+EXT.afterRender.push(function obWatchSoon() { if (isAppOwner() && !ob.sub && !ob.err) obWatch(); });
+const obShown = () => ob.list.filter((r) => ob.filter === "all" ? true : ob.filter === "open" ? OB_OPEN.includes(r.status || "new") : (r.status || "new") === ob.filter);
+const obDev = (r) => obj(r.device);
+const obWho = (r) => `${r.handle || "No name"}${r.account && r.account !== "Main account" ? ` (${r.account})` : ""}`;
+// The same page from several players points to the whole app; one player on one device may be just them
+function obGroups(list) {
+  const g = {};
+  for (const r of list) { const k = r.where || "Unknown page"; const x = (g[k] = g[k] || { where: k, n: 0, who: new Set(), dev: new Set(), apps: new Set() }); x.n++; x.who.add(r.by || r.handle); x.dev.add(obDev(r).id || r.id); x.apps.add(obDev(r).app || "?"); }
+  return Object.values(g).sort((a, b) => b.n - a.n).map((x) => ({ ...x, scope: x.who.size > 1 ? "Several players: likely the whole app" : x.dev.size > 1 ? "One player on several devices: maybe their account" : "One player, one device", apps: [...x.apps].join(", ") }));
+}
+function ownerBugsHtml() {
+  if (!isAppOwner()) return "";
+  const shown = obShown(), cnt = (f) => ob.list.filter((r) => f === "open" ? OB_OPEN.includes(r.status || "new") : f === "all" ? true : (r.status || "new") === f).length;
+  const chip = (f, l) => `<button class="chip" data-a="obFilter" data-f="${f}" aria-pressed="${ob.filter === f}">${l} ${cnt(f)}</button>`;
+  const groups = obGroups(ob.list.filter((r) => OB_OPEN.includes(r.status || "new")));
+  return `<section class="sec"><div class="sec-h"><h2>Bug reports</h2>${ob.list.length ? `<span class="pill ${cnt("new") ? "warn" : "dim"}">${cnt("new")} new</span>` : ""}</div>
+    ${ob.err ? `<div class="panel small"><p>Bug reports need the newest security rules. Open firestore.rules on GitHub, copy all of it, then Firebase › Firestore Database › Rules › paste over everything › Publish.</p><p class="muted small">${esc(ob.err)}</p><button class="btn sm" data-a="obRetry">Try again</button></div>` : ""}
+    <div class="chips">${chip("open", "Open")}${chip("new", "New")}${chip("fixed", "Fixed")}${chip("all", "All")}</div>
+    ${ob.list.length ? `<div class="row"><button class="btn snap" data-a="obCopyAll">${ICON.copy} Copy for Claude</button><button class="btn" data-a="obSaveAll" ${ob.loading ? "disabled" : ""}>${ob.loading ? esc(ob.loading) : "Save for Claude (.zip)"}</button></div>
+      <span class="muted small">Both put every open report together, grouped by page, ready to paste into (or attach to) your SNAP Stat chat. The .zip also has the pictures.</span>` : ""}
+    ${groups.length ? `<details class="panel small"><summary><b>Where they happen</b> · ${groups.length} page${groups.length > 1 ? "s" : ""}</summary><div class="list">${groups.map((x) => `<div class="li"><div class="grow"><div class="t">${esc(x.where)}</div><div class="s">${x.n} report${x.n > 1 ? "s" : ""} · ${x.who.size} player${x.who.size > 1 ? "s" : ""} · ${x.dev.size} device${x.dev.size > 1 ? "s" : ""} · ${esc(x.apps)}</div><div class="s">${esc(x.scope)}</div></div></div>`).join("")}</div></details>` : ""}
+    ${shown.length ? `<div class="list">${shown.slice(0, 80).map((r) => `<button class="li" data-a="obOpen" data-id="${esc(r.id)}"><div class="grow"><div class="t">${esc(r.title || r.text || "Report")}</div>
+        <div class="s"><span class="num">${esc(r.id)}</span> · ${esc(obWho(r))} · ${esc(r.where || "")}</div><div class="s">${esc(obDev(r).app || "")} · ${esc([obDev(r).os, obDev(r).model].filter(Boolean).join(" "))} · ${esc(agoTxt(r.at))}${num(r.files) ? ` · ${num(r.files)} file${num(r.files) > 1 ? "s" : ""}` : ""}</div></div>${bugPill(r.status)}</button>`).join("")}</div>`
+      : `<div class="empty"><strong>${ob.list.length ? "Nothing here" : "No reports yet"}</strong><span>${ob.list.length ? "Try another filter." : "When players tap Report a bug, their reports show up here."}</span></div>`}</section>`;
+}
+
+/* ---------- One report ---------- */
+async function obLoadFiles(r) {
+  if (!num(r.files) || ob.files[r.id]) return;
+  ob.files[r.id] = "loading";
+  const out = [];
+  for (let i = 0; i < Math.min(8, num(r.files)); i++) { try { const s = await store.db.doc(`bugs/${r.id}/files/${i}`).get(); if (s.exists) out.push(obj(s.data())); } catch (e) { errNote("loading a report's pictures", e, true); } }
+  ob.files[r.id] = out; if (sheetFn === obSheet) refreshSheet();
+}
+function obSheet() {
+  const r = ob.list.find((x) => x.id === ob.open); if (!r) return `${sheetHead("Report", "")}<div class="empty"><strong>It's gone</strong><span>This report was deleted.</span></div>`;
+  const d = obDev(r), files = ob.files[r.id], kind = (BUG_KINDS.find(([k]) => k === r.kind) || [0, r.kind])[1], ch = r.change ? CHANGES.find((c) => c.id === r.change) : null;
+  const same = ob.list.filter((x) => x.id !== r.id && x.where === r.where && OB_OPEN.includes(x.status || "new"));
+  const fact = (k, v) => v ? `<div class="li"><div class="grow"><div class="s">${k}</div><div class="t" style="white-space:normal">${v}</div></div></div>` : "";
+  const st = (s, l) => `<button class="chip" data-a="obStatus" data-s="${s}" aria-pressed="${(r.status || "new") === s}">${l}</button>`;
+  return `${sheetHead(esc(r.id), `${esc(kind || "")} · ${esc(agoTxt(r.at))}`)}
+    <div class="stack">
+      <div class="panel small" style="white-space:pre-wrap">${esc(r.text || "(No words, just files)")}</div>
+      ${same.length ? `<div class="note">${same.length} other open report${same.length > 1 ? "s" : ""} on this page from ${new Set(same.map((x) => x.by)).size} player${new Set(same.map((x) => x.by)).size > 1 ? "s" : ""}.</div>` : ""}
+      ${num(r.files) ? `<div class="stack">${files === "loading" || !files ? `<span class="muted">Loading ${num(r.files)} file${num(r.files) > 1 ? "s" : ""}…</span>` : files.map((f) => /^data:image\//.test(f.data) ? `<img class="ob-pic" src="${f.data}" alt="${esc(f.name)}">` : `<details class="panel small"><summary>${esc(f.name)}</summary><pre class="ob-pre">${esc(obDecode(f.data).slice(0, 4000))}</pre></details>`).join("")}</div>` : ""}
+      <div class="list">${fact("Page", `${esc(r.where || "")} <button class="btn sm ghost" data-a="go" data-to="${esc(r.route || "home")}">Open it</button>`)}
+        ${fact("Player", `${esc(obWho(r))}${r.by ? ` · <span class="num">${esc(String(r.by).slice(0, 8))}…</span>` : ""}`)}
+        ${fact("Device", `${esc(bugDeviceLine(d))}<br><span class="muted small">Screen ${esc(d.screen || "?")} @${esc(d.dpr || 1)}x · window ${esc(d.view || "?")} · ${esc(d.lang || "")} · device ${esc(d.id || "?")}</span>`)}
+        ${fact("App version", `${esc(String(r.build || "?").slice(0, 7))}${r.build && BUILD && r.build !== BUILD ? " (older than now)" : r.build === BUILD ? " (the current one)" : ""}`)}
+        ${ch ? fact("Testing", esc(ch.title)) : ""}${fact("Sent", esc(new Date(num(r.at)).toLocaleString()))}</div>
+      ${arr(r.errors).length ? `<details class="panel small"><summary><b>Recent problems</b> (${arr(r.errors).length})</summary>${arr(r.errors).map((e) => `<p class="small"><b>${esc(e.where)}</b>: ${esc(e.msg)}${e.stack ? `<pre class="ob-pre">${esc(e.stack)}</pre>` : ""}</p>`).join("")}</details>` : ""}
+      ${r.log ? `<details class="panel small"><summary><b>Tracker log</b></summary><pre class="ob-pre">${esc(r.log)}</pre></details>` : ""}
+      <span class="eyebrow">Status</span><div class="chips">${st("seen", "Seen")}${st("fixing", "Being fixed")}${st("fixed", "Fixed")}${st("wontfix", "Not changing")}${st("dupe", "Already reported")}</div>
+      <label class="f"><span>Reply to the player (they see it under Your reports)</span><textarea id="ob-reply" rows="2" maxlength="400" data-obreply>${esc(r.reply || "")}</textarea></label>
+      <div class="row"><button class="btn" data-a="obReply">Save reply</button><button class="btn" data-a="obCopyOne">${ICON.copy} Copy for Claude</button><button class="btn ghost danger" data-a="obDelete">${ob.delArm === r.id ? "Tap again to delete" : "Delete"}</button></div>
+    </div>`;
+}
+const obDecode = (dataUrl) => { try { const b64 = String(dataUrl).split(",")[1] || ""; return new TextDecoder().decode(b64ToBytes(b64)); } catch { return String(dataUrl).slice(0, 2000); } };
+document.addEventListener("input", (e) => { if (e.target && e.target.dataset && e.target.dataset.obreply !== undefined) ob.reply = e.target.value; });
+async function obSet(id, data) {
+  try { await store.db.doc("bugs/" + id).update({ ...data, statusAt: Date.now() }); return true; }
+  catch (e) { toast("Couldn't change it: " + errText(e)); return false; }
+}
+
+/* ---------- All together, for Claude ---------- */
+function obReportMd(r, pics) {
+  const d = obDev(r), kind = (BUG_KINDS.find(([k]) => k === r.kind) || [0, r.kind])[1], ch = r.change ? CHANGES.find((c) => c.id === r.change) : null;
+  return [`### ${r.id} · ${BUG_STATUS[r.status || "new"] ? BUG_STATUS[r.status || "new"][0] : r.status} · ${kind}`,
+    `- Page: ${r.where || "?"} (#${r.route || ""})`, `- Player: ${obWho(r)} · player id ${String(r.by || "").slice(0, 8)} · device ${d.id || "?"}`,
+    `- Device: ${bugDeviceLine(d)} · screen ${d.screen || "?"} @${d.dpr || 1}x · window ${d.view || "?"} · ${d.lang || ""}`,
+    `- App version: ${String(r.build || "?").slice(0, 7)}${r.build === BUILD ? " (current)" : ""} · sent ${new Date(num(r.at)).toISOString().slice(0, 16).replace("T", " ")} UTC`,
+    ch ? `- While testing: ${ch.title} (${ch.id})` : "", pics && pics.length ? `- Files: ${pics.join(", ")}` : num(r.files) ? `- Files: ${num(r.files)} (open the report in the app to see them)` : "",
+    r.reply ? `- My reply: ${r.reply}` : "", "", "What happened:", ...String(r.text || "").split("\n").map((l) => "> " + l),
+    arr(r.errors).length ? `\nRecent problems:\n${arr(r.errors).map((e) => `- ${e.where}: ${e.msg}${e.stack ? `\n  ${String(e.stack).split("\n").slice(1, 3).map((x) => x.trim()).join(" | ")}` : ""}`).join("\n")}` : "",
+    r.log ? `\nTracker log (last lines):\n\`\`\`\n${String(r.log).split("\n").slice(-40).join("\n")}\n\`\`\`` : ""].filter((x) => x !== "").join("\n");
+}
+function obCompile(list, picsById = {}) {
+  const groups = obGroups(list), open = list.filter((r) => OB_OPEN.includes(r.status || "new")).length;
+  return [`# SNAP Stat bug reports`, `Put together ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC · ${list.length} report${list.length === 1 ? "" : "s"} (${open} open) · current app version ${String(BUILD || "?").slice(0, 7)}`, "",
+    "Please read each report, find the cause in the code and fix it. Reports from several players on the same page are likely app-wide; one player on one device may be their account or phone.", "",
+    "## Where they happen", ...groups.map((x) => `- ${x.where}: ${x.n} report${x.n > 1 ? "s" : ""}, ${x.who.size} player${x.who.size > 1 ? "s" : ""}, ${x.dev.size} device${x.dev.size > 1 ? "s" : ""} (${x.apps}) → ${x.scope}`), "",
+    "## Summary", "| ID | Status | Kind | Page | Player | App | Device |", "|---|---|---|---|---|---|---|",
+    ...list.map((r) => `| ${r.id} | ${r.status || "new"} | ${r.kind || ""} | ${r.where || ""} | ${obWho(r).replace(/\|/g, "/")} | ${obDev(r).app || ""} ${obDev(r).appVer || ""} | ${[obDev(r).os, obDev(r).model].filter(Boolean).join(" ")} |`), "",
+    "## Reports", ...list.map((r) => obReportMd(r, picsById[r.id]) + "\n")].join("\n");
+}
+// A .zip (stored, not compressed: pictures are already small) with report.md and every picture, for attaching to a chat
+function zipStore(files) {
+  const T = zipStore.t || (zipStore.t = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })());
+  const crc = (b) => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = T[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  const u16 = (v) => [v & 255, (v >>> 8) & 255], u32 = (v) => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name), b = f.bytes, c = crc(b);
+    const head = new Uint8Array([...u32(0x04034b50), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(c), ...u32(b.length), ...u32(b.length), ...u16(name.length), ...u16(0)]);
+    parts.push(head, name, b);
+    central.push(new Uint8Array([...u32(0x02014b50), ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(c), ...u32(b.length), ...u32(b.length), ...u16(name.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(off)]), name);
+    off += head.length + name.length + b.length;
+  }
+  const size = central.reduce((s, x) => s + x.length, 0);
+  return new Blob([...parts, ...central, new Uint8Array([...u32(0x06054b50), ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length), ...u32(size), ...u32(off), ...u16(0)])], { type: "application/zip" });
+}
+Object.assign(A, {
+  obFilter: (el) => { ob.filter = el.dataset.f; render(); },
+  obRetry: () => { ob.err = ""; ob.sub = null; obWatch(); render(); },
+  obOpen: (el) => { ob.open = el.dataset.id; ob.delArm = ""; const r = ob.list.find((x) => x.id === ob.open); ob.reply = r ? String(r.reply || "") : "";
+    openSheet(obSheet); if (r) { obLoadFiles(r); if ((r.status || "new") === "new") obSet(r.id, { status: "seen" }); } },
+  obStatus: async (el) => { if (await obSet(ob.open, { status: el.dataset.s })) toast("Saved"); },
+  obReply: async () => { if (await obSet(ob.open, { reply: ob.reply.trim().slice(0, 400) })) toast("Reply saved"); },
+  obDelete: async () => {
+    if (ob.delArm !== ob.open) { ob.delArm = ob.open; refreshSheet(); return; }
+    const r = ob.list.find((x) => x.id === ob.open); if (!r) return;
+    try { for (let i = 0; i < num(r.files); i++) await store.db.doc(`bugs/${r.id}/files/${i}`).delete(); await store.db.doc("bugs/" + r.id).delete(); closeSheet(); toast("Deleted"); }
+    catch (e) { toast("Couldn't delete it: " + errText(e)); }
+  },
+  obCopyOne: () => { const r = ob.list.find((x) => x.id === ob.open); if (r) copyText(obCompile([r]), "Copied: paste it into your SNAP Stat chat"); },
+  obCopyAll: () => { const list = ob.list.filter((r) => OB_OPEN.includes(r.status || "new")); copyText(obCompile(list.length ? list : ob.list), `Copied ${list.length || ob.list.length} reports: paste them into your SNAP Stat chat`); },
+  obSaveAll: async () => {
+    const list = ob.list.filter((r) => OB_OPEN.includes(r.status || "new")), use = list.length ? list : ob.list, files = [], picsById = {};
+    try {
+      for (let i = 0; i < use.length; i++) {
+        const r = use[i]; ob.loading = `Getting pictures ${i + 1}/${use.length}…`; render();
+        await obLoadFiles(r); const got = Array.isArray(ob.files[r.id]) ? ob.files[r.id] : [];
+        picsById[r.id] = got.map((f, j) => { const ext = /^data:image\//.test(f.data) ? "jpg" : (String(f.name).split(".").pop() || "txt").slice(0, 5); const name = `files/${r.id}-${j + 1}.${ext}`;
+          files.push({ name, bytes: b64ToBytes(String(f.data).split(",")[1] || "") }); return name; });
+      }
+      files.unshift({ name: "report.md", bytes: new TextEncoder().encode(obCompile(use, picsById)) });
+      await store.downloads.save({ filename: `snap-stat-bugs-${localDate(Date.now())}.zip`, data: zipStore(files) });
+      toast("Saved. Attach the .zip to your SNAP Stat chat.");
+    } catch (e) { toast("Couldn't save it: " + errText(e)); }
+    finally { ob.loading = ""; render(); }
+  },
+});
+
+/* ---------- Test this update ---------- */
+const otState = () => obj(S.ownerTests);
+const otMarks = () => obj(otState().marks);
+function otTodo() { const m = otMarks(); return CHANGES.filter((c) => arr(c.test).length && !m[c.id]); }
+function otItem(c, done) {
+  const kindL = { new: "New", better: "Better", fixed: "Fixed", removed: "Removed" }[c.kind] || "Changed";
+  return `<div class="panel stack small ot-item"><div class="row" style="justify-content:space-between;align-items:flex-start"><b>${esc(c.title)}</b><span class="pill ${c.kind === "fixed" ? "W" : c.kind === "removed" ? "dim" : "gold"}">${kindL}</span></div>
+    <span class="muted">${esc(c.body)}</span>
+    ${done ? `<span class="small">${done === "ok" ? "✓ Works" : "✗ Bug reported"}</span><div><button class="btn sm ghost" data-a="otMark" data-id="${esc(c.id)}" data-v="">Undo</button></div>`
+      : `<ol class="ot-steps">${arr(c.test).map((t) => `<li>${esc(t)}</li>`).join("")}</ol>
+      <div class="row"><button class="btn sm snap" data-a="otMark" data-id="${esc(c.id)}" data-v="ok">✓ Works</button><button class="btn sm" data-a="otBug" data-id="${esc(c.id)}">✗ Found a bug</button>${c.where ? `<button class="btn sm ghost" data-a="otGo" data-to="${esc(c.where)}">Open it</button>` : ""}</div>`}</div>`;
+}
+function ownerTestsHtml(inSheet) {
+  if (!isAppOwner()) return "";
+  const todo = otTodo(), m = otMarks(), done = CHANGES.filter((c) => arr(c.test).length && m[c.id]).slice(0, 12);
+  const total = CHANGES.filter((c) => arr(c.test).length).length;
+  return `${inSheet ? "" : `<section class="sec"><div class="sec-h"><h2>Test this update</h2><span class="pill ${todo.length ? "warn" : "W"}">${todo.length ? `${todo.length} to check` : "All checked"}</span></div>`}
+    <p class="muted small">What changed in the newest updates and what to try. Tap ✓ Works, or ✗ Found a bug to report it with the change filled in. ${total - todo.length} of ${total} checked.</p>
+    ${todo.length ? todo.map((c) => otItem(c, "")).join("") : `<div class="empty"><strong>All checked</strong><span>The next update's list shows up here by itself.</span></div>`}
+    ${done.length && !inSheet ? `<details class="panel small"><summary>Checked (${done.length})</summary>${done.map((c) => otItem(c, m[c.id])).join("")}</details>` : ""}${inSheet ? "" : "</section>"}`;
+}
+function ownerTestsSheet() { return `${sheetHead("Test this update", "Only you see this, as the app owner")}${ownerTestsHtml(true)}<button class="btn block" data-a="close">Later</button>`; }
+Object.assign(A, {
+  otMark: (el) => { const marks = { ...otMarks() }; if (el.dataset.v) marks[el.dataset.id] = el.dataset.v; else delete marks[el.dataset.id]; S.ownerTests = { ...otState(), marks }; save(); render(); if (sheetFn) refreshSheet(); },
+  otBug: (el) => { const marks = { ...otMarks(), [el.dataset.id]: "bug" }; S.ownerTests = { ...otState(), marks }; save(); bugOpen({ change: el.dataset.id, kind: "broke" }); },
+  otGo: (el) => { closeSheet(); go(el.dataset.to); },
+  otOpen: () => openSheet(ownerTestsSheet),
+});
+// Opens once by itself when an update with new things to test has loaded
+EXT.afterRender.push(function otPopOnce() {
+  if (!BUILD || !isAppOwner() || sheetFn || ui.tab !== "home" || otState().popped === BUILD) return;
+  const todo = otTodo(); if (!todo.length) return;
+  S.ownerTests = { ...otState(), popped: BUILD }; save();
+  setTimeout(() => { if (!sheetFn) openSheet(ownerTestsSheet); }, 1200);
+});
+// Home, for the owner only: new reports and things to test
+EXT.homeTop.push(function ownerHomeCard() {
+  if (!isAppOwner()) return "";
+  const nb = ob.list.filter((r) => (r.status || "new") === "new").length, nt = otTodo().length;
+  if (!nb && !nt) return "";
+  return `<section class="sec"><div class="panel row small" style="justify-content:space-between"><span><b>App owner</b> · ${[nb ? `${nb} new bug report${nb > 1 ? "s" : ""}` : "", nt ? `${nt} thing${nt > 1 ? "s" : ""} to test` : ""].filter(Boolean).join(" · ")}</span>
+    <span class="row">${nt ? `<button class="btn sm" data-a="otOpen">Test</button>` : ""}<button class="btn sm snap" data-a="go" data-to="settings/owner">Open</button></span></div></section>`;
+});
+EXT.styles.push(`
+.ob-pic { width: 100%; border-radius: 12px; border: 1px solid var(--line); }
+.ob-pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11.5px; max-height: 320px; overflow: auto; background: var(--surface-2); padding: 8px; border-radius: 8px; margin: 6px 0 0; }
+.ot-item { margin-bottom: 10px; }
+.ot-steps { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; }`);
+/* ============ Review screenshots: what's being read right now, and why some couldn't be ============
+   The top of Settings › Android › Review screenshots shows the picture the AI is reading this second (the same one
+   the pop-up shows when SNAP Stat opens), the ones lined up after it, and how many are still waiting on the phone.
+   Pictures that couldn't be read say why in plain words, and "Read them again" tries every one of them once more. */
+function rvWhy(r) {
+  const t = `${r.status || ""} ${r.detail || ""}`;
+  if (/problem in SNAP Stat itself|Cannot read|undefined|is not a function|is not defined/i.test(t)) return "A problem in SNAP Stat itself (fixed in an update; then Read again)";
+  if (/cut off|MAX.?TOKENS|expected format|didn't answer properly|no answer|unexpected end/i.test(t)) return "The AI's answer was cut off or garbled";
+  if (/safety|blocked|recitation|prohibited/i.test(t)) return "The AI refused to read the picture";
+  if (/running out of time|took too long|timed? ?out/i.test(t)) return "The AI took too long on it";
+  if (/empty|damaged|couldn't be opened|decode/i.test(t)) return "The picture itself was empty or damaged";
+  if (/didn't look like that screen/i.test(t)) return "Saved on one screen, but the picture shows another";
+  if (/key|billing|permission|quota/i.test(t)) return "The AI key or its limit";
+  return "Something else (open it to see the message)";
+}
+function rvWhyCounts(list) { const m = new Map(); for (const r of arr(list)) { const w = rvWhy(r); m.set(w, (m.get(w) || 0) + 1); } return [...m.entries()].sort((a, b) => b[1] - a[1]); }
+function rvLiveHtml() {
+  const items = arr(typeof shots === "object" ? shots.items : []).filter((x) => !x.done), wait = NATIVE ? num(natInfo().queue) : 0;
+  const busy = (typeof nat === "object" && nat.busy) || (typeof shots === "object" && shots.busy) || !!rvRetry.on;
+  if (!items.length && !wait && !busy) return "";
+  const cur = items[0], rest = items.slice(1);
+  return `<div class="panel stack small rvlive"><div class="row between"><b>Reading now</b><span class="pill ${busy ? "gold" : "dim"}">${busy ? "Live" : "Paused"}</span></div>
+    ${cur ? `<div class="row nowrap" style="align-items:flex-start;gap:10px">${cur.url ? `<img src="${esc(cur.url)}" alt="" class="shot-thumb" style="width:64px;height:auto;border-radius:8px">` : `<span class="rvlive-ph" aria-hidden="true"></span>`}
+      <div class="grow stack" style="gap:2px;min-width:0"><b class="small">${esc(cur.status || "Waiting…")}</b>${cur.detail ? `<span class="small muted">${esc(cur.detail)}</span>` : ""}${cur.file && cur.file.snapHint ? `<span class="small muted">${esc(/^screen:/.test(cur.file.snapHint) ? "saved on the " + (SCREEN_NAMES[cur.file.snapHint.slice(7)] || cur.file.snapHint.slice(7)) + " screen" : "after " + cur.file.snapHint)}</span>` : ""}</div></div>` : ""}
+    ${rest.length ? `<span class="small muted">Next: ${rest.slice(0, 4).map((x) => esc(x.status || "Waiting…")).join(" · ")}${rest.length > 4 ? ` · and ${rest.length - 4} more` : ""}</span>` : ""}
+    ${rvRetry.on ? `<span class="small">Reading failed pictures again: ${rvRetry.done} of ${rvRetry.total}</span>` : ""}
+    ${wait ? `<span class="small muted">${wait} more waiting on the phone${canReadShots() ? "" : " (they're read once your AI key works)"}.</span>` : ""}
+    ${!busy && wait && canReadShots() ? `<div><button class="btn sm" data-a="rvPullNow">Read them now</button></div>` : ""}</div>`;
+}
+// Tries every picture that couldn't be read once more, one at a time (the AI's free answers are spaced out)
+const rvRetry = { on: false, done: 0, total: 0 };
+async function rvRetryFailed() {
+  if (rvRetry.on) return;
+  const list = arr(rv.list && rv.list.length ? rv.list : await shotLogAll()).filter((r) => rvFailed(r) && r.img);
+  if (!list.length) { toast("Nothing to read again"); return; }
+  Object.assign(rvRetry, { on: true, done: 0, total: list.length }); refreshView(); if (sheetFn) refreshSheet();
+  let fixed = 0;
+  try {
+    for (const r of list) {
+      const f = new File([r.img], "again.jpg", { type: "image/jpeg", lastModified: r.taken || Date.now() }); if (r.hint) f.snapHint = r.hint; if (r.meta) f.snapMeta = r.meta;
+      const x = { file: f, again: true, logId: r.id, reMatch: r.matchId || "", status: "Reading again…", native: "again-" + r.id }; // (marked so a shared picture being read at the same time never picks it up too)
+      shots.items.push(x); if (sheetFn) refreshSheet();
+      const res = await readShotItem(x); x.done = true;
+      if (res === "retry") { x.status = x.status || "The AI is busy"; break; } // busy: the rest wait for another try
+      if (!/^Couldn't/.test(String(x.status || ""))) fixed++;
+      rvRetry.done++; if (sheetFn) refreshSheet();
+    }
+  } finally {
+    rvRetry.on = false; trkHealth.at = 0;
+    if (sheetFn === reviewSheet) { rv.list = await shotLogAll(); refreshSheet(); }
+    render(); toast(fixed ? `${fixed} of ${rvRetry.total} read this time` : "They still couldn't be read. Report it with Settings › About › Report a bug.");
+  }
+}
+Object.assign(A, {
+  rvRetryFailed: () => rvRetryFailed(),
+  rvFailedOpen: async () => { rv.session = ""; rv.filter = "failed"; rv.list = null; openSheet(reviewSheet); rv.list = await shotLogAll(); refreshSheet(); },
+  rvPullNow: () => { natPull(); setTimeout(() => { if (sheetFn) refreshSheet(); }, 300); },
+});
+EXT.reviewTools.push((list) => arr(list).some(rvFailed) && canReadShots() ? `<div class="row"><button class="btn sm" data-a="rvRetryFailed" ${rvRetry.on ? "disabled" : ""}>${rvRetry.on ? `Reading ${rvRetry.done + 1} of ${rvRetry.total}…` : "Read all failed again"}</button></div>` : "");
+// While pictures are being read, the review window keeps itself up to date (the phone's waiting count too)
+setInterval(() => { try { if (typeof reviewSheet === "function" && sheetFn === reviewSheet && ((typeof nat === "object" && nat.busy) || shots.busy || rvRetry.on || (NATIVE && num(natInfo().queue)))) refreshSheet(); } catch { /* next time */ } }, 2000);
+EXT.styles.push(`
+.rvlive { border-color: color-mix(in srgb, var(--snap-b) 55%, var(--line)); }
+.rvlive-ph { width: 64px; height: 110px; border-radius: 8px; background: var(--surface-2); flex: none; }`);
+/* ============ One month of your MARVEL SNAP history (Profile › Your SNAP history › a month) ============
+   Tapping a month shows everything SNAP Stat knows about it: the season and its dates, when you reached pass level
+   25 and 50 (from your data copy), your pass level and rank from SNAP Stat, your matches, cubes and win rate that
+   season, the decks you played most, your best opponents' decks, and the events that ran. */
+let histMonthKey = "";
+function histMonthSheet() {
+  const k = histMonthKey, [y, m] = k.split("-").map(Number), H = obj(S.history), P = obj(H.passes)[k] || ["", ""];
+  const name = new Date(Date.UTC(y, m - 1, 15)).toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" });
+  const s = seasons().find((x) => x.start && x.start.slice(0, 7) === k) || null;
+  // The season's own dates when it's known, otherwise the calendar month
+  const from = s ? s.startTs : Date.UTC(y, m - 1, 1), to = s && Number.isFinite(s.endTs) ? s.endTs : Date.UTC(y, m, 1) - 1;
+  const ms = inPeriod(realMatches(), { from, to }), st = statsFor(ms), pass = s ? obj(S.passes[s.id]) : {}, rk = s ? obj(S.ranks["s:" + s.id]) : {};
+  const wr = st.w + st.l ? Math.round((st.w / (st.w + st.l)) * 100) : 0;
+  // Your decks that month, most played first
+  const decks = new Map(); for (const mt of ms) { const key = mt.deckId || mt.deckName || ""; if (!key) continue; const d = decks.get(key) || { id: mt.deckId || "", name: mt.deckName || (S.decks.find((x) => x.id === mt.deckId) || {}).name || "A deck", ms: [] }; d.ms.push(mt); decks.set(key, d); }
+  const top = [...decks.values()].sort((a, b) => b.ms.length - a.ms.length).slice(0, 4);
+  const evs = events().filter((e) => e.startTs <= to && (Number.isFinite(e.endTs) ? e.endTs : e.startTs) >= from).slice(0, 8);
+  const tile = (v, l) => `<div class="tile"><div class="v num">${v}</div><div class="k">${l}</div></div>`;
+  const has = P[0] || P[1] || st.games || pass.level || rk.peak || rk.end || s || evs.length;
+  return `${sheetHead(esc(name), s ? esc(s.name) : "")}
+    ${s && typeof seasonPic === "function" ? `<div class="hm-art">${seasonPic(s, "sart")}</div>` : ""}
+    <div class="stack">
+      ${s ? `<p class="small">${esc(dateStr(s.start))}${s.end ? " – " + esc(dateStr(s.end)) : ""}${s.card ? ` · season pass card <b>${esc(card(s.card).name || s.card)}</b>` : ""}</p>` : ""}
+      <div class="tiles">
+        ${tile(P[1] ? "50" : P[0] ? "25" : pass.level ? esc(pass.level) : "—", P[1] ? `pass level 50 on ${esc(dateStr(P[1]))}` : P[0] ? `pass level 25 on ${esc(dateStr(P[0]))}` : pass.level ? "pass level (from SNAP Stat)" : "no pass record")}
+        ${pass.tier ? tile(esc(String(pass.tier).replace(/^./, (c) => c.toUpperCase())), "pass type") : ""}
+        ${rk.peak || rk.end ? tile(esc(rk.peak || rk.end), rk.peak ? "best rank" : "rank at the end") : ""}
+        ${st.games ? tile(fmt(st.games), `match${st.games === 1 ? "" : "es"} tracked`) : ""}
+        ${st.games ? tile(`${st.w}-${st.l}${st.t ? "-" + st.t : ""}`, `wins-losses · ${wr}%`) : ""}
+        ${st.games ? tile(signed(st.cubes), "cubes") : ""}
+        ${st.snaps ? tile(fmt(st.snaps), `snaps (${st.snapW} won)`) : ""}
+      </div>
+      ${P[0] && P[1] ? `<p class="small muted">Level 25 on ${esc(dateStr(P[0]))}, level 50 on ${esc(dateStr(P[1]))}.</p>` : ""}
+      ${top.length ? `<span class="eyebrow">Your decks</span><div class="list">${top.map((d) => { const x = statsFor(d.ms); return `<${d.id ? `button class="li" data-a="deckOpen" data-id="${esc(d.id)}"` : `div class="li"`}><div class="grow"><div class="t">${esc(d.name)}</div><div class="s">${x.games} game${x.games === 1 ? "" : "s"} · ${x.w}-${x.l} · ${signed(x.cubes)} cubes</div></div>${d.id ? `<span class="muted">›</span></button>` : "</div>"}`; }).join("")}</div>` : ""}
+      ${evs.length ? `<span class="eyebrow">Events</span><div class="chiplist">${evs.map((e) => `<span class="pill">${esc(e.name)}</span>`).join("")}</div>` : ""}
+      ${!has ? `<div class="empty"><strong>Nothing from this month</strong><span>Your data copy has no season pass record for it, and no matches were tracked then.</span></div>` : !st.games ? `<p class="muted small">No matches were tracked in SNAP Stat this month${s ? " season" : ""}.</p>` : ""}
+      <div class="row">${s ? `<button class="btn" data-a="histSeason" data-id="${esc(s.id)}">Open the season</button>` : ""}${st.games ? `<button class="btn" data-a="histMatches">See the matches</button>` : ""}<button class="btn snap" data-a="close">Done</button></div>
+    </div>`;
+}
+Object.assign(A, {
+  histMonth: (el) => { histMonthKey = el.dataset.k; openSheet(histMonthSheet); },
+  histSeason: (el) => { closeSheet(); A.seasonOpen && A.seasonOpen(el); },
+  histMatches: () => { closeSheet(); go("home/matches"); },
+});
+EXT.styles.push(`
+.hist-m { border: 0; font: inherit; cursor: pointer; min-height: 36px; padding-inline: 12px; }
+.hist-m:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.hm-art { margin: -4px 0 10px; border-radius: 12px; overflow: hidden; }
+.hm-art img, .hm-art .sart { width: 100%; height: auto; max-height: 160px; object-fit: cover; display: block; border-radius: 12px; }`);
+/* ============ Decks take the card back and avatar you use in the game ============
+   Whenever SNAP Stat sees which card back and avatar you had on with a deck (a match read by Track & play or from a
+   screenshot, a game on PC, or the game's CollectionState.json), the deck's card back and icon follow it by themselves,
+   so nobody has to set each deck up by hand. A card back or icon you pick yourself in the deck (backBy/coverBy "hand")
+   is never changed. */
+// x: { cardback: "name as read", backId: "game id", avatar: "name as read", avDef: { card, v } } · src: "match" | "pc" | "file"
+function deckAutoLook(d, x, src) {
+  if (!d || !x) return false;
+  let changed = false;
+  if (d.backBy !== "hand" && typeof cardBacks === "function") {
+    const list = cardBacks(); let b = null;
+    if (x.backId) b = (typeof cardBackById === "function" && cardBackById(x.backId)) || list.find((y) => lookKey(y.id) === lookKey(x.backId)) || pickByName(list, prettyDef(x.backId), (y) => y.name);
+    if (!b && x.cardback) b = pickExact(list, x.cardback, (y) => y.name);
+    if (b && d.back !== b.id) { d.back = b.id; d.backBy = src; changed = true; }
+  }
+  if (d.coverBy !== "hand") {
+    const c = x.avDef ? deckAvatarFromDef(x.avDef) : x.avatar ? deckAvatarFromName(x.avatar) : null;
+    if (c && (d.cover !== c.k || String(d.coverVar || "") !== c.v)) { d.cover = c.k; d.coverVar = c.v; d.coverBy = src; changed = true; }
+  }
+  return changed;
+}
+// The game's own ids for an avatar (the card, and the variant it shows) → the deck icon
+function deckAvatarFromDef(a) {
+  a = obj(a); const c = cardByDefId(a.card); if (!c || c.unknown) return null;
+  const v = a.v ? variantByDefId(a.v) : null;
+  return { k: c.key, v: v ? String(v.cat || v.id) : "base" };
+}
+// An avatar's name as the AI read it ("Venom" or "Venom (Nicola Saviori)") → the deck icon, only when it's clear
+function deckAvatarFromName(name) {
+  name = String(name || "").trim(); if (!name) return null;
+  const cos = arr(S.cosmetics).find((y) => y.kind === "avatar" && y.ref && lookKey(y.name) === lookKey(name));
+  if (cos) { const ref = String(cos.ref); const v = /_\d{1,3}$/.test(ref) ? variantByDefId(ref) : null; if (v && v.card) return { k: v.card, v: String(v.cat || v.id) }; const c = cardByDefId(ref); if (c && !c.unknown) return { k: c.key, v: "base" }; }
+  const m = /^(.*?)\s*\(([^)]+)\)\s*$/.exec(name), c = cardByName(m ? m[1] : name);
+  if (!c || c.unknown) return null;
+  if (m) { const v = matchVariant(c.key, m[2], m[2]); if (v) return { k: c.key, v: String(v.cat || v.id) }; }
+  return { k: c.key, v: "base" };
+}
+// A deck object in the game's files (or a PC game) → its card back id and avatar, wherever the game keeps them
+function gameDeckLooks(d) {
+  d = obj(d);
+  const backId = String(obj(d.CardBack).CardBackDefId || d.CardBackDefId || "");
+  const av = obj(obj(d.Avatar).CardArtAvatar || d.CardArtAvatar || d.Avatar || obj(d.DeckAvatar).CardArtAvatar || d.DeckAvatar);
+  const card = typeof av.CardDefId === "string" ? av.CardDefId : "", v = typeof av.ArtVariantDefId === "string" ? av.ArtVariantDefId : "";
+  return { backId, avDef: card ? { card, v } : null };
+}
+// The game's files: each deck you already have in SNAP Stat (same name, or the same 12 cards) takes the file's card back and avatar
+function deckLooksFromFile(fileDecks) {
+  let n = 0;
+  for (const fd of arr(fileDecks)) {
+    const keys = arr(fd.cards).map((id) => (cardByDefId(id) || {}).key).filter(Boolean), sig = [...keys].sort().join(",");
+    const d = S.decks.find((x) => keyOf(x.name) === keyOf(fd.name)) || S.decks.find((x) => [...arr(x.cards)].sort().join(",") === sig);
+    if (d && deckAutoLook(d, { backId: fd.back, avDef: fd.av }, "file")) n++;
+  }
+  return n;
+}
+/* ============ Character Mastery: the game's numbers (data only) ============
+   Total Mastery XP each level needs (level 1 = 0 XP … level 30 = 1,300 XP) and what each level gives, as listed by
+   Marvel Snap Zone after the September 15, 2026 update (which added the second Custom Card slot at level 22).
+   XP comes from owning the card's variants and Infinity Splits (the ones you already had count too). */
+const MASTERY_XP = [0, 5, 10, 20, 35, 50, 70, 95, 120, 150, 185, 220, 260, 305, 355, 405, 460, 520, 585, 650, 715, 780, 845, 910, 975, 1040, 1105, 1170, 1235, 1300];
+const MASTERY_MAX = MASTERY_XP.length; // 30
+const MASTERY_SLOT2 = 22;               // the level that adds a second Custom Card slot
+const MASTERY_REWARDS = {
+  1: "Mastery unlocked", 4: "30 Character Boosters", 8: "20 Wild Boosters", 10: "Refraction Finish", 12: "30 Wild Boosters and the card's Reaction Set",
+  15: "Cosmic Flare", 17: "A Split Reroll Coin", 20: "Gold Metallic Finish", 22: "A second Custom Card slot", 25: "Fire Finish", 27: "An Unowned God Split",
+  30: "50 Wild Boosters and the Gold Diamond Flare",
+};
+// Every other level is a Mastery Cache: a random Finish or Flare from its tier
+const masteryReward = (lv) => MASTERY_REWARDS[lv] || (lv >= 2 && lv <= 29 ? `Mastery Cache (tier ${lv < 10 ? 1 : lv < 20 ? 2 : 3}: a random Finish or Flare)` : "");
+// Mastery XP for each thing you own of a card
+const MASTERY_GAIN = { split: 50, Rare: 75, "Super Rare": 150, Spotlight: 400, Ultimate: 600, other: 200 };
+/* ============ Character Mastery for each card, and the second Custom Card ============
+   Each card's Mastery level and XP: the game's own numbers when they're known (CharacterMasteryState.json from PC, a
+   card's screen, or typed in Cards › Upgrades), otherwise worked out from the variants and Infinity Splits you own.
+   Shows the XP to the next level, what that level gives and the quickest ways to get there.
+   From level 22 a card has a second Custom Card slot: it's kept in S.looks2 next to the first (S.looks). */
+const levelFromXp = (xp) => { let lv = 1; for (let i = 0; i < MASTERY_XP.length; i++) if (xp >= MASTERY_XP[i]) lv = i + 1; return lv; };
+function varGain(v) {
+  if (/spotlight/i.test(`${v.rarity} ${v.source}`)) return MASTERY_GAIN.Spotlight;
+  return MASTERY_GAIN[v.rarity] || MASTERY_GAIN.other;
+}
+// Your variants of every card, and the ones you don't have, in one pass (the list is long)
+function masteryVariants() {
+  const own = new Map(), miss = new Map();
+  for (const v of allVariants()) { if (!v || !v.card || v.unreleased) continue; const m = v.owned ? own : miss; const l = m.get(v.card) || []; l.push(v); m.set(v.card, l); }
+  return { own, miss };
+}
+function masteryOf(k, mv) {
+  const p = obj(obj(S.prog)[k]), vs = (mv || masteryVariants()).own.get(k) || [];
+  const est = vs.reduce((s, v) => s + varGain(v), 0) + arr(p.splits).length * MASTERY_GAIN.split;
+  const exact = Number.isFinite(p.mx) && p.mx >= 0;
+  const known = exact || num(p.ml) > 0;
+  let level = Math.max(num(p.ml), levelFromXp(exact ? p.mx : est), S.owned[k] ? 1 : 0);
+  level = Math.min(MASTERY_MAX, level);
+  const xp = Math.max(exact ? p.mx : est, level ? MASTERY_XP[level - 1] : 0);
+  const next = level && level < MASTERY_MAX ? level + 1 : null;
+  return { k, level, xp, exact, known, est, next, need: next ? Math.max(0, MASTERY_XP[next - 1] - xp) : 0, reward: next ? masteryReward(next) : "", slot2: level >= MASTERY_SLOT2, variants: vs.length, splits: arr(p.splits).length };
+}
+// The quickest ways to cover the XP still needed
+function masteryWays(k, need, mv) {
+  if (need <= 0) return "";
+  const miss = ((mv || masteryVariants()).miss.get(k) || []), byGain = {};
+  for (const v of miss) { const g = varGain(v); byGain[g] = (byGain[g] || 0) + 1; }
+  const splits = Math.ceil(need / MASTERY_GAIN.split);
+  const one = Object.keys(byGain).map(Number).filter((g) => g >= need).sort((a, b) => a - b)[0];
+  const name = (g) => (g === MASTERY_GAIN.Spotlight ? "Spotlight" : g === MASTERY_GAIN.Ultimate ? "Ultimate" : g === MASTERY_GAIN["Super Rare"] ? "Super Rare" : g === MASTERY_GAIN.Rare ? "Rare" : "other") + " variant";
+  return [`${splits} Infinity Split${splits === 1 ? "" : "s"} (${MASTERY_GAIN.split} XP each)`, one ? `1 ${name(one)} (${one} XP; ${byGain[one]} you don't have)` : ""].filter(Boolean).join(", or ");
+}
+const masteryBar = (m) => { if (!m.next) return 100; const a = MASTERY_XP[m.level - 1], b = MASTERY_XP[m.next - 1]; return clamp(Math.round(((m.xp - a) / Math.max(1, b - a)) * 100), 0, 100); };
+const masterySrc = (m) => (m.exact ? "XP from the game's files" : m.known ? "level from the game; XP worked out from your variants and splits" : "worked out from the variants and splits you own (open the PC files for the game's own numbers)");
+
+/* ---------- A card's page ---------- */
+EXT.cardSheet.push(function masteryCardHtml(k) {
+  const c = card(k); if (!c || c.unknown || c.custom || !S.owned[k]) return "";
+  const mv = masteryVariants(), m = masteryOf(k, mv);
+  return `<div class="panel stack small mastery"><div class="row between"><b>Mastery</b><span class="pill gold">Level ${m.level}${m.level >= MASTERY_MAX ? " · max" : ""}</span></div>
+    <div class="bar" role="img" aria-label="${m.next ? `${m.need} XP to level ${m.next}` : "Highest level"}"><i style="width:${masteryBar(m)}%"></i></div>
+    <span>${fmt(m.xp)} XP${m.next ? ` · <b>${fmt(m.need)} XP</b> to level ${m.next}: ${esc(m.reward)}` : " · every level reached"}</span>
+    ${m.next ? `<span class="muted small">Quickest: ${esc(masteryWays(k, m.need, mv))}.</span>` : ""}
+    ${m.slot2 ? `<span class="small">✓ Second Custom Card slot unlocked</span>` : m.level < MASTERY_SLOT2 ? `<span class="muted small">Second Custom Card slot at level ${MASTERY_SLOT2}: ${fmt(Math.max(0, MASTERY_XP[MASTERY_SLOT2 - 1] - m.xp))} XP to go.</span>` : ""}
+    <details><summary class="small">Every level and its reward</summary><div class="list mlevels">${MASTERY_XP.map((x, i) => `<div class="li ${i + 1 <= m.level ? "done" : ""}"><span class="num">${i + 1}</span><div class="grow small">${esc(masteryReward(i + 1))}</div><span class="muted small num">${fmt(x)} XP</span></div>`).join("")}</div></details>
+    <span class="muted small">${esc(masterySrc(m))} · ${m.variants} variant${m.variants === 1 ? "" : "s"}, ${m.splits} split${m.splits === 1 ? "" : "s"} counted.</span></div>`;
+});
+// The second Custom Card on a card's page, under the first
+EXT.cardSheet.push(function look2CardHtml(k) {
+  const L = obj(obj(S.looks2)[k]), t = typeof lookText === "function" ? lookText(L) : ""; if (!t) return "";
+  return `<div class="panel stack small" style="gap:4px"><div class="row between"><b>Custom Card 2</b><button class="btn sm ghost" data-a="leOpen2" data-k="${esc(k)}">Edit</button></div><span>${esc(t)}</span>${L.src && LOOK_SRC[L.src] ? `<span class="muted small">${esc(LOOK_SRC[L.src])}</span>` : ""}</div>`;
+});
+
+/* ---------- Cards › Custom cards: every card's Mastery ---------- */
+const ms = { all: false };
+function masteryListHtml() {
+  const mv = masteryVariants(), list = allCards().filter((c) => S.owned[c.key] && !c.unknown && !c.custom).map((c) => masteryOf(c.key, mv));
+  if (!list.length) return "";
+  const known = list.filter((m) => m.known).length, slot2 = list.filter((m) => m.slot2), max = list.filter((m) => m.level >= MASTERY_MAX).length;
+  const avg = list.reduce((s, m) => s + m.level, 0) / list.length;
+  const close = list.filter((m) => m.next).sort((a, b) => a.need - b.need || b.level - a.level);
+  const row = (m) => `<button class="li" data-a="cardOpen" data-k="${esc(m.k)}"><div class="collart" style="width:52px">${cardChip(m.k, { noOwn: true, size: "xs" })}</div><div class="grow"><div class="t">${esc(card(m.k).name)} <span class="pill ${m.slot2 ? "W" : "dim"}">Lvl ${m.level}</span></div>
+    <div class="s">${m.next ? `${fmt(m.need)} XP to ${m.next}: ${esc(m.reward)}` : "Max level"}${m.exact ? "" : " · est."}</div><div class="bar" style="margin-top:4px"><i style="width:${masteryBar(m)}%"></i></div></div></button>`;
+  const shown = ms.all ? [...list].sort((a, b) => b.level - a.level || card(a.k).name.localeCompare(card(b.k).name)) : close.slice(0, 12);
+  return `<section class="sec"><div class="sec-h"><h2>Mastery</h2><span class="muted small">${known ? `${fmt(known)} from the game` : "worked out"}</span></div>
+    <div class="tiles"><div class="tile"><div class="v num">${avg.toFixed(1)}</div><div class="k">average level</div></div><div class="tile"><div class="v num">${fmt(slot2.length)}</div><div class="k">with a 2nd Custom Card slot (lvl ${MASTERY_SLOT2}+)</div></div><div class="tile"><div class="v num">${fmt(max)}</div><div class="k">at level ${MASTERY_MAX}</div></div></div>
+    <div class="chips"><button class="chip" data-a="msAll" data-v="" aria-pressed="${!ms.all}">Closest to the next level</button><button class="chip" data-a="msAll" data-v="1" aria-pressed="${ms.all}">Every card (${list.length})</button></div>
+    <div class="list">${shown.slice(0, ms.all ? 600 : 12).map(row).join("")}</div>
+    ${known ? "" : `<p class="muted small">These are worked out from your variants and splits. For the game's own levels and XP, choose CharacterMasteryState.json in Settings › Import & backup (or connect Playing on PC).</p>`}</section>`;
+}
+Object.assign(A, {
+  msAll: (el) => { ms.all = !!el.dataset.v; render(); },
+  leOpen2: (el) => { le.k = el.dataset.k; le.slot = 2; openSheet(leSheet); },
+});
+
+/* ---------- The second Custom Card from the game's files and from screenshots ---------- */
+function noteLook2(k, look, src) {
+  const c = card(k); if (!c || c.unknown || c.custom) return false;
+  const L = (S.looks2 = obj(S.looks2)), old = obj(L[k]);
+  const n = { v: look.v || "", vname: lookWord(look.vname), border: lookWord(look.border), finish: lookWord(look.finish), flare: lookWord(look.flare) };
+  if (!n.v && !LOOK_F.some((f) => n[f])) return false;
+  // A look that's the same as Custom Card 1 isn't a second one
+  const one = obj(obj(S.looks)[k]); if ((n.v || "") === (one.v || "") && LOOK_F.every((f) => (n[f] || "") === (one[f] || ""))) return false;
+  const changed = ["v", ...LOOK_F].some((f) => (n[f] || "") !== (old[f] || ""));
+  L[k] = { ...n, at: changed || !old.at ? Date.now() : old.at, src: src || old.src || "" };
+  return changed;
+}
+// Mastery XP in the game's CharacterMasteryState.json, wherever the file keeps it for each card
+function readMasteryXp(ss) {
+  const out = {}, data = obj(obj(obj(ss).CharacterMasteryProgress).CharacterProgressData);
+  for (const [id, d0] of Object.entries(data)) {
+    const d = obj(d0), key = Object.keys(d).find((x) => /^(current|total)?(mastery)?(xp|experience|points)$/i.test(x) && Number.isFinite(Number(d[x])));
+    const xp = key ? Math.round(Number(d[key])) : NaN; if (GAME_ID.test(id) && Number.isFinite(xp) && xp >= 0 && xp <= 100000) out[id] = xp;
+  }
+  return Object.keys(out).length ? out : null;
+}
+EXT.styles.push(`
+.mlevels .li { padding: 6px 0; gap: 10px; }
+.mlevels .li .num:first-child { width: 22px; text-align: right; color: var(--muted); }
+.mlevels .li.done .num:first-child { color: var(--win); }`);
 /* ============ Standalone (Firebase) sign-in and storage ============ */
 const FB_CFG_KEY = "snapstat.firebaseConfig", FB_SKIP_KEY = "snapstat.skipSignIn";
 function parseFirebaseConfig(text) {

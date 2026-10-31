@@ -775,7 +775,11 @@ function keepFocus(fn) {
 }
 let sheetFn = null;
 function openSheet(fn) { sheetFn = fn; $("#sheet").hidden = false; refreshSheet(); const first = $("#sheetBody [data-autofocus]"); if (first) first.focus(); }
-function refreshSheet() { if (!sheetFn) return; keepFocus(() => { $("#sheetBody").innerHTML = sheetFn(); }); extRun(EXT.afterRender); }
+function refreshSheet() {
+  if (!sheetFn) return;
+  keepFocus(() => { let html; try { html = sheetFn(); } catch (e) { errNote("this window", e); html = `${sheetHead("Something went wrong", "")}${errPageHtml("this window", e)}`; } $("#sheetBody").innerHTML = html; });
+  extRun(EXT.afterRender);
+}
 function closeSheet() { sheetFn = null; $("#sheet").hidden = true; $("#sheetBody").innerHTML = ""; if (typeof nat !== "undefined" && nat.popWait) setTimeout(() => { if (typeof updatePopup === "function") updatePopup(); }, 400); if (typeof webUp !== "undefined" && webUp.ready) setTimeout(() => applyWebUpdate(), 600); }
 function sheetHead(title, sub) { return `<div class="sheet-h"><div style="min-width:0"><h2>${title}</h2>${sub ? `<div class="muted small">${sub}</div>` : ""}</div><button class="x" data-a="close" aria-label="Close">${ICON.x}</button></div>`; }
 async function copyText(t, done = "Copied") {

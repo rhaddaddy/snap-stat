@@ -195,6 +195,7 @@ function applyShotCard(x, cc) {
     }
     if (cc.splits !== null && cc.splits !== undefined && Number(cc.splits) > p.splits.length && Number(cc.splits) < 200) { while (p.splits.length < Number(cc.splits)) p.splits.push({ id: uid(), fin: "", fl: "", r: null, at: 0 }); syncSplitCount(k); done.push(`${p.splits.length} splits`); }
     if (Number(cc.masteryLevel) >= 1) { p.ml = clamp(Math.round(Number(cc.masteryLevel)), 1, 30); progLogAdd({ k, a: "mastery", n: p.ml }); done.push(`Mastery ${p.ml}`); }
+    if (cc.masteryXp !== null && cc.masteryXp !== undefined && Number.isFinite(Number(cc.masteryXp)) && Number(cc.masteryXp) >= 0 && Number(cc.masteryXp) <= 100000) { p.mx = Math.round(Number(cc.masteryXp)); p.mxAt = Date.now(); }
     if (cc.border) { const bd = String(cc.border).slice(0, 40); if (!p.borders.includes(bd)) { p.borders.push(bd); progLogAdd({ k, a: "border", border: bd }); done.push(`${bd} border`); } }
   });
   { const vn = String(cc.variant || "").trim(), v0 = vn ? matchVariant(k, vn, vn) : null; if (noteLook(k, { v: v0 ? (v0.virtual ? "cat:" + v0.cat : v0.id) : "", vname: vn, border: cc.border, finish: cc.finish, flare: cc.flare }, "card")) done.push("Custom Card saved"); }

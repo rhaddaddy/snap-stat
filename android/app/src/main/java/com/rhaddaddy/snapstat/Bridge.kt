@@ -29,6 +29,8 @@ class Bridge(private val act: MainActivity) {
     @JavascriptInterface fun info(): String = JSONObject()
         .put("version", version())
         .put("sdk", Build.VERSION.SDK_INT)
+        .put("android", Build.VERSION.RELEASE ?: "")
+        .put("model", "${Build.MANUFACTURER ?: ""} ${Build.MODEL ?: ""}".trim())
         .put("photos", Screenshots.hasPhotos(ctx))
         .put("usage", Usage.hasAccess(ctx))
         .put("notify", Build.VERSION.SDK_INT < 33 || ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)

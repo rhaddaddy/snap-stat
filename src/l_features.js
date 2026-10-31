@@ -740,7 +740,8 @@ function shotInput(kind) {
 async function imageForAI(file) {
   const url = URL.createObjectURL(file);
   try {
-    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("The picture couldn't be opened (it may be empty or damaged).")); i.src = url; });
+    if (!img.width || !img.height) throw new Error("The picture is empty.");
     const sc = Math.min(1, 1568 / Math.max(img.width, img.height));
     const cv = document.createElement("canvas"); cv.width = Math.round(img.width * sc); cv.height = Math.round(img.height * sc);
     cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);

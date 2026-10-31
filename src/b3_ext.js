@@ -28,10 +28,10 @@ const EXT = {
 // Runs each registered function and joins what they return; a broken one is logged and skipped.
 function extHtml(list, ...args) {
   let out = "";
-  for (const f of arr(list)) { try { out += f(...args) || ""; } catch (e) { console.error("extension", e); } }
+  for (const f of arr(list)) { try { out += f(...args) || ""; } catch (e) { console.error("extension", e); if (typeof errNote === "function") errNote(`a panel${f.name ? ` (${f.name})` : ""}`, e); } }
   return out;
 }
-function extRun(list, ...args) { for (const f of arr(list)) { try { f(...args); } catch (e) { console.error("extension", e); } } }
+function extRun(list, ...args) { for (const f of arr(list)) { try { f(...args); } catch (e) { console.error("extension", e); if (typeof errNote === "function") errNote(`a background step${f.name ? ` (${f.name})` : ""}`, e); } } }
 // An optional 4th item says whether the section shows right now (it stays reachable by its address)
 function extSubs(list) { return arr(list).filter((x) => { if (!Array.isArray(x) || !x[0] || !x[1]) return false; try { return typeof x[3] !== "function" || !!x[3](); } catch { return false; } }).map(([k, l]) => [k, l]); }
 function extBody(list, key) { const x = arr(list).find((x) => Array.isArray(x) && x[0] === key); return x ? () => extHtml([x[2]]) : null; }

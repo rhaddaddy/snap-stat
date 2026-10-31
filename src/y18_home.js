@@ -70,7 +70,7 @@ function gsRow(r, i) {
 }
 function gsResultsHtml() {
   const q = String(gs.q || "").trim();
-  if (!q) return `<div class="list">${[["What's new in SNAP Stat", whatsNewUnseen() ? "New since you last looked" : "The latest changes", "whatsNewOpen"], ["Keyboard shortcuts", "Press ? any time", "shortcutsOpen"]].map(([l, s, a]) => `<button class="li" data-a="${a}"><div class="grow"><div class="t">${l}${a === "whatsNewOpen" && whatsNewUnseen() ? ' <i class="y18-dot inline" aria-hidden="true"></i>' : ""}</div><div class="s">${s}</div></div><span class="muted">›</span></button>`).join("")}</div>
+  if (!q) return `<div class="list">${[["What's new in SNAP Stat", whatsNewUnseen() ? "New since you last looked" : "The latest changes", "whatsNewOpen"], ["Report a bug", "Tell us what went wrong, with screenshots", "bugOpen"], ["Keyboard shortcuts", "Press ? any time", "shortcutsOpen"]].map(([l, s, a]) => `<button class="li" data-a="${a}"><div class="grow"><div class="t">${l}${a === "whatsNewOpen" && whatsNewUnseen() ? ' <i class="y18-dot inline" aria-hidden="true"></i>' : ""}</div><div class="s">${s}</div></div><span class="muted">›</span></button>`).join("")}</div>
     <p class="muted small">Try a card's name or something it does ("destroy"), a deck, a location, a season, a player you follow, or a page like "shops".</p>`;
   const rs = gsResults(q);
   if (!rs.length) return `<div class="empty"><strong>Nothing found for “${esc(q.slice(0, 40))}”</strong><span>Check the spelling, or try fewer letters.</span></div>`;
@@ -173,30 +173,19 @@ Object.assign(A, { lookText: (el) => { S.look = { ...obj(S.look), text: el.datas
 document.addEventListener("change", (e) => { const t = e.target; if (t && t.dataset && t.dataset.lookchk) { S.look = { ...obj(S.look), [t.dataset.lookchk]: t.checked }; if (!t.checked) delete S.look[t.dataset.lookchk]; save(); render(); } });
 
 /* ============ 5. What's new ============ */
-// Newest first. The build id is what tells the app you haven't seen the newest version yet.
-const CHANGELOG = [
-  { date: "2026-10-30", title: "Search everything", body: "Tap the magnifier at the top (or press / on a keyboard) to find any card, deck, location, season, event, player you follow or page in the app." },
-  { date: "2026-10-30", title: "Home your way", body: "Settings › App lets you switch Home panels off, pick two new colors (pink and teal), turn on a true-black dark mode and make the text smaller or larger." },
-  { date: "2026-10-30", title: "Reminders", body: "Choose reminders for the last days of a season, a new season, events that end tomorrow, your daily checklist, the Tuesday Spotlight change and the end of the alliance week (Settings › App › Reminders, with notifications on)." },
-  { date: "2026-10-30", title: "Your last match on Home", body: "Under Match stats, the match you just logged, with Edit, and Undo for 10 minutes in case you logged it by mistake." },
-  { date: "2026-10-30", title: "Deck tools", body: "Each deck has new Plan, Trend and Matchups tabs: its energy curve, gameplan notes, how to get the cards you're missing, its win rate over time and how it does against each kind of deck. Pin and sort decks in the list." },
-  { date: "2026-10-30", title: "Cards › Plan", body: "One page for what to do next with your collection: upgrades you can afford, credits to your next Collection Level reward, missing Series 4 and 5 cards, splits, albums close to a reward and a month-by-month chart. Home also shows one of your Custom Cards each day." },
-  { date: "2026-10-30", title: "More stats", body: "Home › Stats shows your best hours and days to play, streaks, rivals, deck vs deck, a report card and personal bests. Home can warn you when you're on tilt and track a daily cube goal." },
-  { date: "2026-10-30", title: "Match helper", body: "While you track a match live: energy and snap hints, retreat math, draw odds for every card left in your deck and warnings from the cards they've played. Add tags when you log a match." },
-  { date: "2026-10-30", title: "Game knowledge", body: "Cards › Glossary explains the game's words, plus tips for each location, an Infinite calculator and the next card releases." },
-  { date: "2026-10-30", title: "Friends and alliance", body: "A picture of your week to share, comparing yourself with a friend, a friends board for the week, feed filters, private notes on players and decks that fit each alliance bounty." },
-  { date: "2026-10-30", title: "PC tracker", body: "If you play MARVEL SNAP on a PC, SNAP Stat (in Chrome or Edge on that computer) can follow your games from the game's own files: decks, results and cubes, with no screenshots. Set it up in Settings › Import & backup." },
-  { date: "2026-10-30", title: "Your MARVEL SNAP history", body: "Asked Second Dinner for a copy of your data? Add it in Settings › Import & backup to see when you first reached Infinite, finished each season pass and more. Only those milestones are read." },
-  { date: "2026-10-30", title: "Offline and saving", body: "A bar shows when you're offline, the top bar says when your changes are saved, and Settings › Data files shows how fresh the card list and schedule are." },
-];
+// The list itself is CHANGES (b4_changes.js). The build id is what tells the app you haven't seen the newest version yet.
 function whatsNewUnseen() { return !!BUILD && obj(S.whatsNew).seenBuild !== BUILD; }
 function whatsNewSheet() {
+  const kinds = { new: ["New", "gold"], better: ["Better", ""], fixed: ["Fixed", "W"], removed: ["Removed", "dim"] };
+  const days = []; for (const c of CHANGES.slice(0, 60)) { const d = days.find((x) => x.date === c.date); if (d) d.items.push(c); else days.push({ date: c.date, items: [c] }); }
   return `${sheetHead("What's new in SNAP Stat", BUILD ? `Version ${esc(BUILD.slice(0, 7))}` : "")}
-    <div class="list">${CHANGELOG.slice(0, 30).map((c) => `<div class="li" style="align-items:flex-start"><div class="grow" style="white-space:normal"><div class="t" style="white-space:normal">${esc(c.title)}</div><div class="s" style="white-space:normal">${esc(c.body)}</div><div class="muted small" style="margin-top:4px">${esc(dateStr(c.date))}</div></div></div>`).join("")}</div>
-    <button class="btn snap block" data-a="close">Done</button>`;
+    ${days.map((d) => `<h3 class="eyebrow" style="margin:14px 0 6px">${esc(dateStr(d.date))}</h3><div class="list">${d.items.map((c) => { const [kl, kc] = kinds[c.kind] || kinds.new;
+      return `<${c.where ? `button class="li" data-a="whatsNewGo" data-to="${esc(c.where)}"` : `div class="li"`} style="align-items:flex-start"><div class="grow" style="white-space:normal"><div class="t" style="white-space:normal">${esc(c.title)} <span class="pill ${kc}">${kl}</span></div><div class="s" style="white-space:normal">${esc(c.body)}</div></div>${c.where ? '<span class="muted">›</span></button>' : "</div>"}`; }).join("")}</div>`).join("")}
+    <div class="row" style="margin-top:12px"><button class="btn snap" data-a="close">Done</button><button class="btn ghost" data-a="bugOpen">Report a bug</button></div>`;
 }
 Object.assign(A, {
   whatsNewOpen: () => { const was = whatsNewUnseen(); if (BUILD) { S.whatsNew = { seenBuild: BUILD }; save(); } openSheet(whatsNewSheet); if (was) render(); },
+  whatsNewGo: (el) => { closeSheet(); go(el.dataset.to); },
 });
 function aboutAppHtml() {
   return `<section class="sec"><h2>About the app</h2><div class="panel stack small">

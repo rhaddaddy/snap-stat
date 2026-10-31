@@ -82,6 +82,25 @@ service cloud.firestore {
       allow read, delete: if isModerator();
     }
 
+    // Bug reports: anyone signed in can send one (Report a bug) and read their own to see its status.
+    // Only the app owner sees them all, changes the status or a reply, and deletes them. Pictures sit in files/{n}.
+    match /bugs/{id} {
+      allow create: if signedIn() && request.resource.data.by == request.auth.uid
+        && request.resource.data.status == "new"
+        && request.resource.data.text is string && request.resource.data.text.size() <= 4000
+        && request.resource.data.files is int && request.resource.data.files <= 8;
+      allow read: if isAppOwner() || (signedIn() && resource.data.by == request.auth.uid);
+      allow update: if isAppOwner() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "reply", "statusAt"]);
+      allow delete: if isAppOwner();
+      match /files/{n} {
+        allow create: if signedIn() && request.resource.data.by == request.auth.uid
+          && get(/databases/$(database)/documents/bugs/$(id)).data.by == request.auth.uid
+          && request.resource.data.data is string && request.resource.data.data.size() < 1000000;
+        allow read: if isAppOwner() || (signedIn() && resource.data.by == request.auth.uid);
+        allow delete: if isAppOwner();
+      }
+    }
+
     // Tournaments: anyone signed in can start one; only its organizer changes it (the app owner can remove one).
     match /tournaments/{id} {
       allow read: if signedIn();

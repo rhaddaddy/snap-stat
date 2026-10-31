@@ -249,11 +249,14 @@ function readStateFile(ss, fname) {
     (copies[id] = copies[id] || []).push({ v, r: rarityOfId(e.RarityDefId), custom: e.Custom === true, fav: e.Favorite === true || e.IsFavorite === true, fin: String(e.SurfaceEffectDefId || e.FinishDefId || ""), fl: String(e.CardRevealEffectDefId || e.RevealEffectDefId || e.FlareDefId || ""), bd: String(e.BorderDefId || e.CardBorderDefId || "") });
   }
   // Custom Cards (the favourite one when there are several), favourite variants, upgrade levels and splits, per card
-  const looks = {}, favs = {}, prog = {};
+  const looks = {}, looks2 = {}, favs = {}, prog = {};
   const stats = obj(obj(ss.CardDefStats).Stats);
   for (const [id, list] of Object.entries(copies)) {
-    const cus = list.filter((c) => c.custom).sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0))[0];
-    if (cus && (cus.v || cus.fin || cus.fl || cus.bd)) looks[id] = { v: cus.v, finish: effectName(cus.fin), flare: effectName(cus.fl, true), border: cus.bd };
+    // Mastery level 22 gives a card a second Custom Card: the first two custom copies are Custom Card 1 and 2
+    const cusAll = list.filter((c) => c.custom && (c.v || c.fin || c.fl || c.bd)).sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0));
+    const mk = (cus) => ({ v: cus.v, finish: effectName(cus.fin), flare: effectName(cus.fl, true), border: cus.bd });
+    if (cusAll[0]) looks[id] = mk(cusAll[0]);
+    if (cusAll[1]) looks2[id] = mk(cusAll[1]);
     const fav = list.find((c) => c.fav && c.v); if (fav) favs[id] = fav.v;
     const pr = { b: null, base: null, vr: {}, splits: [], borders: [] }, st = obj(stats[id]);
     if (Number.isFinite(Number(st.Boosters)) && Number(st.Boosters) >= 0 && Number(st.Boosters) < 1e6) pr.b = Math.round(Number(st.Boosters));
@@ -284,10 +287,10 @@ function readStateFile(ss, fname) {
   for (const d of arr(ss.Decks)) {
     if (!d || typeof d.Name !== "string" || !Array.isArray(d.Cards) || d.Cards.length < 6 || d.Cards.length > 12 || !d.Cards.every((c) => c && typeof c.CardDefId === "string")) continue;
     const back = String(obj(d.CardBack).CardBackDefId || d.CardBackDefId || ""); if (back) cos.cardback.add(back);
-    decks.push({ name: d.Name.slice(0, 60), cards: d.Cards.map((c) => c.CardDefId), vars: d.Cards.map((c) => (typeof c.ArtVariantDefId === "string" ? c.ArtVariantDefId : "")), back });
+    decks.push({ name: d.Name.slice(0, 60), cards: d.Cards.map((c) => c.CardDefId), vars: d.Cards.map((c) => (typeof c.ArtVariantDefId === "string" ? c.ArtVariantDefId : "")), back, av: gameDeckLooks(d).avDef });
   }
   const clRaw = Number(obj(ss.CollectionScore).Amount), cl = Number.isFinite(clRaw) && clRaw > 0 && clRaw < 200000 ? Math.round(clRaw) : null;
-  return { cards: [...cards], vars: [...vars], decks, looks, favs, prog, cos: Object.fromEntries(Object.entries(cos).map(([k, v]) => [k, [...v].slice(0, 3000)])), avatars: avatars.slice(0, 3000), cl, state: true, any: cards.size > 0 };
+  return { cards: [...cards], vars: [...vars], decks, looks, looks2, favs, prog, cos: Object.fromEntries(Object.entries(cos).map(([k, v]) => [k, [...v].slice(0, 3000)])), avatars: avatars.slice(0, 3000), cl, state: true, any: cards.size > 0 };
 }
 // ClanState.json: your alliance, its members with this week's points, and the bounties on offer
 const BOUNTY_TXT = { WinLocationWithHighPower: "Win locations with high power", WinLocationWith4Cards: "Win locations with 4 cards", WinMatchesWithCardInDeck: "Win matches with {c} in your deck", DiscardCards: "Discard cards", MoveFiveCards: "Move cards", Play1CostCards: "Play 1-Cost cards", WinMatchesWithRevealCardPairInDeck: "Win matches with {c} and {c2} in your deck" };
@@ -352,7 +355,7 @@ function readCollectionFile(text, fileName) {
   let j; try { j = JSON.parse(String(text || "").replace(/^﻿/, "")); } catch { return null; }
   const fname = String(fileName || ""), isColl = !fname || /collection/i.test(fname), isProfile = /profile/i.test(fname);
   const ss = j && typeof j === "object" && j.ServerState && typeof j.ServerState === "object" ? j.ServerState : null;
-  const mastery = ss ? readMasteryFile(ss) : null, clan = ss && !mastery ? readClanFile(ss, j) : null, evf = ss && !mastery && !clan ? readEventFile(ss) : null;
+  const mastery = ss ? readMasteryFile(ss) : null, masteryXp = mastery ? readMasteryXp(ss) : null, clan = ss && !mastery ? readClanFile(ss, j) : null, evf = ss && !mastery && !clan ? readEventFile(ss) : null;
   const state = ss && Array.isArray(ss.Cards) ? readStateFile(ss, fname) : null;
   const cards = new Set(), vars = new Set(), decks = [], looks = {}, cos = { cardback: new Set(), avatar: new Set(), title: new Set(), emote: new Set() };
   const keys = {}, defs = {};
@@ -385,7 +388,7 @@ function readCollectionFile(text, fileName) {
   walk(j, 0, "");
   const summary = { file: fname.slice(0, 60), keys: Object.entries(keys).sort((a, b) => b[1] - a[1]).slice(0, 80).map(([k, n]) => `${k}×${n}`), defIds: Object.fromEntries(Object.entries(defs).slice(0, 40).map(([k, v]) => [k, [...v]])) };
   if (state) return { ...state, summary };
-  if (mastery || clan || evf) return { cards: [], vars: [], decks: [], looks: {}, cos: {}, mastery, clan, events: evf ? evf.events : [], summary, any: true };
+  if (mastery || clan || evf) return { cards: [], vars: [], decks: [], looks: {}, cos: {}, mastery, masteryXp, clan, events: evf ? evf.events : [], summary, any: true };
   // Only the collection file says what you own; the profile file says what you have on
   const cosOk = isColl || isProfile;
   return { cards: isColl ? [...cards] : [], vars: isColl ? [...vars] : [], decks: isColl ? decks : [], looks: isColl ? looks : {}, cos: cosOk ? Object.fromEntries(Object.entries(cos).map(([k, v]) => [k, [...v].slice(0, 2000)])) : {}, summary, any: cards.size > 0 || Object.values(cos).some((x) => x.size) };
@@ -441,6 +444,9 @@ function applyGameFiles(files, opts = {}) {
     // Boosters, upgrade levels, splits and borders straight from the game
     for (const [id, pr] of Object.entries(obj(r.prog))) { const c = cardByDefId(id); if (!c || c.unknown) continue; const got = applyProgFile(c.key, pr); if (got.any) progCards++; boostersSet += got.b; levelsSet += got.levels; splitsNew += got.splits; bordersNew += got.borders; }
     for (const [id, lv] of Object.entries(obj(r.mastery))) { const c = cardByDefId(id); if (!c || c.unknown) continue; masteryN++; const p = prog(c.key); if (num(p.ml) < lv) { p.ml = lv; masterySet++; } }
+    for (const [id, xp] of Object.entries(obj(r.masteryXp))) { const c = cardByDefId(id); if (!c || c.unknown) continue; const p = prog(c.key); p.mx = xp; p.mxAt = Date.now(); }
+    // Custom Card 2 (Mastery 22+), next to Custom Card 1
+    for (const [id, L] of Object.entries(obj(r.looks2))) { const c = cardByDefId(id); if (!c) continue; const v = L.v ? variantByDefId(L.v) : null; if (noteLook2(c.key, { v: v ? (v.virtual ? "cat:" + v.cat : v.id) : "", vname: v ? v.name : "", finish: L.finish, flare: L.flare, border: borderLabel(L.border) }, "file")) looksNew++; }
     if (r.cl && r.cl > num(cl)) cl = r.cl;
     if (r.clan && typeof applyShotAlliance === "function") { const x = {}; applyShotAlliance(x, r.clan.alliance, r.clan.time); if (x.detail) notes.push(`Alliance: ${x.detail}`); }
     for (const ev of arr(r.events)) { const t = applyEventFile(ev); if (t) notes.push(t); }
@@ -448,6 +454,9 @@ function applyGameFiles(files, opts = {}) {
   // Collection Level only goes up
   if (cl && cl > clWas) { S.me.colLevel = cl; S.colLow = null; }
   for (const { r } of rs) for (const d of r.decks) { const ks = d.cards.map((id) => (cardByDefId(id) || {}).key).filter(Boolean).sort().join(","); if (!have.has(keyOf(d.name) + "|" + ks)) decks.push(d); }
+  // Decks you already have take the card back and avatar the game has on them (y29_decklook.js)
+  let decksLooked = 0; for (const { r } of rs) decksLooked += deckLooksFromFile(r.decks);
+  if (decksLooked) notes.push(`${decksLooked} deck${decksLooked === 1 ? "" : "s"} took the card back and avatar the game has on ${decksLooked === 1 ? "it" : "them"}.`);
   if (cosN || titles) (S.seen = obj(S.seen)).cosfile = Date.now();
   collImp = { cards, cardsNew, vars, varsNew, unknown, decks, cos: cosN, cosNew, looksNew, favsNew, titles, avatars: avatarsN, progCards, boostersSet, levelsSet, splitsNew, bordersNew, masteryN, masterySet, cl: cl && cl > clWas ? cl : null, clSame: cl && cl <= clWas ? cl : null, notes, state: rs.some((x) => x.r.state), files: rs.map((x) => x.r.summary) };
   if (cards) S.collFileAt = Date.now();
@@ -542,7 +551,7 @@ Object.assign(A, {
   dkBackOpen: () => { dkb = { q: "", own: cardBacks().some((b) => (backCos(b) || {}).owned), lim: 60 }; openSheet(dkBackSheet); },
   dkbOwn: (el) => { dkb.own = el.dataset.v === "1"; dkb.lim = 60; refreshSheet(); },
   dkbMore: () => { dkb.lim += 60; refreshSheet(); },
-  dkBackPick: (el) => { const d = deckEdit(); if (!d) return; d.back = el.dataset.id || ""; save(); openDeck(deId); toast(d.back ? "Card back set" : "Card back removed"); },
+  dkBackPick: (el) => { const d = deckEdit(); if (!d) return; d.back = el.dataset.id || ""; d.backBy = "hand"; save(); openDeck(deId); toast(d.back ? "Card back set" : "Card back removed"); },
   dkBorderOpen: () => { dkbd = { q: "" }; openSheet(dkBorderSheet); },
   dkBorderPick: (el) => { const d = deckEdit(); if (!d) return; d.coverBorder = el.dataset.v || ""; save(); const keep = $("#sheetBody").scrollTop; refreshSheet(); $("#sheetBody").scrollTop = keep; },
   dkBack: () => openDeck(deId),
@@ -552,7 +561,7 @@ Object.assign(A, {
   dkcCard: (el) => { dkc.k = el.dataset.k; dkc.step = "variant"; dkc.vf = "all"; refreshSheet(); $("#sheetBody").scrollTop = 0; },
   dkcStep: (el) => { dkc.step = el.dataset.v; refreshSheet(); },
   dkcVf: (el) => { dkc.vf = el.dataset.v; refreshSheet(); },
-  dkcVar: (el) => { const d = deckEdit(); if (!d) return; d.cover = dkc.k; d.coverVar = el.dataset.id || "base"; save(); openDeck(deId); toast("Deck icon set"); },
+  dkcVar: (el) => { const d = deckEdit(); if (!d) return; d.cover = dkc.k; d.coverVar = el.dataset.id || "base"; d.coverBy = "hand"; save(); openDeck(deId); toast("Deck icon set"); },
   cbOwn: (el) => { const b = cardBackById(el.dataset.id); if (!b) return; const now = !(backCos(b) || {}).owned; setBack(b, "owned", now); if (now) { const c = backCos(b); if (c) c.wish = false; } render(); },
   cbWish: (el) => { const b = cardBackById(el.dataset.id); if (!b) return; setBack(b, "wish", !(backCos(b) || {}).wish); render(); },
   cbF: (el) => { cbv.f = el.dataset.v; cbv.lim = 60; render(); },

@@ -93,7 +93,7 @@ async function trkHealthLoad() {
     // Seconds from a match's picture being taken to SNAP Stat logging it. An old screenshot shared days later isn't counted.
     const lagOf = (recs) => recs.filter((r) => r.kind === "match" && r.matchId && num(r.taken) > 0 && num(r.at) > num(r.taken) && num(r.at) - num(r.taken) < 12 * 3600e3).map((r) => (num(r.at) - num(r.taken)) / 1000);
     let lags = lagOf(td), scope = "today"; if (!lags.length) { lags = lagOf(list.slice(0, 40)); scope = "recent"; }
-    trkHealth.data = { read: td.length, failed: td.filter(rvFailed).length, lagN: lags.length, avg: lags.length ? lags.reduce((a, b) => a + b, 0) / lags.length : 0, scope, ss: trkStartStop() };
+    trkHealth.data = { read: td.length, failed: td.filter(rvFailed).length, why: typeof rvWhyCounts === "function" ? rvWhyCounts(td.filter(rvFailed)) : [], lagN: lags.length, avg: lags.length ? lags.reduce((a, b) => a + b, 0) / lags.length : 0, scope, ss: trkStartStop() };
   } catch { trkHealth.data = { read: 0, failed: 0, lagN: 0, avg: 0, scope: "today", ss: trkStartStop(), err: true }; }
   trkHealth.at = Date.now(); trkHealth.loading = false;
   if (ui.tab === "settings") refreshView();
@@ -108,6 +108,7 @@ function trackerHealthHtml() {
     : ss.stoppedAt ? `Last stopped ${when(ss.stoppedAt)}${ss.startedAt ? `, after starting ${when(ss.startedAt)}` : ""}.` : ss.startedAt ? `Last started ${when(ss.startedAt)}.` : "The tracker hasn't been started on this phone yet.";
   return `<div class="panel stack small trkhealth"><div class="row between"><b>Tracker health</b>${d && !d.err ? `<span class="pill ${d.failed ? "warn" : "W"}">${d.failed ? `${d.failed} couldn't be read` : "All good"}</span>` : ""}</div>
     <div class="tiles"><div class="tile"><div class="k">Pictures read today</div><div class="v num">${d ? fmt(d.read) : "…"}</div></div><div class="tile"><div class="k">Couldn't be read</div><div class="v num ${d && d.failed ? "neg" : ""}">${d ? fmt(d.failed) : "…"}</div></div></div>
+    ${d && d.failed && arr(d.why).length ? `<div class="stack" style="gap:2px"><b class="small">Why they couldn't be read</b>${arr(d.why).map(([w, n]) => `<span class="small">${n} · ${esc(w)}</span>`).join("")}<div class="row" style="margin-top:4px"><button class="btn sm" data-a="rvFailedOpen">See them</button>${canReadShots() ? `<button class="btn sm" data-a="rvRetryFailed">Read them again</button>` : ""}</div></div>` : ""}
     <span>${!d ? "Checking the review log…" : d.lagN ? `Matches are logged about <b>${secsTxt(d.avg)}</b> after their picture is taken${d.scope === "today" ? "" : " (from your last matches)"}. That's the wait until you open SNAP Stat plus the AI's reading time.` : "No matches have been logged from pictures yet, so there's no timing to show."}</span>
     <span>${aiStatusText()}</span>
     <span class="muted">${startStop}</span>

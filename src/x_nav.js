@@ -114,10 +114,10 @@ function vSettingsTab() {
         <span class="muted">${!window.SNAPSTAT_STANDALONE ? "It works in the SNAP Stat app, not in this view." : SLOT ? "It uses your main account. Switch back to it in Profile › MARVEL SNAP accounts to turn it on." : "Sign in to turn it on."}</span>${window.SNAPSTAT_STANDALONE && !SLOT && store.mode !== "cloud" && store.fb ? `<div><button class="btn sm snap" data-a="signIn">Sign in</button></div>` : ""}</div></section>`,
     account: () => `<section class="sec"><h2>Account</h2><div class="panel stack small"><p class="muted">${esc(sync)}${SLOT ? " · " + esc(currentAccountName()) : ""}</p>
         ${store.provider === "firebase" ? `<p><b>${accountLine()}</b></p><p>${store.mode === "cloud" ? "Your data follows you to any device where you sign in." : "Sign in to keep your data across devices and use the social features. Anything saved here moves into your account when you sign in."}</p>${store.mode === "cloud" ? `<div><button class="btn sm" data-a="signOut">Sign out</button></div>` : store.fb ? `<div><button class="btn sm snap" data-a="signIn">Sign in</button></div>` : ""}` : `<p>${store.mode === "cloud" ? "You're signed in with your Claude account, and your data follows you across devices." : "Your data is saved on this device."}</p>`}</div></section>${dangerPanel()}`,
-    owner: () => `${ownerPanel()}${adminsPanel()}`,
-    about: () => vAbout(),
+    owner: () => `${ownerPanel()}${ownerTestsHtml()}${ownerBugsHtml()}${adminsPanel()}`,
+    about: () => `${bugAboutHtml()}${vAbout()}`,
   }[s] || extBody(EXT.settingsSubs, s) || (() => appPanel());
-  return `${tabHead("settings")}${s !== "android" ? natUpdateBanner() : ""}${body()}<section class="sec"><p class="muted small">${window.SNAPSTAT_STANDALONE ? privacyLink() + " · " : ""}Unofficial fan-made app. Not affiliated with or endorsed by Marvel or Second Dinner.</p></section>`;
+  return `${tabHead("settings")}${s !== "android" ? natUpdateBanner() : ""}${body()}<section class="sec"><p class="muted small"><button class="bug-foot" data-a="bugOpen">Found a bug? Report it</button> · ${window.SNAPSTAT_STANDALONE ? privacyLink() + " · " : ""}Unofficial fan-made app. Not affiliated with or endorsed by Marvel or Second Dinner.</p></section>`;
 }
 // The old "‹ More" bar above each section is gone; the section row at the top of each tab does that job now.
 function backBar(t) { return ""; }
@@ -151,21 +151,28 @@ Object.assign(A, {
 document.addEventListener("toggle", (e) => { if (e.target && e.target.dataset && e.target.dataset.profedit) ui.profEdit = e.target.open; }, true);
 
 /* ---------- Swipe left or right to move through a tab's sections ---------- */
-// After the last section a swipe goes back to the first. Rows that scroll sideways, fields and open sheets keep their own swipes.
-function swipeBlocked(el) {
-  for (let n = el; n && n !== document.body; n = n.parentElement) {
+// The sections go round in a loop both ways. Fields, drawing areas and open sheets keep their own swipes;
+// a row that scrolls sideways keeps the swipe until it's at its end in that direction (dx > 0 = finger moving right).
+function swipeBlocked(el, dx) {
+  for (let n = el; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
     if (n.nodeType !== 1) continue;
-    if (n.matches("input, textarea, select, .subnav, .board, [data-noswipe], canvas")) return true;
+    if (n.matches("input:not([type=checkbox]):not([type=radio]):not([type=button]), textarea, select, .board, [data-noswipe], canvas, .lk-stage")) return true;
     const ox = getComputedStyle(n).overflowX;
-    if ((ox === "auto" || ox === "scroll") && n.scrollWidth > n.clientWidth + 4) return true;
+    if ((ox === "auto" || ox === "scroll") && n.scrollWidth > n.clientWidth + 4) {
+      if (!dx) return true;
+      const atStart = n.scrollLeft <= 1, atEnd = n.scrollLeft + n.clientWidth >= n.scrollWidth - 2;
+      if ((dx > 0 && atStart) || (dx < 0 && atEnd)) continue; // nothing left to scroll that way: the page swipe takes over
+      return true;
+    }
   }
   return false;
 }
-// The section a swipe lands on (1 = next, -1 = previous), or null if there isn't one
+// The section a swipe lands on (1 = next, -1 = previous), or null if the tab has only one
 function swipeTarget(dir) {
   const n = NAV[ui.tab]; if (!n || !n.subs) return null;
   const subs = n.subs().map(([k]) => k), i = Math.max(0, subs.indexOf(ui[n.key]));
-  let j = i + dir; if (j >= subs.length) j = 0; if (j < 0 || subs[j] === subs[i]) return null;
+  let j = i + dir; if (j >= subs.length) j = 0; if (j < 0) j = subs.length - 1;
+  if (subs[j] === subs[i]) return null;
   return subs[j];
 }
 function swipeSection(dir) {

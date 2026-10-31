@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The SNAP Stat home-screen widget -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/w_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/widget_bg"
-    android:orientation="vertical"
-    android:padding="14dp">
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent">
+    <ImageView android:id="@+id/w_bg" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" android:src="@drawable/widget_fill" android:importantForAccessibility="no" />
+    <ImageView android:id="@+id/w_glow" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" android:src="@drawable/widget_glow" android:importantForAccessibility="no" />
+    <ImageView android:id="@+id/w_edge" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" android:src="@drawable/widget_edge" android:importantForAccessibility="no" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="14dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -30,7 +29,7 @@
             android:textColor="#FFFFFF"
             android:textSize="15sp"
             android:textStyle="bold" />
-        <TextView
+        <TextView android:id="@+id/w_ls1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/widget_rank"
@@ -67,7 +66,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical">
-            <TextView
+            <TextView android:id="@+id/w_ls2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/widget_today"
@@ -88,7 +87,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical">
-            <TextView
+            <TextView android:id="@+id/w_ls3"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/widget_reset"
@@ -135,3 +134,4 @@
         android:textSize="12sp"
         android:visibility="gone" />
 </LinearLayout>
+</FrameLayout>

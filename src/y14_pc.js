@@ -92,7 +92,7 @@ function pcReadGame(text) {
   g.snapped = crm.IsStakesRaisedByPlayer === true || mine.StakesRaised === true || g.mySnapTurn > 0;
   g.oppSnapped = mine.StakesRaisedByOpponent === true || theirs.StakesRaised === true || g.oppSnapTurn > 0;
   g.drawnIds = arr(mine.CardDefIdsDrawn); g.playedIds = arr(mine.CardDefIdsPlayed);
-  const deck = obj(mine.Deck); g.deckName = String(deck.Name || "").slice(0, 60); g.deckIds = arr(deck.Cards).map((c) => pcId(obj(c).CardDefId)).filter(Boolean);
+  const deck = obj(mine.Deck); g.deckLooks = gameDeckLooks(deck); g.deckName = String(deck.Name || "").slice(0, 60); g.deckIds = arr(deck.Cards).map((c) => pcId(obj(c).CardDefId)).filter(Boolean);
   oppIds.push(...arr(theirs.CardsSeen).map((c) => obj(c).Item1), ...arr(theirs.CardDefIdsPlayed));
   // Final power per location: the board, or the result message's own numbers when the board isn't there
   const endDefs = arr(crm.LocationDefIdsAtEndOfGame).map(pcId), mr = arr(mine.LocationResults).map(obj), tr = arr(theirs.LocationResults).map(obj);
@@ -124,6 +124,8 @@ function pcLogGame(g, ts) {
   // The same game logged by hand is saved after it ends: a match from more than 5 minutes before this one ended is another game
   const twin = realMatches().find((x) => x.src !== "pc" && x.ts > ts - 5 * 60e3 && x.ts < ts + 20 * 60e3 && x.result === m.result && (!x.oppName || keyOf(x.oppName) === keyOf(m.oppName)));
   if (twin) { const keep = { id: twin.id, ts: twin.ts, notes: twin.notes, bot: twin.bot, tags: twin.tags }; m = { ...twin, ...m, ...Object.fromEntries(Object.entries(keep).filter(([, v]) => v !== undefined)) }; if (twin.deckId && !m.deckId) { m.deckId = twin.deckId; m.deckName = twin.deckName; } }
+  // The deck you played takes the card back and avatar the game had on it
+  const pd = m.deckId ? S.decks.find((x) => x.id === m.deckId) : null; if (pd && g.deckLooks) deckAutoLook(pd, g.deckLooks, "pc");
   putMatch(m); onMatchSaved(m); save();
   toast(`${twin ? "Added the PC details to your match" : "Match logged from PC"}: ${pcResultTxt(m)}`);
   return m;

@@ -91,7 +91,7 @@ function histHtml() {
   const seasonOf = (k) => seasons().find((s) => s.start && s.start.slice(0, 7) === k);
   // Every month from the first season in the history to now: finished (50), halfway (25) or no record
   const months = []; if (keys.length) { let [y, m] = keys[0].split("-").map(Number); const end = new Date(); while (y < end.getUTCFullYear() || (y === end.getUTCFullYear() && m <= end.getUTCMonth() + 1)) { months.push(`${y}-${String(m).padStart(2, "0")}`); m++; if (m > 12) { m = 1; y++; } if (months.length > 120) break; } }
-  const cell = (k) => { const p = P[k] || ["", ""], s = seasonOf(k), st = p[1] ? "W" : p[0] ? "warn" : "dim"; return `<span class="pill ${st}" title="${esc((s ? s.name + " · " : "") + (p[1] ? "level 50 on " + dateStr(p[1]) : p[0] ? "level 25 on " + dateStr(p[0]) : "no record"))}">${esc(monthLbl(k))}</span>`; };
+  const cell = (k) => { const p = P[k] || ["", ""], s = seasonOf(k), st = p[1] ? "W" : p[0] ? "warn" : "dim"; return `<button class="pill ${st} hist-m" data-a="histMonth" data-k="${esc(k)}" aria-label="${esc(monthLbl(k) + ": " + (s ? s.name + ", " : "") + (p[1] ? "level 50 on " + dateStr(p[1]) : p[0] ? "level 25 on " + dateStr(p[0]) : "no record"))}">${esc(monthLbl(k))}</button>`; };
   const tiles = [
     H.since ? [dateStr(H.since), years >= 1 ? `playing for ${years} year${years === 1 ? "" : "s"}` : "when you started"] : null,
     [fmt(done.length), `season pass${done.length === 1 ? "" : "es"} finished`],
@@ -103,7 +103,7 @@ function histHtml() {
   const top = arr(H.top).filter((k) => !card(k).unknown);
   return `<section class="sec"><div class="sec-h"><h2>Your SNAP history</h2><span class="muted small">from your data copy</span></div>
     <div class="tiles">${tiles.map(([v, k]) => `<div class="tile"><div class="v num">${esc(v)}</div><div class="k">${k}</div></div>`).join("")}</div>
-    ${months.length ? `<div class="panel stack small"><span class="eyebrow">Season passes</span><div class="chiplist">${months.map(cell).join("")}</div><span class="muted">Green: level 50 · yellow: level 25 · grey: no record. Tap and hold a month for its date.</span></div>` : ""}
+    ${months.length ? `<div class="panel stack small"><span class="eyebrow">Season passes</span><div class="chiplist">${months.map(cell).join("")}</div><span class="muted">Green: level 50 · yellow: level 25 · grey: no record. Tap a month to see everything from it.</span></div>` : ""}
     ${top.length ? `<div class="panel stack small"><span class="eyebrow">The game's list of your top cards</span><div class="chiplist">${top.map((k) => cardChip(k, { noOwn: true, size: "xs" })).join("")}</div></div>` : ""}
     ${F.split ? `<p class="muted small">First Infinity Split: ${esc(dateStr(F.split))}.${F.eightCube ? ` First 8-cube win: ${esc(dateStr(F.eightCube))}.` : ""}</p>` : ""}</section>`;
 }

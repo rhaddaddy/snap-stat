@@ -404,12 +404,18 @@ const AI_CALL = {
     for (let i = 0; i < models.length; i++) {
       try {
         const j = await gemFetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(models[i])}:generateContent`, { method: "POST", signal: opts.signal, headers: { "content-type": "application/json" }, body }, key);
-        return arr(obj(obj(arr(j.candidates)[0]).content).parts).map((x) => x.text || "").join("");
+        const c0 = obj(arr(j.candidates)[0]), out = arr(obj(c0.content).parts).filter((x) => !x.thought).map((x) => x.text || "").join("");
+        // No answer (blocked, cut off by length, or nothing at all): say why, and let the next model try
+        if (!out.trim() || (c0.finishReason && !/^STOP$/i.test(c0.finishReason) && !/[}\]]\s*$/.test(out))) {
+          const why = String(c0.finishReason || obj(j.promptFeedback).blockReason || "no answer");
+          throw aiFail("gemini", 0, `Gemini didn't answer properly (${why === "MAX_TOKENS" ? "its answer was cut off" : why.toLowerCase().replace(/_/g, " ")}).`, { empty: true });
+        }
+        return out;
       } catch (e) {
         if (e && e.name === "AbortError") throw e;
         if (e.status === 404 && !err) { err = e; models = await aiModels("gemini", key, true); i = -1; continue; }
         // Busy, overloaded, out of free uses or too slow: the next model has its own allowance and is often free
-        if (!(e.status === 429 || e.status >= 500 || e.slow) || i === models.length - 1) throw e;
+        if (!(e.status === 429 || e.status >= 500 || e.slow || e.empty) || i === models.length - 1) throw e;
         err = e;
       }
     }
@@ -579,7 +585,7 @@ function reportSheet() {
 let reports = null;
 async function loadReports() {
   reports = [];
-  try { const snap = await new Promise((res, rej) => { const un = store.db.collection("reports").onSnapshot((s) => { res(s); if (typeof un === "function") un(); }, rej); }); reports = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => num(b.at) - num(a.at)); }
+  try { const snap = await new Promise((res, rej) => { let un = null, got = false; un = store.db.collection("reports").onSnapshot((s) => { res(s); got = true; if (typeof un === "function") un(); }, rej); if (got && typeof un === "function") un(); }); reports = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => num(b.at) - num(a.at)); }
   catch { reports = "error"; }
   render();
 }

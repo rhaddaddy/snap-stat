@@ -63,7 +63,7 @@ function lookText(L) { L = obj(L); const v = L.v ? variantAny(L.v) : null; retur
 const LOOK_SRC = { card: "from its screen in the game", match: "from one of your matches", file: "from your PC collection file", reward: "from a reward screen" };
 function myLookHtml(k) {
   const L = obj(obj(S.looks)[k]); const t = lookText(L); if (!t) return "";
-  return `<div class="panel stack small" style="gap:4px"><div class="row between"><b>Your Custom Card in the game</b><button class="btn sm ghost" data-a="lookClear" data-k="${esc(k)}">Clear</button></div><span>${esc(t)}</span><span class="muted">${esc(LOOK_SRC[L.src] || "")}${L.at ? ` · ${esc(agoTxt(L.at))}` : ""}. Screenshot the card in the game after you change it.</span></div>`;
+  return `<div class="panel stack small" style="gap:4px"><div class="row between"><b>${obj(S.looks2)[k] ? "Custom Card 1" : "Your Custom Card in the game"}</b><button class="btn sm ghost" data-a="lookClear" data-k="${esc(k)}">Clear</button></div><span>${esc(t)}</span><span class="muted">${esc(LOOK_SRC[L.src] || "")}${L.at ? ` · ${esc(agoTxt(L.at))}` : ""}. Screenshot the card in the game after you change it.</span></div>`;
 }
 Object.assign(A, { lookClear: (el) => { delete obj(S.looks)[el.dataset.k]; save(); refreshSheet(); toast("Cleared"); } });
 
@@ -109,7 +109,8 @@ function applyMatchLooks(m, mm) {
   // Your deck's card back and avatar
   if (d && (me.cardback || me.avatar)) {
     d.seen = { ...obj(d.seen), ...(me.cardback ? { back: me.cardback } : {}), ...(me.avatar ? { avatar: me.avatar } : {}), at: Date.now() };
-    if (!d.back && me.cardback && typeof cardBacks === "function") { const b = pickExact(cardBacks(), me.cardback, (x) => x.name); if (b) { d.back = b.id; d.backBy = "match"; } }
+    // The deck follows what you had on in the game (y29_decklook.js), unless you picked its card back or icon yourself
+    deckAutoLook(d, { cardback: me.cardback, avatar: me.avatar }, "match");
   }
   return got;
 }
@@ -176,17 +177,20 @@ function applyShotReward(x, r) {
 if (typeof OWN_BY !== "undefined") Object.assign(OWN_BY, { match: "seen in one of your matches", reward: "from a reward screen" });
 
 /* ---------- Cards › Custom cards: the Custom Cards you've made in the game (and ones opponents use) ---------- */
-let le = { k: "", q: "" };
+let le = { k: "", q: "", slot: 1 };
+// Custom Card 1 is S.looks, Custom Card 2 (from Mastery level 22) is S.looks2
+const leStore = () => (le.slot === 2 ? (S.looks2 = obj(S.looks2)) : (S.looks = obj(S.looks)));
 Object.assign(LOOK_SRC, { you: "set by you" });
 function vGameCustom() {
-  const L = obj(S.looks), q = keyOf(le.q || "");
-  const ks = Object.keys(L).filter((k) => !card(k).unknown && (!q || keyOf(card(k).name).includes(q))).sort((a, b) => card(a).name.localeCompare(card(b).name));
+  const L = obj(S.looks), L2 = obj(S.looks2), q = keyOf(le.q || "");
+  const ks = [...new Set([...Object.keys(L), ...Object.keys(L2)])].filter((k) => !card(k).unknown && (!q || keyOf(card(k).name).includes(q))).sort((a, b) => card(a).name.localeCompare(card(b).name));
   const deckOf = (k) => S.decks.find((d) => d.status !== "retired" && d.cards.includes(k) && obj(d.variants)[k]) || null;
   const row = (k) => { const x = obj(L[k]), v = x.v ? variantAny(x.v) : null;
     return `<div class="li coll"><div class="collart" style="width:74px">${cardChip(k, { noOwn: true, size: "xs", v })}</div><div class="grow"><div class="t">${esc(card(k).name)}</div>
       ${[v ? `${v.name || "Variant"}${byArtist(v)}` : x.vname ? `${x.vname} variant` : "Base art", x.border ? `${x.border} border` : "", x.finish ? `${x.finish} finish` : "", x.flare ? `${x.flare} flare` : ""].filter(Boolean).map((t) => `<div class="s">${esc(t)}</div>`).join("")}
-      <div class="s">${esc(LOOK_SRC[x.src] || "")}${x.at ? ` · ${esc(agoTxt(x.at))}` : ""}</div></div>
-      <div class="collchk"><button class="btn sm" data-a="leOpen" data-k="${esc(k)}">Edit</button></div></div>`; };
+      <div class="s">${esc(LOOK_SRC[x.src] || "")}${x.at ? ` · ${esc(agoTxt(x.at))}` : ""}</div>
+      ${L2[k] ? `<div class="s"><b>Custom Card 2:</b> ${esc(lookText(L2[k]) || "")}</div>` : ""}</div>
+      <div class="collchk stack" style="gap:4px"><button class="btn sm" data-a="leOpen" data-k="${esc(k)}">${L2[k] ? "Edit 1" : "Edit"}</button>${L2[k] ? `<button class="btn sm" data-a="leOpen2" data-k="${esc(k)}">Edit 2</button>` : ""}</div></div>`; };
   // What opponents had on, newest first
   const seen = new Map();
   for (const m of realMatches().slice().sort((a, b) => b.ts - a.ts)) for (const [k, x] of Object.entries(obj(obj(m.opp).looks))) { const key = k + "|" + lookText(x); if (!seen.has(key) && seen.size < 40) seen.set(key, { k, x, who: m.oppName || "an opponent", ts: m.ts }); }
@@ -195,15 +199,18 @@ function vGameCustom() {
       <div class="row"><input type="search" id="le-q" data-le="q" value="${esc(le.q || "")}" placeholder="Find a card" style="flex:1"><button class="btn sm" data-a="leAdd">${ICON.plus} Add one</button></div></div>
     ${ks.length ? `<div class="list">${ks.slice(0, 300).map(row).join("")}</div>` : `<div class="empty"><strong>${q ? "No Custom Card for that card yet" : "No Custom Cards saved yet"}</strong><span>Open a card in the game and screenshot it, or play a match with Track & play on.</span></div>`}
     <span class="muted small">${fmt(Object.keys(L).length)} card${Object.keys(L).length === 1 ? "" : "s"} with a Custom Card saved.</span></section>
+    ${typeof masteryListHtml === "function" ? masteryListHtml() : ""}
     ${seen.size ? `<section class="sec"><details class="panel small"><summary><b>Opponents' Custom Cards</b> <span class="muted">(${seen.size})</span></summary><div class="list" style="margin-top:8px">${[...seen.values()].map((s) => `<div class="li coll"><div class="collart" style="width:74px">${cardChip(s.k, { noOwn: true, size: "xs" })}</div><div class="grow"><div class="t">${esc(card(s.k).name)}</div><div class="s">${esc(lookText(s.x))}</div><div class="s">${esc(s.who)} · ${esc(dayStr(s.ts))}</div></div></div>`).join("")}</div></details></section>` : ""}
     ${S.custom.length ? `<section class="sec"><details class="panel small"><summary><b>Cards you designed in SNAP Stat</b> <span class="muted">(${S.custom.length})</span></summary><div class="stack" style="margin-top:8px"><div class="cgrid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${S.custom.map((c) => `<div class="stack" style="align-items:center;gap:6px">${customCardHtml(c, true)}<button class="btn sm ghost" data-a="cdDel" data-id="${esc(c.id)}">Delete</button></div>`).join("")}</div><span class="muted">These were made with the old card designer. They still work in your decks and posts.</span></div></details></section>` : ""}`;
 }
 function leSheet() {
-  const k = le.k, c = card(k), x = obj(obj(S.looks)[k]);
+  const k = le.k, c = card(k), x = obj(leStore()[k]);
   if (!k) return `${sheetHead("Add a Custom Card")}<label class="f">Card<input type="text" id="le-card" list="le-cards" placeholder="Start typing a card" autocomplete="off"></label><datalist id="le-cards">${allCards().filter((y) => !y.unknown && !y.custom).map((y) => `<option value="${esc(y.name)}">`).join("")}</datalist><button class="btn snap" data-a="lePick">Next</button>`;
   const vs = allVariants().filter((v) => v.card === k && (v.owned || v.id === x.v || "cat:" + v.cat === x.v));
   const cur = x.v ? (variantAny(x.v) || {}).id : "";
-  return `${sheetHead(esc(c.name), "Your Custom Card in the game")}
+  const lv = typeof masteryOf === "function" ? masteryOf(k).level : 0;
+  return `${sheetHead(esc(c.name), le.slot === 2 ? "Custom Card 2 in the game" : "Your Custom Card in the game")}
+    <div class="seg"><button data-a="leSlot" data-v="1" aria-pressed="${le.slot !== 2}">Custom Card 1</button><button data-a="leSlot" data-v="2" aria-pressed="${le.slot === 2}">Custom Card 2${lv && lv < MASTERY_SLOT2 ? ` (lvl ${MASTERY_SLOT2})` : ""}</button></div>
     <div class="row" style="justify-content:center">${cardChip(k, { noOwn: true, v: x.v ? variantAny(x.v) : null })}</div>
     <label class="f">Variant<select id="le-v"><option value="">Base art${x.vname && !x.v ? ` (read as ${esc(x.vname)})` : ""}</option>${vs.map((v) => `<option value="${esc(v.virtual ? "cat:" + v.cat : v.id)}" ${v.id === cur ? "selected" : ""}>${esc((v.name || "Variant") + byArtist(v))}</option>`).join("")}</select></label>
     <label class="f">Border<input type="text" id="le-b" list="le-bl" value="${esc(x.border || "")}" placeholder="Standard"></label><datalist id="le-bl">${borderNames().map((n) => `<option value="${esc(n)}">`).join("")}</datalist>
@@ -213,12 +220,13 @@ function leSheet() {
     <div class="row"><button class="btn snap" data-a="leSave">Save</button>${x.at ? `<button class="btn danger" data-a="leClear">Remove</button>` : ""}</div>`;
 }
 Object.assign(A, {
-  leOpen: (el) => { le.k = el.dataset.k; openSheet(leSheet); },
-  leAdd: () => { le.k = ""; openSheet(leSheet); },
+  leOpen: (el) => { le.k = el.dataset.k; le.slot = 1; openSheet(leSheet); },
+  leAdd: () => { le.k = ""; le.slot = 1; openSheet(leSheet); },
+  leSlot: (el) => { le.slot = num(el.dataset.v) === 2 ? 2 : 1; refreshSheet(); },
   lePick: () => { const c = fuzzyCard(($("#le-card") || {}).value || ""); if (!c || c.unknown) { toast("Pick a card from the list"); return; } le.k = c.key; refreshSheet(); },
   leSave: () => { const k = le.k; if (!k) return; const v = $("#le-v").value; const vv = v ? variantAny(v) : null;
-    S.looks = obj(S.looks); S.looks[k] = { v, vname: vv ? vv.name || "" : "", border: $("#le-b").value.trim().slice(0, 40), finish: $("#le-fi").value.trim().slice(0, 40), flare: $("#le-fl").value.trim().slice(0, 40), at: Date.now(), src: "you" };
-    save(); closeSheet(); render(); toast("Custom Card saved"); },
-  leClear: () => { delete obj(S.looks)[le.k]; save(); closeSheet(); render(); toast("Removed"); },
+    leStore()[k] = { v, vname: vv ? vv.name || "" : "", border: $("#le-b").value.trim().slice(0, 40), finish: $("#le-fi").value.trim().slice(0, 40), flare: $("#le-fl").value.trim().slice(0, 40), at: Date.now(), src: "you" };
+    save(); closeSheet(); render(); toast(le.slot === 2 ? "Custom Card 2 saved" : "Custom Card saved"); },
+  leClear: () => { delete leStore()[le.k]; save(); closeSheet(); render(); toast("Removed"); },
 });
 document.addEventListener("input", (e) => { const t = e.target; if (t && t.dataset && t.dataset.le === "q") { le.q = t.value; const pos = t.selectionStart; render(); const n = $("#le-q"); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch { /* fine */ } } } });
