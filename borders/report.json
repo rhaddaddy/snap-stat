@@ -1,6 +1,7 @@
 {
  "anim": [
   "Fire",
+  "FireBlue",
   "FireGold",
   "FirePink",
   "FirePurple",
@@ -13,6 +14,8 @@
   "DistressedOrange",
   "DistressedPink",
   "DistressedPurple",
+  "DistressedRainbow",
+  "Pax2025",
   "RefractionRainbow",
   "GlyphsGreen",
   "MetalChains",
@@ -20,12 +23,16 @@
   "CandyCane",
   "Common",
   "CosmicBlack",
+  "CosmicBlue",
   "CosmicGold",
   "CosmicGreen",
   "CosmicPink",
+  "CosmicRainbow",
+  "DistressedBlue",
   "DistressedRed",
   "Epic",
   "IceBlue",
+  "Legendary",
   "MatteRed",
   "MetallicCopper",
   "MetallicSilver",
@@ -40,7 +47,8 @@
   "UltraLegendary",
   "Uncommon",
   "WebBlack",
-  "WebRed"
+  "WebRed",
+  "WrappingPaper"
  ],
  "still": [
   "WebPink",
@@ -83,20 +91,12 @@
  ],
  "kept": [
   "FireGreen",
-  "FireBlue",
   "FireWhite",
-  "DistressedRainbow",
-  "Pax2025",
-  "CosmicBlue",
   "CosmicOrange",
-  "CosmicRainbow",
   "CosmicRed",
-  "DistressedBlue",
   "Infinity",
-  "Legendary",
   "MatteBlack",
   "MetallicGold",
-  "NeonBlue",
-  "WrappingPaper"
+  "NeonBlue"
  ]
 }
