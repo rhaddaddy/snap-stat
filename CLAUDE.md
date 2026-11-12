@@ -112,7 +112,7 @@ Data & state: `S` (saved state, c_core) · `ui` (view state) · matches in `matc
 - Nov 11 (Ryan's 17 reports): `y42_nav` name menu (`meMenu`, Profile/Settings off the bottom bar unless `S.navFull`), tabs open where you
   left off (`S.tabOpen`, localStorage `snapstat.tabLast`), `#subfloat` sections row on scroll-up · `y43_cards` `myVariant(k, d)` (deck variant ›
   Custom Card `S.looks[k].v` › favourite), deckPublic `art` map, sharedDeckHtml/artFail backup art (`data-alt`, LK_HOST), draft row, AI
-  builder live search (`aiSuggHtml`) · `y44_more` SnapVault match CSV import (`svcRows`, ids `svc-…`, `svFile`, Diner `eventGain` Bubs;
+  builder live search (`aiSuggHtml`) · `y44_more` SnapVault match CSV import (`svcRows`, ids `svc-…`, `svFile`, event-mode `eventGain` (Diner Bubs, else "<mode> points"; `svcIsEvent`, `evGainOf` reads old imports' notes, `evPointsLine` on the event sheet);
   bulk via c_core `matchBulk` (onMatch isNew=false), then `onMatchSaved` once; `svcLinkDecks` by name; j_import sync skips logged games), About › On iPhone. Also: y25 reports (20 files, page picker `bug.page`, `bugMineSheet`, `bugTellChange` notifies via showAlert),
   y26 test marks in localStorage too + Checked features + `otShot` bar, y24 quick flick (`swipe.quick`) + prewarmed neighbours (`swipe.pre`),
   y41 widget `S.widgetBg` app/clear/you, `widgetKeepAccent`, `widgetShade`; Widget.kt `bg`/`keepAccent`/`shade`; res `@dimen/widget_radius`.
@@ -136,7 +136,7 @@ ImageView layers (`w_bg`, `w_glow`, `w_edge`, `w_play_bg/hi`) and texts (ids in 
 `RemoteViews.setColorInt`. No Android SDK in the sandbox: Kotlin is only checked by the GitHub build (see android-build-log).
 
 ## 4. Status (November 11, 2026)
-- This push: "Fix Ryan's 17 reports + SnapVault match CSV" (y42-y44, Android 1.24). Previous code commit: `81ac7c8` (Oct 31, 100 ideas).
+- This push: "Event points from the SnapVault file" (y44, h_more event sheet, y38 calculator one currency). Previous code commit: `7fe7b02` (17 reports + CSV, y42-y44, Android 1.24).
   UNDO = `git revert` that commit (bots commit data files in between: revert, don't reset).
 - Root cause of "Couldn't save", the tour returning and test answers returning: Firestore rejected the state (nested arrays from AI
   readings) → `fsEnc`. check.sh ALL GOOD both ways; Playwright checks for menu, tabs, subfloat, reports, draft, AI search, CSV, flicks.

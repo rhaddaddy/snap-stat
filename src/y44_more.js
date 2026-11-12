@@ -21,6 +21,21 @@ function csvParse(text) {
 const svcCell = (v) => String(v == null ? "" : v).replace(/^'(?=[-+=@])/, "").trim();
 const SVC_MODES = { ranked: "Ranked", conquest: "Conquest", friendly: "Friendly", location_war: "Sanctum Showdown", ltm_deadpool_diner: "Deadpool's Diner", high_voltage: "High Voltage", ltm_high_voltage: "High Voltage" };
 function svcMode(code, label) { const c = String(code || "").toLowerCase(); return SVC_MODES[c] || (/draft/.test(c) ? "Draft" : /conquest/.test(c) ? "Conquest" : String(label || "").trim().slice(0, 30) || "Other"); }
+// Limited-time modes (Sanctum Showdown, Deadpool's Diner, High Voltage, future events): their points go to the event's page
+const svcIsEvent = (mode) => !!mode && !STD_MODES.has(mode) && mode !== "Draft" && mode !== "Other";
+const svcGainName = (mode) => (mode === "Deadpool's Diner" ? "Bubs" : (mode + " points").slice(0, 24));
+// Points one match gave in an event: from the match itself, or from the note an earlier import of the file wrote
+function evGainOf(m) {
+  if (m.eventGain && num(m.eventGain.amount)) return { name: curName(m.eventGain.name), amount: num(m.eventGain.amount) };
+  const md = modeOf(m), hit = m.svFile && svcIsEvent(md) ? String(m.notes || "").match(/: ([+-]?\d+) points/) : null;
+  return hit ? { name: svcGainName(md), amount: num(hit[1]) } : null;
+}
+// "+1,240 Sanctum Showdown points from 18 games" for the event's page
+function evPointsLine(ms) {
+  const by = new Map();
+  for (const m of ms) { const g = evGainOf(m); if (!g) continue; const o = by.get(keyOf(g.name)) || { name: g.name, amount: 0, n: 0 }; o.amount += g.amount; o.n++; by.set(keyOf(g.name), o); }
+  return [...by.values()].map((o) => `<span class="small">${esc(signed(o.amount))} ${esc(o.name)} from ${o.n} game${o.n === 1 ? "" : "s"}</span>`).join("");
+}
 const svcDeckKey = (n) => String(n || "").normalize("NFKD").replace(/[^\p{L}\p{N}]+/gu, "").toLowerCase();
 function svcRows(text) {
   const rows = csvParse(text); if (rows.length < 2) return { list: [], bad: "That file is empty." };
@@ -46,8 +61,8 @@ function svcRows(text) {
       oppSnapped: g(r, "opponentSnapped") === "true", retreated: res === "conceded", oppRetreated: oppQuit, turn: turn || (oppQuit || res === "conceded" ? 0 : 6), bot: "unsure",
       notes: ["From SnapVault's match history file", !ranked && pts ? `${mode}: ${signed(pts)} points` : "", g(r, "lanesWon") !== "" ? `${num(g(r, "lanesWon"))} location${num(g(r, "lanesWon")) === 1 ? "" : "s"} won` : ""].filter(Boolean).join(" · "),
       locs, tracked: false, lanes: num(g(r, "lanesWon")), svFile: true,
-      // Deadpool's Diner pays (and takes) Bubs per match: counted on the event's page like a tracked match
-      ...(mode === "Deadpool's Diner" && pts ? { eventGain: { name: "Bubs", amount: pts } } : {}),
+      // Event modes pay points per match (Deadpool's Diner's are Bubs): counted on that event's page like a tracked match
+      ...(svcIsEvent(mode) && pts ? { eventGain: { name: svcGainName(mode), amount: pts } } : {}),
     });
   }
   return { list, bad: list.length ? "" : "No matches found in that file." };
@@ -72,7 +87,7 @@ function svcSheet() {
     ${p.fresh.length ? `<div class="chiplist">${Object.entries(modes).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<span class="pill">${esc(k)} · ${n}</span>`).join("")}</div>` : `<p class="muted">Everything in ${svc.files > 1 ? "these files" : "this file"} is already in SNAP Stat.</p>`}
     ${noDeck.size ? `<span class="muted">No SNAP Stat deck has these names, so their matches come in with just the name: ${esc([...noDeck].slice(0, 6).join(", "))}${noDeck.size > 6 ? "…" : ""}. Import your decks from SnapVault first to link them.</span>` : ""}
     ${p.rough.length ? `<label class="check"><input type="checkbox" data-svc="replace" ${svc.replace ? "checked" : ""}> Swap SnapVault sync's ${p.rough.length} rough entr${p.rough.length === 1 ? "y" : "ies"} for these days (deck and result only) for the real matches</label>` : ""}
-    <span class="muted">Importing updates everything a logged match does: your rank (from Ranked cubes), deck and card stats, goals, achievements, missions, Deadpool's Diner Bubs, opponents, locations, your profile and the widget.</span>
+    <span class="muted">Importing updates everything a logged match does: your rank (from Ranked cubes), deck and card stats, goals, achievements, missions, event points (Sanctum Showdown, Deadpool's Diner Bubs and others), opponents, locations, your profile and the widget.</span>
     <div class="row"><button class="btn snap" data-a="svcImport" ${!p.fresh.length || svc.busy ? "disabled" : ""}>Import ${fmt(p.fresh.length)} match${p.fresh.length === 1 ? "" : "es"}</button><button class="btn ghost" data-a="close">Cancel</button></div></div>`;
 }
 async function svcFiles(files) {
@@ -110,12 +125,12 @@ Object.assign(A, {
       if (typeof h2hPublish === "function") setTimeout(() => { try { h2hPublish(); } catch { /* signed out */ } }, 4000);
       if (typeof deckShortcutsSync === "function") setTimeout(() => { try { deckShortcutsSync(); } catch { /* older app */ } }, 3000);
       const ranked = p.fresh.filter((m) => m.mode === "Ranked"), cubesN = ranked.reduce((t, m) => t + num(m.cubes), 0);
-      const bubs = p.fresh.reduce((t, m) => t + (m.eventGain ? num(m.eventGain.amount) : 0), 0);
+      const evTot = new Map(); for (const m of p.fresh) if (m.eventGain) evTot.set(m.mode, num(evTot.get(m.mode)) + num(m.eventGain.amount));
       const decksUsed = new Set(p.fresh.map((m) => m.deckId).filter(Boolean)).size, unlinked = new Set(p.fresh.filter((m) => !m.deckId && m.deckName).map((m) => m.deckName)).size;
       svc.done = [
         `${fmt(p.fresh.length)} match${p.fresh.length === 1 ? "" : "es"} added${gone ? ` (${gone} rough SnapVault sync entr${gone === 1 ? "y" : "ies"} replaced)` : ""}.`,
         ranked.length ? `Ranked: ${ranked.length} games, ${signed(cubesN)} cubes${S.me.rank && S.me.rank !== before.rank ? `; your rank is now ${S.me.rank}` : S.me.rank ? `; rank ${S.me.rank}` : ""}.` : "",
-        bubs ? `Deadpool's Diner: ${signed(bubs)} Bubs added to the event.` : "",
+        ...[...evTot].filter(([, v]) => v).map(([md, v]) => `${md}: ${signed(v)} ${md === "Deadpool's Diner" ? "Bubs" : "points"} added to the event.`),
         decksUsed ? `${decksUsed} deck${decksUsed === 1 ? "" : "s"} got their games${linked ? ` (${linked} earlier match${linked === 1 ? "" : "es"} linked too)` : ""}.` : "",
         unlinked ? `${unlinked} deck name${unlinked === 1 ? " isn't" : "s aren't"} in SNAP Stat yet. Import your decks from SnapVault and those matches join them by themselves.` : "",
         arr(S.badgesSeen).length > before.badges ? `New achievements: ${arr(S.badgesSeen).length - before.badges}.` : "",

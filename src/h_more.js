@@ -145,7 +145,7 @@ function eventSheet() {
       <div class="seg">${Object.entries(PASS_TIERS).map(([k, l]) => `<button data-a="evTier" data-id="${esc(e.id)}" data-v="${k}" aria-pressed="${(pr.tier || "free") === k}">${l}</button>`).join("")}</div>` : ""}
       <label class="check"><input type="checkbox" data-evchk="played" data-id="${esc(e.id)}" ${pr.played ? "checked" : ""}> I played this</label>
       <label class="f">Notes<textarea id="ev-notes" data-evnotes="${esc(e.id)}" placeholder="Best result, decks that worked…">${esc(pr.notes || "")}</textarea></label>
-      ${stat.games ? `<span class="small">Logged event games: ${stat.w}-${stat.l}-${stat.t} · ${stat.wr}%</span>` : `<span class="muted small">Log games in this mode (or as “Event”) during these dates to see your record here.</span>`}</div>` : ""}
+      ${stat.games ? `<span class="small">Logged event games: ${stat.w}-${stat.l}-${stat.t} · ${stat.wr}%</span>${typeof evPointsLine === "function" ? evPointsLine(ms) : ""}` : `<span class="muted small">Log games in this mode (or as “Event”) during these dates to see your record here.</span>`}</div>` : ""}
     ${eventRecapHtml(e)}
     <div class="sec-h"><h3>Rewards & collectibles</h3><span class="muted small">${items.length ? `${got}/${items.length} collected` : ""}</span></div>
     ${items.length ? collectibleList(items, e.name, eventCtx(e)) : `<p class="muted small">${canEditShared() ? "No rewards listed. Edit the event to add them." : "No rewards listed yet."}</p>`}

@@ -4,6 +4,9 @@
    kind: "new" (a new feature) · "better" (an existing one changed) · "fixed" (a bug fix) · "removed"
    where: the page it's on (opens when tapped) · test: what to try in the app to make sure it works */
 const CHANGES = [
+  { id: "1111c-evpts", date: "2026-11-11", kind: "better", title: "Event points from the SnapVault match file", where: "home/events",
+    body: "Sanctum Showdown games (and High Voltage and future events) from the SnapVault match file now add their points to that event's page, like Deadpool's Diner's Bubs. Games you already imported count too, no need to import again.",
+    test: ["Home › Events › Sanctum Showdown › My progress: under your record it shows the points from your logged games.", "Import a new SnapVault match file with Sanctum games: the summary says how many points went to the event."] },
   { id: "1111b-csv2", date: "2026-11-11", kind: "better", title: "SnapVault match file updates everything", where: "settings/data",
     body: "Importing the match file now updates everything a logged match does, in one go: your rank from Ranked cubes, deck and card stats, goals, achievements, Deadpool's Diner Bubs, your profile, the widget and deck shortcuts. Matches whose deck isn't in SNAP Stat yet join it by themselves once you import that deck, and SnapVault sync no longer adds games the file already brought in.",
     test: ["Settings › Import & backup › Choose the match file › Import: the summary lists ranked cubes, your rank, Bubs and decks.", "Home › Stats and Cards › Decks: the imported games show in your numbers and on each deck.", "Import from SnapVault (decks): the toast says matches from your file joined their decks."] },
