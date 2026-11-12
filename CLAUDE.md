@@ -112,8 +112,8 @@ Data & state: `S` (saved state, c_core) · `ui` (view state) · matches in `matc
 - Nov 11 (Ryan's 17 reports): `y42_nav` name menu (`meMenu`, Profile/Settings off the bottom bar unless `S.navFull`), tabs open where you
   left off (`S.tabOpen`, localStorage `snapstat.tabLast`), `#subfloat` sections row on scroll-up · `y43_cards` `myVariant(k, d)` (deck variant ›
   Custom Card `S.looks[k].v` › favourite), deckPublic `art` map, sharedDeckHtml/artFail backup art (`data-alt`, LK_HOST), draft row, AI
-  builder live search (`aiSuggHtml`) · `y44_more` SnapVault match CSV import (`svcRows`, ids `svc-…`, `svFile`, replaces `svSync` rough
-  entries), About › On iPhone. Also: y25 reports (20 files, page picker `bug.page`, `bugMineSheet`, `bugTellChange` notifies via showAlert),
+  builder live search (`aiSuggHtml`) · `y44_more` SnapVault match CSV import (`svcRows`, ids `svc-…`, `svFile`, Diner `eventGain` Bubs;
+  bulk via c_core `matchBulk` (onMatch isNew=false), then `onMatchSaved` once; `svcLinkDecks` by name; j_import sync skips logged games), About › On iPhone. Also: y25 reports (20 files, page picker `bug.page`, `bugMineSheet`, `bugTellChange` notifies via showAlert),
   y26 test marks in localStorage too + Checked features + `otShot` bar, y24 quick flick (`swipe.quick`) + prewarmed neighbours (`swipe.pre`),
   y41 widget `S.widgetBg` app/clear/you, `widgetKeepAccent`, `widgetShade`; Widget.kt `bg`/`keepAccent`/`shade`; res `@dimen/widget_radius`.
 - `k_firebase.js` 7 · Firebase sign-in/storage · `z_boot.js` · boot, flush on pagehide · `build.sh` · `README.md`

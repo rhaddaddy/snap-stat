@@ -46,6 +46,8 @@ function svcRows(text) {
       oppSnapped: g(r, "opponentSnapped") === "true", retreated: res === "conceded", oppRetreated: oppQuit, turn: turn || (oppQuit || res === "conceded" ? 0 : 6), bot: "unsure",
       notes: ["From SnapVault's match history file", !ranked && pts ? `${mode}: ${signed(pts)} points` : "", g(r, "lanesWon") !== "" ? `${num(g(r, "lanesWon"))} location${num(g(r, "lanesWon")) === 1 ? "" : "s"} won` : ""].filter(Boolean).join(" · "),
       locs, tracked: false, lanes: num(g(r, "lanesWon")), svFile: true,
+      // Deadpool's Diner pays (and takes) Bubs per match: counted on the event's page like a tracked match
+      ...(mode === "Deadpool's Diner" && pts ? { eventGain: { name: "Bubs", amount: pts } } : {}),
     });
   }
   return { list, bad: list.length ? "" : "No matches found in that file." };
@@ -70,7 +72,7 @@ function svcSheet() {
     ${p.fresh.length ? `<div class="chiplist">${Object.entries(modes).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<span class="pill">${esc(k)} · ${n}</span>`).join("")}</div>` : `<p class="muted">Everything in ${svc.files > 1 ? "these files" : "this file"} is already in SNAP Stat.</p>`}
     ${noDeck.size ? `<span class="muted">No SNAP Stat deck has these names, so their matches come in with just the name: ${esc([...noDeck].slice(0, 6).join(", "))}${noDeck.size > 6 ? "…" : ""}. Import your decks from SnapVault first to link them.</span>` : ""}
     ${p.rough.length ? `<label class="check"><input type="checkbox" data-svc="replace" ${svc.replace ? "checked" : ""}> Swap SnapVault sync's ${p.rough.length} rough entr${p.rough.length === 1 ? "y" : "ies"} for these days (deck and result only) for the real matches</label>` : ""}
-    <span class="muted">Ranked cubes count toward your rank maths. Event points (like Deadpool's Diner) are kept in each match's notes, not as cubes.</span>
+    <span class="muted">Importing updates everything a logged match does: your rank (from Ranked cubes), deck and card stats, goals, achievements, missions, Deadpool's Diner Bubs, opponents, locations, your profile and the widget.</span>
     <div class="row"><button class="btn snap" data-a="svcImport" ${!p.fresh.length || svc.busy ? "disabled" : ""}>Import ${fmt(p.fresh.length)} match${p.fresh.length === 1 ? "" : "es"}</button><button class="btn ghost" data-a="close">Cancel</button></div></div>`;
 }
 async function svcFiles(files) {
@@ -90,18 +92,57 @@ document.addEventListener("change", (e) => {
 Object.assign(A, {
   svcImport: () => {
     if (svc.busy) return; svc.busy = true;
+    const before = { rank: S.me.rank, badges: arr(S.badgesSeen).length };
     try {
       const p = svcPlan(); let gone = 0;
-      if (svc.replace && p.rough.length) for (const x of p.rough) { removeMatch(x.id); gone++; }
-      for (const m of p.fresh) putMatch(m);
-      save(); svc.done = `${fmt(p.fresh.length)} match${p.fresh.length === 1 ? "" : "es"} added${gone ? `, and ${gone} rough SnapVault sync entr${gone === 1 ? "y" : "ies"} replaced` : ""}. Your stats, decks and rank update by themselves.`;
+      matchBulk = true; // one batch: no buzz, sound or rematch note for each of them
+      try {
+        if (svc.replace && p.rough.length) for (const x of p.rough) { removeMatch(x.id); gone++; }
+        for (const m of p.fresh) putMatch(m);
+      } finally { matchBulk = false; }
+      // Then everything a newly logged match updates, once: rank from your Ranked cubes, season peak, goals, achievements,
+      // the stream overlay, reminders, the widget, your profile, "you vs your friends" and the deck shortcuts
+      const last = p.fresh.slice().sort((a, b) => b.ts - a.ts)[0];
+      if (last) onMatchSaved(last);
+      const linked = svcLinkDecks();
+      save();
+      try { pushWidget(); } catch { /* no widget */ }
+      if (typeof h2hPublish === "function") setTimeout(() => { try { h2hPublish(); } catch { /* signed out */ } }, 4000);
+      if (typeof deckShortcutsSync === "function") setTimeout(() => { try { deckShortcutsSync(); } catch { /* older app */ } }, 3000);
+      const ranked = p.fresh.filter((m) => m.mode === "Ranked"), cubesN = ranked.reduce((t, m) => t + num(m.cubes), 0);
+      const bubs = p.fresh.reduce((t, m) => t + (m.eventGain ? num(m.eventGain.amount) : 0), 0);
+      const decksUsed = new Set(p.fresh.map((m) => m.deckId).filter(Boolean)).size, unlinked = new Set(p.fresh.filter((m) => !m.deckId && m.deckName).map((m) => m.deckName)).size;
+      svc.done = [
+        `${fmt(p.fresh.length)} match${p.fresh.length === 1 ? "" : "es"} added${gone ? ` (${gone} rough SnapVault sync entr${gone === 1 ? "y" : "ies"} replaced)` : ""}.`,
+        ranked.length ? `Ranked: ${ranked.length} games, ${signed(cubesN)} cubes${S.me.rank && S.me.rank !== before.rank ? `; your rank is now ${S.me.rank}` : S.me.rank ? `; rank ${S.me.rank}` : ""}.` : "",
+        bubs ? `Deadpool's Diner: ${signed(bubs)} Bubs added to the event.` : "",
+        decksUsed ? `${decksUsed} deck${decksUsed === 1 ? "" : "s"} got their games${linked ? ` (${linked} earlier match${linked === 1 ? "" : "es"} linked too)` : ""}.` : "",
+        unlinked ? `${unlinked} deck name${unlinked === 1 ? " isn't" : "s aren't"} in SNAP Stat yet. Import your decks from SnapVault and those matches join them by themselves.` : "",
+        arr(S.badgesSeen).length > before.badges ? `New achievements: ${arr(S.badgesSeen).length - before.badges}.` : "",
+        "Stats, missions, the season story, opponents and locations all include them now.",
+      ].filter(Boolean).join(" ");
     } catch (e) { errNote("importing SnapVault matches", e); }
     finally { svc.busy = false; refreshSheet(); render(); }
   },
   svcGo: (el) => { closeSheet(); go(el.dataset.to); },
 });
+// Matches from the file whose deck wasn't in SNAP Stat yet join it once a deck with that name shows up (a SnapVault deck import,
+// a new deck): their deck stats, card stats and deck shortcuts then include them
+function svcLinkDecks() {
+  const byKey = new Map(S.decks.map((d) => [svcDeckKey(d.name), d])); let n = 0;
+  const todo = realMatches().filter((m) => m.svFile && !m.deckId && m.deckName && byKey.has(svcDeckKey(m.deckName)));
+  if (!todo.length) return 0;
+  matchBulk = true;
+  try { for (const m of todo) { const d = byKey.get(svcDeckKey(m.deckName)); putMatch({ ...m, deckId: d.id, deckName: d.name }); n++; } } finally { matchBulk = false; }
+  return n;
+}
+let _svcDeckSig = "";
+EXT.afterRender.push(function svcAutoLink() {
+  const sig = realMatches().length + "#" + S.decks.map((d) => d.id + ":" + d.name).join("|"); if (sig === _svcDeckSig) return; _svcDeckSig = sig;
+  setTimeout(() => { const n = svcLinkDecks(); if (n) { save(); toast(`${n} match${n === 1 ? "" : "es"} from your SnapVault file joined their deck${n === 1 ? "" : "s"}`); render(); } }, 1500);
+});
 EXT.settingsData.push(() => `<section class="sec"><h2>SnapVault match history</h2><div class="panel stack small">
-  <p>In SnapVault, export your matches (a file like <b>snapvault-matches-2026-11-12.csv</b>) and choose it here. Each match comes in with its time, mode, deck, result, cubes, snaps and locations.</p>
+  <p>In SnapVault, export your matches (a file like <b>snapvault-matches-2026-11-12.csv</b>) and choose it here. Each match comes in with its time, mode, deck, result, cubes, snaps and locations, and everything that uses matches updates: rank, decks, stats, goals, achievements, events and the widget.</p>
   <label class="btn">Choose the match file<input type="file" accept=".csv,text/csv,text/plain" multiple hidden data-svcfile></label>
   <span class="muted">Choosing the same file again (or several copies) is fine: matches already in SNAP Stat are skipped.</span></div></section>`);
 EXT.search.push((q) => (/snapvault|csv|match history|export/i.test(q) ? [{ label: "SnapVault match history file", sub: "Settings › Import & backup", route: "settings/data" }] : []));

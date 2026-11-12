@@ -83,7 +83,11 @@ function svResults(r, past) {
       const key = `${dk.ckey || dk.created || dk.name}#${v.v}`, was = obj(base[key]);
       next[key] = { w: v.w, l: v.l };
       if (first && !past) return; // the first sync only sets the starting point
-      const dw = Math.max(0, v.w - num(was.w)), dl = Math.max(0, v.l - num(was.l));
+      let dw = Math.max(0, v.w - num(was.w)), dl = Math.max(0, v.l - num(was.l));
+      // Games already logged another way since the last sync (the match history file, Track & play, the PC) aren't added twice
+      if (dw || dl) { const since = Math.max(from, Date.parse(v.at) || 0), k = svcDeckKey(dk.name);
+        const have = realMatches().filter((m) => !m.svSync && m.ts > since && m.ts <= end + 60e3 && ((deck && m.deckId === deck.id) || (!m.deckId && svcDeckKey(m.deckName) === k)));
+        dw = Math.max(0, dw - have.filter((m) => m.result === "W").length); dl = Math.max(0, dl - have.filter((m) => m.result === "L").length); }
       if (dw || dl) add.push({ deck, name: dk.name, w: dw, l: dl, start: Math.max(from, Date.parse(v.at) || 0) });
     });
   });

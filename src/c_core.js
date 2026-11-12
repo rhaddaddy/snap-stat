@@ -242,6 +242,8 @@ function allMatches() {
 const realMatches = () => allMatches().filter((m) => !m.example);
 function findMatch(id) { for (const [wk, items] of Object.entries(matchWeeks)) { const i = arr(items).findIndex((m) => m.id === id); if (i >= 0) return { wk, i }; } return null; }
 const preLoad = { adds: new Set(), dels: new Set() };
+// While a file of many matches comes in, the per-match reactions (buzz, sounds, rematch notes) stay quiet
+let matchBulk = false;
 function putMatch(m) {
   // Also while sign-in is still coming back at start-up, so a match saved then is added to your account when it loads
   if (!store.matchesLoaded && (store.mode === "cloud" || !store.ready)) { preLoad.adds.add(m.id); preLoad.dels.delete(m.id); }
@@ -250,7 +252,7 @@ function putMatch(m) {
   const found = findMatch(m.id); const wk = weekKey(m.ts);
   if (found) { matchWeeks[found.wk] = matchWeeks[found.wk].filter((x) => x.id !== m.id); dirtyWeek(found.wk); }
   matchWeeks[wk] = [...arr(matchWeeks[wk]), m]; dirtyWeek(wk); _mVer++;
-  extRun(EXT.onMatch, m, !found);
+  extRun(EXT.onMatch, m, !found && !matchBulk);
 }
 function removeMatch(id) { if (store.mode === "cloud" && !store.matchesLoaded) { preLoad.dels.add(id); preLoad.adds.delete(id); } const f = findMatch(id); if (!f) return; matchWeeks[f.wk] = matchWeeks[f.wk].filter((x) => x.id !== id); dirtyWeek(f.wk); _mVer++; }
 

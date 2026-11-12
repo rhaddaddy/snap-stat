@@ -4,6 +4,9 @@
    kind: "new" (a new feature) · "better" (an existing one changed) · "fixed" (a bug fix) · "removed"
    where: the page it's on (opens when tapped) · test: what to try in the app to make sure it works */
 const CHANGES = [
+  { id: "1111b-csv2", date: "2026-11-11", kind: "better", title: "SnapVault match file updates everything", where: "settings/data",
+    body: "Importing the match file now updates everything a logged match does, in one go: your rank from Ranked cubes, deck and card stats, goals, achievements, Deadpool's Diner Bubs, your profile, the widget and deck shortcuts. Matches whose deck isn't in SNAP Stat yet join it by themselves once you import that deck, and SnapVault sync no longer adds games the file already brought in.",
+    test: ["Settings › Import & backup › Choose the match file › Import: the summary lists ranked cubes, your rank, Bubs and decks.", "Home › Stats and Cards › Decks: the imported games show in your numbers and on each deck.", "Import from SnapVault (decks): the toast says matches from your file joined their decks."] },
   { id: "1111f-save", date: "2026-11-11", kind: "fixed", title: "\"Couldn't save\" and the tour that kept coming back", where: "home/overview",
     body: "Some screenshot readings had a shape your account's database won't take, so every save after them was turned down. That's why \"Couldn't save\" kept popping up, and why the welcome tour and your test answers came back each time you opened the app. Saves now always go through.",
     test: ["Close SNAP Stat completely and open it again: the welcome tour doesn't show.", "Settings › Import & backup › Update everything (or read a shop screenshot): no \"Couldn't save\" message.", "Settings › App owner › Test this update: mark one ✓ Works, close and reopen the app: it stays in Checked features."] },
