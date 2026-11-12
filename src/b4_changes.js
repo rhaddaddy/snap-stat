@@ -4,6 +4,9 @@
    kind: "new" (a new feature) · "better" (an existing one changed) · "fixed" (a bug fix) · "removed"
    where: the page it's on (opens when tapped) · test: what to try in the app to make sure it works */
 const CHANGES = [
+  { id: "1111d-wildreroll", date: "2026-11-11", kind: "fixed", title: "Wild Boosters and Split Reroll Coins from screenshots", where: "home/shops",
+    body: "Screenshots of a card's screen now save your Wild Boosters (the rainbow booster count) instead of mixing them up with the card's own boosters or Gold, and split screens save your Split Reroll Coins instead of reading them as Credits.",
+    test: ["Screenshot a card's screen in the game and read it: Home › Shops shows your Wild Boosters, and Gold doesn't change to that card's boosters.", "Screenshot the New Split Unlocked screen and read it: Split Reroll Coins updates and Credits stays the same."] },
   { id: "1111c-evpts", date: "2026-11-11", kind: "better", title: "Event points from the SnapVault match file", where: "home/events",
     body: "Sanctum Showdown games (and High Voltage and future events) from the SnapVault match file now add their points to that event's page, like Deadpool's Diner's Bubs. Games you already imported count too, no need to import again.",
     test: ["Home › Events › Sanctum Showdown › My progress: under your record it shows the points from your logged games.", "Import a new SnapVault match file with Sanctum games: the summary says how many points went to the event."] },

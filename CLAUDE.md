@@ -136,7 +136,7 @@ ImageView layers (`w_bg`, `w_glow`, `w_edge`, `w_play_bg/hi`) and texts (ids in 
 `RemoteViews.setColorInt`. No Android SDK in the sandbox: Kotlin is only checked by the GitHub build (see android-build-log).
 
 ## 4. Status (November 11, 2026)
-- This push: "Event points from the SnapVault file" (y44, h_more event sheet, y38 calculator one currency). Previous code commit: `7fe7b02` (17 reports + CSV, y42-y44, Android 1.24).
+- This push: q_auto `sortTopBar(n, raw, hint, colour, kind)`: split screens = Split Reroll Coins top left (icon "rerolls"; blue box fooled the colour check into Credits), card screens = card boosters top right (not Gold) + Wild Boosters under. Previous: `07ce038` event points from SnapVault file (y44, h_more, y38).
   UNDO = `git revert` that commit (bots commit data files in between: revert, don't reset).
 - Root cause of "Couldn't save", the tour returning and test answers returning: Firestore rejected the state (nested arrays from AI
   readings) → `fsEnc`. check.sh ALL GOOD both ways; Playwright checks for menu, tabs, subfloat, reports, draft, AI search, CSV, flicks.
