@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The widget's thin edge (tinted at runtime) -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <corners android:radius="22dp" />
-    <solid android:color="#00000000" />
-    <stroke android:width="1dp" android:color="#FFFFFFFF" />
-</shape>
+<!-- The widget's thin edge (tinted at runtime). Set in a little from the outside and drawn with the phone's own corner,
+     so the launcher's rounded corners never cut it off. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android" android:inset="1dp">
+    <shape android:shape="rectangle">
+        <corners android:radius="@dimen/widget_radius" />
+        <solid android:color="#00000000" />
+        <stroke android:width="1.5dp" android:color="#FFFFFFFF" />
+    </shape>
+</inset>

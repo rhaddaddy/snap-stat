@@ -12,13 +12,14 @@ html.swiping { overflow-x: clip; }
 html.swiping #view { will-change: transform; }`);
 
 const SWIPE_SLOP = 12;
-var swipe = { st: "", sx: 0, sy: 0, ox: 0, lx: 0, lt: 0, vx: 0, dir: 0, key: "", tab: "", peek: null, geo: null, busy: false, cache: {}, target: null, last: 0, timer: 0 };
+var swipe = { t0: 0, quick: false, pre: null, st: "", sx: 0, sy: 0, ox: 0, lx: 0, lt: 0, vx: 0, dir: 0, key: "", tab: "", peek: null, geo: null, busy: false, cache: {}, target: null, last: 0, timer: 0 };
 // render() waits while a finger is dragging the page or it's sliding into place (see i_actions.js)
 function swipeHolding() { return !!(swipe && (swipe.st === "drag" || swipe.busy)); }
 
 // The next section's page, drawn exactly as it will look, without changing where you are
 function swipePeekHtml(key) {
   if (swipe.cache[key]) return swipe.cache[key]; // going back and forth in one drag draws each side once
+  if (swipe.pre && swipe.pre.sig === swipeSig() && swipe.pre.html[key]) return (swipe.cache[key] = swipe.pre.html[key]); // drawn ahead of time
   const n = NAV[ui.tab], old = ui[n.key], more = ui.more;
   try { ui[n.key] = key; ui.more = null; return (swipe.cache[key] = (VIEWS[ui.tab] || VIEWS.home)()); }
   catch (e) { console.error("swipe preview", e); return tabHead(ui.tab); }
@@ -77,7 +78,8 @@ function swipeMove(dx) {
 }
 function swipeEnd(dx, cancelled) {
   const v = $("#view"), p = swipe.peek, D = swipe.geo ? swipe.geo.D : window.innerWidth;
-  const flick = Math.abs(swipe.vx) > 0.45 && -Math.sign(swipe.vx) === swipe.dir && Math.abs(dx) > 30;
+  // A flick: fast at the end, or a short quick swipe (under about a third of a second) in that direction
+  const flick = (Math.abs(swipe.vx) > 0.3 && -Math.sign(swipe.vx) === swipe.dir && Math.abs(dx) > 24) || (swipe.quick && -Math.sign(dx) === swipe.dir && Math.abs(dx) > 30);
   const done = !cancelled && p && ui.tab === swipe.tab && -Math.sign(dx) === swipe.dir && (Math.abs(dx) > D * 0.3 || flick);
   const left = done ? D - Math.abs(dx) : Math.abs(dx), ms = Math.round(Math.max(120, Math.min(260, left * 0.7)));
   const ease = `transform ${ms}ms cubic-bezier(.2,.75,.3,1)`;
@@ -103,7 +105,7 @@ function swipeOnMove(e) {
   const dx = t.clientX - swipe.sx, dy = t.clientY - swipe.sy;
   if (swipe.st === "wait") {
     if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) { swipe.st = ""; swipeUnlisten(); return; } // scrolling up or down
-    if (Math.abs(dx) < SWIPE_SLOP || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    if (Math.abs(dx) < SWIPE_SLOP || Math.abs(dx) < Math.abs(dy) * 1.15) return;
     if (!e.cancelable || swipeBlocked(swipe.target, dx)) { swipe.st = ""; swipeUnlisten(); return; } // a row that scrolls sideways, or the page already scrolling
     swipeLock(dx);
   }
@@ -118,7 +120,9 @@ function swipeOnEnd(e) {
   if (e._swiped) return; e._swiped = true;
   if (swipe.st === "drag" && !swipe.busy) {
     const t = e.changedTouches && e.changedTouches[0];
-    if (e.timeStamp - swipe.lt > 100) swipe.vx = 0; // held still before letting go: not a flick
+    const dxe = t ? t.clientX - swipe.sx : 0;
+    swipe.quick = e.timeStamp - swipe.t0 < 320 && Math.abs(dxe) > 30;
+    if (!swipe.quick && e.timeStamp - swipe.lt > 100) swipe.vx = 0; // held still before letting go: not a flick
     swipeEnd(t ? t.clientX - swipe.sx - swipe.ox : 0, e.type === "touchcancel");
   }
   swipe.st = ""; swipeUnlisten();
@@ -155,7 +159,7 @@ function swipeStartsHere(el) {
     if (e.touches.length !== 1 || !swipeStartsHere(e.target)) return;
     const n = NAV[ui.tab]; if (!n || !n.subs) return;
     const t = e.touches[0];
-    Object.assign(swipe, { st: "wait", sx: t.clientX, sy: t.clientY, lx: t.clientX, lt: e.timeStamp, vx: 0, last: Date.now() });
+    Object.assign(swipe, { st: "wait", sx: t.clientX, sy: t.clientY, lx: t.clientX, lt: e.timeStamp, t0: e.timeStamp, quick: false, vx: 0, last: Date.now() });
     swipeListen(e.target);
   }, { passive: true, capture: true });
   // Kept on the whole page too: it keeps the browser asking before it scrolls, and catches anything the touched element missed
@@ -171,3 +175,20 @@ function swipeStartsHere(el) {
   const vv = window.visualViewport;
   if (vv) vv.addEventListener("resize", () => document.documentElement.classList.toggle("zoomed", vv.scale > 1.05));
 })();
+
+/* ---------- Drawing the sections on each side ahead of time ---------- */
+// So a quick flick doesn't wait while the next section is drawn: after the page settles, both neighbours are drawn
+// in the phone's spare time and kept until the page changes.
+let _swipeRenders = 0;
+const swipeSig = () => `${ui.tab}|${obj(NAV[ui.tab]).key ? ui[NAV[ui.tab].key] : ""}|${_swipeRenders}`;
+EXT.afterRender.push(function swipePrewarm() {
+  _swipeRenders++;
+  if (!("ontouchstart" in window) || !NAV[ui.tab] || !NAV[ui.tab].subs) return;
+  const sig = swipeSig(), idle = window.requestIdleCallback || ((f) => setTimeout(f, 400));
+  idle(() => {
+    if (sig !== swipeSig() || swipe.st || swipe.busy) return;
+    const html = {}; const keep = swipe.cache; swipe.cache = {};
+    try { for (const d of [1, -1]) { const k = swipeTarget(d); if (k && !html[k]) html[k] = swipePeekHtml(k); } } catch { /* drawn when needed instead */ }
+    swipe.cache = keep; swipe.pre = { sig, html };
+  }, { timeout: 1500 });
+});

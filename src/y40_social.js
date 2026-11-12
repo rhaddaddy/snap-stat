@@ -111,14 +111,24 @@ if (typeof BADGES !== "undefined") BADGES.push(
 );
 
 /* ---------- 67. Your most played card as your banner ---------- */
-function topCardRecent() { const cnt = {}; realMatches().filter((m) => m.ts >= Date.now() - 30 * DAY).forEach((m) => { const d = S.decks.find((x) => x.id === m.deckId); if (d) arr(d.cards).forEach((k) => { if (!String(k).startsWith("custom:")) cnt[k] = (cnt[k] || 0) + 1; }); }); return (Object.entries(cnt).sort((a, b) => b[1] - a[1])[0] || [""])[0]; }
+// The card you played most in the last 30 days, and the art you played it with (the deck's variant, else your favourite)
+function topPlayRecent() {
+  const cnt = {}, vc = {};
+  realMatches().filter((m) => m.ts >= Date.now() - 30 * DAY).forEach((m) => { const d = S.decks.find((x) => x.id === m.deckId); if (d) arr(d.cards).forEach((k) => { if (String(k).startsWith("custom:")) return; cnt[k] = (cnt[k] || 0) + 1; const v = typeof myVariant === "function" ? myVariant(k, d) : deckVariant(d, k); const vid = v ? (v.cat ? "cat:" + v.cat : v.id) : ""; const o = (vc[k] = vc[k] || {}); o[vid] = (o[vid] || 0) + 1; }); });
+  const k = (Object.entries(cnt).sort((a, b) => b[1] - a[1])[0] || [""])[0]; if (!k) return { k: "", v: null };
+  const vid = (Object.entries(obj(vc[k])).sort((a, b) => b[1] - a[1])[0] || [""])[0];
+  return { k, v: vid ? (typeof variantAny === "function" ? variantAny(vid) : variantById(vid)) : null };
+}
+function topCardRecent() { return topPlayRecent().k; }
 let _y40BanDay = "";
 EXT.afterRender.push(function y40AutoBanner() {
   if (!S.autoBanner || _y40BanDay === localDate(Date.now())) return; _y40BanDay = localDate(Date.now());
-  const k = topCardRecent(); if (!k) return; const cur = obj(S.me.banner); if (cur.kind === "card" && cur.ref === k) return;
-  S.me.banner = { kind: "card", ref: k }; save(); if (typeof syncProfile === "function") syncProfile(); setTimeout(render, 0);
+  const { k, v } = topPlayRecent(); if (!k) return;
+  const want = v ? { kind: "look", card: k, cat: v.cat || "", var: v.cat ? "" : v.id, src: "art", fit: "whole", auto: 1 } : { kind: "card", ref: k };
+  if (JSON.stringify(obj(S.me.banner)) === JSON.stringify(want)) return;
+  S.me.banner = want; save(); if (typeof syncProfile === "function") syncProfile(); setTimeout(render, 0);
 });
-EXT.profile.push(function y40BannerToggle() { const k = topCardRecent(); return `<section class="sec"><div class="panel stack small"><label class="check"><input type="checkbox" data-y40ban="1" ${S.autoBanner ? "checked" : ""}> Use my most played card's art as my banner</label><span class="muted">${k ? `Right now that's ${esc(card(k).name)}. It changes as you play (checked once a day).` : "Play a few games with a deck and it picks the card you use most."}</span></div></section>`; });
+EXT.profile.push(function y40BannerToggle() { const { k, v } = topPlayRecent(); return `<section class="sec"><div class="panel stack small"><label class="check"><input type="checkbox" data-y40ban="1" ${S.autoBanner ? "checked" : ""}> Use my most played card's art as my banner</label><span class="muted">${k ? `Right now that's ${esc(card(k).name)}${v && v.name ? " (" + esc(v.name) + ")" : ""}, with the variant you play it with. It changes as you play (checked once a day).` : "Play a few games with a deck and it picks the card you use most."}</span></div></section>`; });
 document.addEventListener("change", (e) => { const t = e.target; if (!t || !t.dataset || !t.dataset.y40ban) return; S.autoBanner = !!t.checked; _y40BanDay = ""; save(); render(); });
 
 /* ---------- 68. People to follow who play your decks ---------- */

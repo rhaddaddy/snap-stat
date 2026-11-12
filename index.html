@@ -730,7 +730,7 @@ tr.me td { font-weight: 800; color: var(--cube); }
 </style>
 
 <style>html, body { margin: 0; } :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); } img { max-width: 100%; }</style>
-<script>window.SNAPSTAT_BUILD = "0593949e8d82"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
+<script>window.SNAPSTAT_BUILD = "b0a6de811eb6"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
 <script src="firebase-config.js"></script>
 <script type="module" src="firebase-init.js"></script>
 </head>
@@ -1381,6 +1381,45 @@ function extStyles() {
    kind: "new" (a new feature) · "better" (an existing one changed) · "fixed" (a bug fix) · "removed"
    where: the page it's on (opens when tapped) · test: what to try in the app to make sure it works */
 const CHANGES = [
+  { id: "1111f-save", date: "2026-11-11", kind: "fixed", title: "\"Couldn't save\" and the tour that kept coming back", where: "home/overview",
+    body: "Some screenshot readings had a shape your account's database won't take, so every save after them was turned down. That's why \"Couldn't save\" kept popping up, and why the welcome tour and your test answers came back each time you opened the app. Saves now always go through.",
+    test: ["Close SNAP Stat completely and open it again: the welcome tour doesn't show.", "Settings › Import & backup › Update everything (or read a shop screenshot): no \"Couldn't save\" message.", "Settings › App owner › Test this update: mark one ✓ Works, close and reopen the app: it stays in Checked features."] },
+  { id: "1111f-ssm", date: "2026-11-11", kind: "fixed", title: "Store screenshots: the banner goes away", where: "settings/owner",
+    body: "The buttons at the bottom right faded out completely, so there was no way to stop. They now stay a little visible, with a Done ✕ button, and tapping the banner says how to finish.",
+    test: ["Settings › App owner › Preview › Store screenshots: wait 5 seconds, then tap Done ✕ at the bottom right: the banner goes away."] },
+  { id: "1111f-widget", date: "2026-11-11", kind: "fixed", title: "Widget: full border, see-through background", where: "settings/android",
+    body: "The widget's edge now follows your phone's own rounded corners, so it isn't cut off. Settings › Android › Widget background has App colours, See-through (your wallpaper shows, with an optional shade) and Wallpaper colours, and your accent colour stays the one you picked.",
+    test: ["Update the Android app, then look at the widget: the border goes all the way round the corners.", "Settings › Android › Widget background › See-through: the widget shows your wallpaper and keeps your accent colour.", "Pick Wallpaper colours with Keep my accent colour on: the accent stays yours."] },
+  { id: "1111f-art", date: "2026-11-11", kind: "fixed", title: "Your art: banner, posted decks and drafts", where: "profile",
+    body: "\"Use my most played card's art\" now uses the art you play it with (the deck's variant, else your Custom Card, else your favourite). Posted decks carry your variants, load their pictures straight away and use SNAP Stat's own copy of the art if the picture site doesn't answer.",
+    test: ["Profile › Use my most played card's art as my banner: it shows the variant you use.", "Social › Feed › new post › Deck: the cards show their art, in your variants."] },
+  { id: "1111n-nav", date: "2026-11-11", kind: "new", title: "Your name opens a menu", where: "home/overview",
+    body: "Tap your name at the top right for Profile, Settings and the pages you use most. Profile and Settings left the bottom bar (Settings › App › Bottom bar and tabs puts them back), and Profile has a Settings button.",
+    test: ["Tap your name at the top right: the menu opens; tap Profile, then the Settings button on Profile.", "Settings › App › Bottom bar and tabs: turn on Show Profile and Settings: they're back in the bottom bar."] },
+  { id: "1111n-tabs", date: "2026-11-11", kind: "new", title: "Bottom tabs open where you left off", where: "settings/app",
+    body: "Tap Cards and you're back on the section you were looking at (Settings › App can make them open at the first section instead). Tapping the tab you're already on goes to its first section. And when you scroll down and start scrolling up, the row of sections slides back in.",
+    test: ["Cards › Variants, then Home, then Cards: it opens on Variants. Tap Cards again: it goes to the first section.", "Home › Matches: scroll down a long way, then scroll up a little: the row of sections slides in at the top."] },
+  { id: "1111b-swipe", date: "2026-11-11", kind: "better", title: "Quick swipes between sections", where: "home/overview",
+    body: "A short, fast flick now moves to the next section, and the sections on each side are drawn ahead of time so it doesn't lag.",
+    test: ["On any tab, do a short quick flick left and right: it moves to the next section every time."] },
+  { id: "1111n-bugs", date: "2026-11-11", kind: "new", title: "Your reports, in full", where: "settings/about",
+    body: "Tap a report in Settings › About › Your reports to see what you sent, its pictures, its status and any reply. You get a notification as soon as the app sees it change (when it opens, and every 10 minutes while it's open). Reports take up to 20 screenshots, and you can pick which page a report is about.",
+    test: ["Settings › About › Your reports: tap one: it opens with your words, pictures, status and reply.", "Report a bug: add more than 4 screenshots; change Which page is it about; send it.", "When the owner changes a report's status, open the app: a notification says so."] },
+  { id: "1111b-tests", date: "2026-11-11", kind: "better", title: "Test this update remembers your answers", where: "settings/owner",
+    body: "Answers stay put (on this phone and in your account) and go to a Checked features list where you can change them. Found a bug opens the page first, so you can take a screenshot there, then the report.",
+    test: ["Settings › App owner › Test this update: tap ✓ Works on one: it moves to Checked features; tap Change answer: it comes back.", "Tap ✗ Found a bug: the page opens with a Report bar; take a screenshot and tap Report."] },
+  { id: "1111b-draft", date: "2026-11-11", kind: "better", title: "Draft a deck: like the game", where: "cards/decks",
+    body: "The three cards sit side by side, each with its name and ability right under it (newer cards' pictures have no name on them), in your Custom Card or favourite art. My cards or All cards is the first choice.",
+    test: ["Cards › Decks › Draft a deck › My cards › Start drafting: three cards in a row, each with name and ability under it."] },
+  { id: "1111b-ai", date: "2026-11-11", kind: "better", title: "AI deck builder: live search", where: "cards/decks",
+    body: "As you type, cards that match show up (by name, even half-spelled, or by what they do), and every effect type is there to tap. Tap one to build around it; type + to add another.",
+    test: ["Cards › Decks › AI deck builder: type agth: Agatha shows up; tap it.", "Type + disc: Discard shows; tap it, then Build deck."] },
+  { id: "1111n-csv", date: "2026-11-11", kind: "new", title: "SnapVault match history file", where: "settings/data",
+    body: "Settings › Import & backup › SnapVault match history: choose SnapVault's match export (a .csv file) and every match comes in with its time, mode, deck, result, cubes, snaps and locations. Matches already in SNAP Stat are skipped.",
+    test: ["Settings › Import & backup › Choose the match file: pick snapvault-matches-….csv: it shows how many are new; tap Import.", "Choose the same file again: everything shows as Already in."] },
+  { id: "1111n-ios", date: "2026-11-11", kind: "new", title: "SNAP Stat on iPhone", where: "settings/about",
+    body: "Settings › About › On iPhone explains how friends with iPhones add SNAP Stat to their home screen from Safari, with a link to send them.",
+    test: ["Settings › About › On iPhone › Copy the link for a friend: the link is copied."] },
   { id: "1031n-tour", date: "2026-10-31", kind: "new", title: "A welcome tour", where: "settings/about",
     body: "New players get 5 quick cards about tracking, the collection, decks, AI keys and the clock. You can see it again in Settings › About.",
     test: ["Settings › About › Show the welcome tour: swipe through all 5 cards and tap Start using SNAP Stat."] },
@@ -1589,6 +1628,22 @@ const DAY = 864e5;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const signed = (n) => (n > 0 ? "+" + n : String(n));
 const clone = (x) => JSON.parse(JSON.stringify(x));
+// Firestore turns down lists inside lists, empty or __reserved__ field names and very deep nesting (plain JSON allows them).
+// fsEnc makes any saved value safe and fsDec turns it back, so one odd AI reading can't block every save after it.
+function fsEnc(x, d = 0) {
+  if (x && typeof x === "object" && d > 16) return { $j: JSON.stringify(x) };
+  if (Array.isArray(x)) return x.map((v) => (Array.isArray(v) ? { $a: fsEnc(v, d + 2) } : fsEnc(v, d + 1)));
+  if (!x || typeof x !== "object") return x;
+  const o = {}; for (const k of Object.keys(x)) { const nk = k === "" || /^__.*__$/.test(k) || k.startsWith("$") ? "$k" + k : k; o[nk] = fsEnc(x[k], d + 1); } return o;
+}
+function fsDec(x) {
+  if (Array.isArray(x)) return x.map(fsDec);
+  if (!x || typeof x !== "object") return x;
+  const ks = Object.keys(x);
+  if (ks.length === 1 && ks[0] === "$a") return fsDec(x.$a);
+  if (ks.length === 1 && ks[0] === "$j" && typeof x.$j === "string") { try { return JSON.parse(x.$j); } catch { return null; } }
+  const o = {}; for (const k of ks) o[k.startsWith("$k") ? k.slice(2) : k] = fsDec(x[k]); return o;
+}
 const arr = (x) => (Array.isArray(x) ? x : []);
 const obj = (x) => (x && typeof x === "object" && !Array.isArray(x) ? x : {});
 let _dayFmt = null, _dtFmt = null;
@@ -1937,7 +1992,7 @@ async function flushState() {
   if (store.mode === "cloud" && !flushState.warned) { let n = 0; try { n = JSON.stringify(body).length; } catch { /* fine */ } if (n > 850000) { flushState.warned = true; toast("Your saved data is nearly too big for one account to hold. Please tell Claude in your SNAP Stat chat."); } }
   // A save the database turned down for good (too big, not allowed) isn't kept waiting, or other devices' changes would never arrive
   let permanent = false;
-  writing = (async () => { if (store.mode === "cloud") { try { await store.stateRef.set(body); } catch (e) { ok = false; permanent = /invalid-argument|permission/.test(String(e && e.code)); handleDbErr(e, "save"); } } else { ok = lsSet(LS.state, body); if (ok && store.ready) lsSet(LOCAL_AT, Date.now()); } })();
+  writing = (async () => { if (store.mode === "cloud") { try { await store.stateRef.set(fsEnc(body)); } catch (e) { ok = false; permanent = /invalid-argument|permission/.test(String(e && e.code)); handleDbErr(e, "save"); } } else { ok = lsSet(LS.state, body); if (ok && store.ready) lsSet(LOCAL_AT, Date.now()); } })();
   await writing; writing = null; if ((ok || permanent) && saveVer === ver) dirty = false; syncProfile();
   if (natAlerts() && notifyPrefs().on) saveNotifyState();
   pushWidget();
@@ -1949,7 +2004,7 @@ async function flushWeeks() {
   if ((store.mode === "cloud" && !store.matchesLoaded) || (store.provider === "firebase" && !store.ready)) { clearTimeout(weekTimer); weekTimer = setTimeout(flushWeeks, 1500); return; }
   weekWriting = (async () => {
     const wks = [...dirtyWeeks]; dirtyWeeks.clear();
-    if (store.mode === "cloud") for (const wk of wks) { const ref = store.stateRef.collection("matches").doc(wk); const items = arr(matchWeeks[wk]); try { if (items.length) await ref.set({ items: clone(items) }); else await ref.delete(); } catch (e) { if (!/invalid-argument|permission/.test(String(e && e.code))) dirtyWeeks.add(wk); handleDbErr(e, "save matches"); } }
+    if (store.mode === "cloud") for (const wk of wks) { const ref = store.stateRef.collection("matches").doc(wk); const items = arr(matchWeeks[wk]); try { if (items.length) await ref.set({ items: fsEnc(clone(items)) }); else await ref.delete(); } catch (e) { if (!/invalid-argument|permission/.test(String(e && e.code))) dirtyWeeks.add(wk); handleDbErr(e, "save matches"); } }
     else if (lsSet(LS.matches, matchWeeks)) { if (store.ready) lsSet(LOCAL_AT, Date.now()); } else wks.forEach((wk) => dirtyWeeks.add(wk));
   })();
   await weekWriting; weekWriting = null; syncProfile(); pushWidget();
@@ -2073,7 +2128,7 @@ function subscribeCloud(localState, localMatches) {
     if (!first && (dirty || snap.metadata.hasPendingWrites)) return;
     if (!snap.exists && snap.metadata.fromCache) return;
     if (snap.exists) {
-      const cloud = mergeDefaults(clone(snap.data()));
+      const cloud = mergeDefaults(fsDec(clone(snap.data())));
       if (first && dirty) { dirty = false; clearTimeout(saveTimer); toast("Your saved data just finished loading. If you changed something in the last few seconds, please do it again."); }
       // Used without an account on this device, and the account has data too: you pick which to keep
       if (first && mergeLocal && localState && num(localState.updated) > num(cloud.updated) && (Object.keys(obj(localState.owned)).length || arr(localState.decks).length)) { pendingLocal = localState; setTimeout(() => openSheet(stateChoiceSheet), 300); }
@@ -2090,14 +2145,14 @@ function subscribeCloud(localState, localMatches) {
       let changed = false;
       for (const d of qs.docs) {
         if (dirtyWeeks.has(d.id) || (d.metadata && d.metadata.hasPendingWrites)) continue;
-        const b = d.data(), items = arr(b && b.items).length ? clone(b.items) : [];
+        const b = d.data(), items = arr(b && b.items).length ? fsDec(clone(b.items)) : [];
         if (JSON.stringify(items) !== JSON.stringify(arr(matchWeeks[d.id]))) { matchWeeks[d.id] = items; changed = true; }
       }
       if (changed) { _mVer++; requestRender(); }
       return;
     }
     if (qs.empty && qs.metadata.fromCache) return;
-    const next = {}; qs.docs.forEach((d) => { const b = d.data(); next[d.id] = arr(b && b.items).length ? clone(b.items) : []; });
+    const next = {}; qs.docs.forEach((d) => { const b = d.data(); next[d.id] = arr(b && b.items).length ? fsDec(clone(b.items)) : []; });
     if (first) {
       const pending = matchWeeks; dirtyWeeks.clear(); clearTimeout(weekTimer);
       const have = new Set(); Object.values(next).forEach((l) => l.forEach((m) => m && have.add(m.id)));
@@ -14562,13 +14617,14 @@ html.swiping { overflow-x: clip; }
 html.swiping #view { will-change: transform; }`);
 
 const SWIPE_SLOP = 12;
-var swipe = { st: "", sx: 0, sy: 0, ox: 0, lx: 0, lt: 0, vx: 0, dir: 0, key: "", tab: "", peek: null, geo: null, busy: false, cache: {}, target: null, last: 0, timer: 0 };
+var swipe = { t0: 0, quick: false, pre: null, st: "", sx: 0, sy: 0, ox: 0, lx: 0, lt: 0, vx: 0, dir: 0, key: "", tab: "", peek: null, geo: null, busy: false, cache: {}, target: null, last: 0, timer: 0 };
 // render() waits while a finger is dragging the page or it's sliding into place (see i_actions.js)
 function swipeHolding() { return !!(swipe && (swipe.st === "drag" || swipe.busy)); }
 
 // The next section's page, drawn exactly as it will look, without changing where you are
 function swipePeekHtml(key) {
   if (swipe.cache[key]) return swipe.cache[key]; // going back and forth in one drag draws each side once
+  if (swipe.pre && swipe.pre.sig === swipeSig() && swipe.pre.html[key]) return (swipe.cache[key] = swipe.pre.html[key]); // drawn ahead of time
   const n = NAV[ui.tab], old = ui[n.key], more = ui.more;
   try { ui[n.key] = key; ui.more = null; return (swipe.cache[key] = (VIEWS[ui.tab] || VIEWS.home)()); }
   catch (e) { console.error("swipe preview", e); return tabHead(ui.tab); }
@@ -14627,7 +14683,8 @@ function swipeMove(dx) {
 }
 function swipeEnd(dx, cancelled) {
   const v = $("#view"), p = swipe.peek, D = swipe.geo ? swipe.geo.D : window.innerWidth;
-  const flick = Math.abs(swipe.vx) > 0.45 && -Math.sign(swipe.vx) === swipe.dir && Math.abs(dx) > 30;
+  // A flick: fast at the end, or a short quick swipe (under about a third of a second) in that direction
+  const flick = (Math.abs(swipe.vx) > 0.3 && -Math.sign(swipe.vx) === swipe.dir && Math.abs(dx) > 24) || (swipe.quick && -Math.sign(dx) === swipe.dir && Math.abs(dx) > 30);
   const done = !cancelled && p && ui.tab === swipe.tab && -Math.sign(dx) === swipe.dir && (Math.abs(dx) > D * 0.3 || flick);
   const left = done ? D - Math.abs(dx) : Math.abs(dx), ms = Math.round(Math.max(120, Math.min(260, left * 0.7)));
   const ease = `transform ${ms}ms cubic-bezier(.2,.75,.3,1)`;
@@ -14653,7 +14710,7 @@ function swipeOnMove(e) {
   const dx = t.clientX - swipe.sx, dy = t.clientY - swipe.sy;
   if (swipe.st === "wait") {
     if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) { swipe.st = ""; swipeUnlisten(); return; } // scrolling up or down
-    if (Math.abs(dx) < SWIPE_SLOP || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    if (Math.abs(dx) < SWIPE_SLOP || Math.abs(dx) < Math.abs(dy) * 1.15) return;
     if (!e.cancelable || swipeBlocked(swipe.target, dx)) { swipe.st = ""; swipeUnlisten(); return; } // a row that scrolls sideways, or the page already scrolling
     swipeLock(dx);
   }
@@ -14668,7 +14725,9 @@ function swipeOnEnd(e) {
   if (e._swiped) return; e._swiped = true;
   if (swipe.st === "drag" && !swipe.busy) {
     const t = e.changedTouches && e.changedTouches[0];
-    if (e.timeStamp - swipe.lt > 100) swipe.vx = 0; // held still before letting go: not a flick
+    const dxe = t ? t.clientX - swipe.sx : 0;
+    swipe.quick = e.timeStamp - swipe.t0 < 320 && Math.abs(dxe) > 30;
+    if (!swipe.quick && e.timeStamp - swipe.lt > 100) swipe.vx = 0; // held still before letting go: not a flick
     swipeEnd(t ? t.clientX - swipe.sx - swipe.ox : 0, e.type === "touchcancel");
   }
   swipe.st = ""; swipeUnlisten();
@@ -14705,7 +14764,7 @@ function swipeStartsHere(el) {
     if (e.touches.length !== 1 || !swipeStartsHere(e.target)) return;
     const n = NAV[ui.tab]; if (!n || !n.subs) return;
     const t = e.touches[0];
-    Object.assign(swipe, { st: "wait", sx: t.clientX, sy: t.clientY, lx: t.clientX, lt: e.timeStamp, vx: 0, last: Date.now() });
+    Object.assign(swipe, { st: "wait", sx: t.clientX, sy: t.clientY, lx: t.clientX, lt: e.timeStamp, t0: e.timeStamp, quick: false, vx: 0, last: Date.now() });
     swipeListen(e.target);
   }, { passive: true, capture: true });
   // Kept on the whole page too: it keeps the browser asking before it scrolls, and catches anything the touched element missed
@@ -14721,6 +14780,23 @@ function swipeStartsHere(el) {
   const vv = window.visualViewport;
   if (vv) vv.addEventListener("resize", () => document.documentElement.classList.toggle("zoomed", vv.scale > 1.05));
 })();
+
+/* ---------- Drawing the sections on each side ahead of time ---------- */
+// So a quick flick doesn't wait while the next section is drawn: after the page settles, both neighbours are drawn
+// in the phone's spare time and kept until the page changes.
+let _swipeRenders = 0;
+const swipeSig = () => `${ui.tab}|${obj(NAV[ui.tab]).key ? ui[NAV[ui.tab].key] : ""}|${_swipeRenders}`;
+EXT.afterRender.push(function swipePrewarm() {
+  _swipeRenders++;
+  if (!("ontouchstart" in window) || !NAV[ui.tab] || !NAV[ui.tab].subs) return;
+  const sig = swipeSig(), idle = window.requestIdleCallback || ((f) => setTimeout(f, 400));
+  idle(() => {
+    if (sig !== swipeSig() || swipe.st || swipe.busy) return;
+    const html = {}; const keep = swipe.cache; swipe.cache = {};
+    try { for (const d of [1, -1]) { const k = swipeTarget(d); if (k && !html[k]) html[k] = swipePeekHtml(k); } } catch { /* drawn when needed instead */ }
+    swipe.cache = keep; swipe.pre = { sig, html };
+  }, { timeout: 1500 });
+});
 /* ============ Report a bug (everyone) ============
    Settings › About › Report a bug, the search window, the foot of every Settings page and the red problem bar open it.
    A report has an ID (BUG-261031-K7QZ), what you wrote, up to 4 screenshots or small text files, the page you were on,
@@ -14729,8 +14805,8 @@ function swipeStartsHere(el) {
    only the app owner can read them all (Settings › App owner), and you can see the status of your own.
    Not signed in: it waits on this device and is sent once you sign in (or Copy report sends it another way). */
 const BUG_KINDS = [["broke", "Something broke"], ["wrong", "Wrong info"], ["looks", "Looks wrong"], ["idea", "Idea"]];
-const BUG_MAX_FILES = 4, BUG_QUEUE = "snapstat.bugQueue";
-const bug = { kind: "broke", text: "", files: [], log: false, errs: true, change: "", sending: false, sent: "", queued: false };
+const BUG_MAX_FILES = 20, BUG_QUEUE = "snapstat.bugQueue";
+const bug = { kind: "broke", text: "", files: [], log: false, errs: true, change: "", page: "", sending: false, sent: "", queued: false };
 
 function bugDeviceId() {
   try { let d = localStorage.getItem("snapstat.deviceId"); if (!d) { d = "d-" + Math.random().toString(36).slice(2, 8); localStorage.setItem("snapstat.deviceId", d); } return d; }
@@ -14745,6 +14821,13 @@ function bugNewId() {
 function bugWhere() {
   const n = obj(NAV[ui.tab]), sub = n.subs ? (n.subs().find(([k]) => k === ui[n.key]) || [])[1] : "";
   return { route: location.hash.slice(1) || ui.tab || "home", label: [n.title, String(sub || "").replace(/\s*[●(].*$/, "")].filter(Boolean).join(" › ") || "SNAP Stat" };
+}
+// Every page you can say a report is about: "Home › Live match" etc. (the page you're on is picked to start with)
+function bugPages() {
+  const out = [];
+  for (const [t, n] of Object.entries(NAV)) { if (!n.subs) { out.push([t, n.title]); continue; } let subs = []; try { subs = n.subs(); } catch { /* skip */ } subs.forEach(([k, l]) => out.push([`${t}/${k}`, `${n.title} › ${String(l).replace(/\s*[●(].*$/, "")}`])); }
+  out.push(["tracker", "Match tracker (Android Track & play)"], ["widget", "Home screen widget"], ["notifications", "Notifications"], ["other", "Somewhere else"]);
+  return out;
 }
 // What kind of device this is, without anything personal
 function bugDevice() {
@@ -14791,12 +14874,13 @@ async function bugAddFiles(list) {
 
 /* ---------- The report itself ---------- */
 function bugBuild() {
-  const w = bugWhere(), text = bug.text.trim().slice(0, 4000);
+  const here = bugWhere(), pick = bug.page ? bugPages().find(([r]) => r === bug.page) : null;
+  const w = pick ? { route: pick[0], label: pick[1] } : here, text = bug.text.trim().slice(0, 4000);
   let log = ""; if (bug.log && natCan("log")) { try { log = String(NATIVE.log() || "").split("\n").slice(-80).join("\n").slice(-12000); } catch { /* old app */ } }
   return { id: bugNewId(), by: store.uid || "", handle: String(S.me.handle || "").slice(0, 40), account: SLOT ? currentAccountName() : "Main account", kind: bug.kind, text,
     title: text.split("\n")[0].slice(0, 90), where: w.label, route: w.route.slice(0, 80), change: bug.change || "", build: BUILD || "", device: bugDevice(),
     errors: bug.errs ? ERRLOG.slice(0, 15).map((e) => ({ at: e.at, where: e.where, msg: e.msg, stack: String(e.stack || "").slice(0, 500) })) : [], log,
-    files: bug.files.length, fileNames: bug.files.map((f) => f.name.slice(0, 80)), at: Date.now(), status: "new" };
+    files: Math.min(8, bug.files.length), nfiles: bug.files.length, fileNames: bug.files.map((f) => f.name.slice(0, 80)), at: Date.now(), status: "new" };
 }
 function bugText(r) {
   return `SNAP Stat bug report ${r.id}\n${BUG_KINDS.find(([k]) => k === r.kind)?.[1] || r.kind} · ${r.where}\n${bugDeviceLine(r.device)} · build ${String(r.build).slice(0, 7)}\n\n${r.text}${r.errors.length ? `\n\nRecent problems:\n${r.errors.map((e) => `- ${e.where}: ${e.msg}`).join("\n")}` : ""}`;
@@ -14804,7 +14888,7 @@ function bugText(r) {
 async function bugUpload(r, files) {
   await store.db.doc("bugs/" + r.id).set(clone({ ...r, by: store.uid, handle: String(S.me.handle || r.handle || "").slice(0, 40) }));
   for (let i = 0; i < files.length; i++) await store.db.doc(`bugs/${r.id}/files/${i}`).set({ n: i, name: files[i].name, type: files[i].type, data: files[i].data, by: store.uid });
-  S.myBugs = [{ id: r.id, at: r.at, title: r.title, status: "new" }, ...arr(S.myBugs).filter((x) => x.id !== r.id)].slice(0, 40); save();
+  S.myBugs = [{ id: r.id, at: r.at, title: r.title, status: "new", kind: r.kind, where: r.where, text: String(r.text || "").slice(0, 1500), nfiles: num(r.nfiles || r.files) }, ...arr(S.myBugs).filter((x) => x.id !== r.id)].slice(0, 40); save();
 }
 function bugQueue() { try { return arr(JSON.parse(localStorage.getItem(BUG_QUEUE) || "[]")); } catch { return []; } }
 function bugQueueSet(q) {
@@ -14836,14 +14920,16 @@ function bugSheet() {
       <label class="f"><span>What happened?</span><textarea id="bug-text" rows="6" maxlength="4000" data-bugtext placeholder="What did you tap, what did you expect, and what happened instead?">${esc(bug.text)}</textarea></label>
       ${bug.files.length ? `<div class="bug-files">${bug.files.map((f, i) => `<div class="bug-file">${/^image\//.test(f.type) ? `<img src="${f.data}" alt="">` : `<span class="small">${esc(f.name)}</span>`}<button class="x" data-a="bugDropFile" data-i="${i}" aria-label="Remove ${esc(f.name)}">${ICON.x}</button></div>`).join("")}</div>` : ""}
       ${bug.files.length < BUG_MAX_FILES ? `<label class="btn">${ICON.plus} Add screenshots or files<input type="file" accept="image/*,.txt,.log,.json,.csv" multiple hidden data-bugfile></label>` : ""}
-      ${NATIVE ? `<label class="check"><input type="checkbox" data-bugchk="log" ${bug.log ? "checked" : ""}> Add what the match tracker saw (its log)</label>` : ""}
+      ${bug.files.length ? `<span class="muted small">${bug.files.length} of ${BUG_MAX_FILES} files</span>` : ""}
+      <label class="f"><span>Which page is it about?</span><select data-bugpage>${(() => { const cur = bug.page || bugWhere().route; const list = bugPages(); return (list.some(([r]) => r === cur) ? "" : `<option value="">${esc(bugWhere().label)} (where you are)</option>`) + list.map(([r, l]) => `<option value="${esc(r)}" ${r === cur ? "selected" : ""}>${esc(l)}</option>`).join(""); })()}</select></label>
+      ${NATIVE ? `<label class="check"><input type="checkbox" data-bugchk="log" ${bug.log ? "checked" : ""}> Add what the match tracker saw (its log)</label><span class="muted small">The log is the last lines of what Track &amp; play read in MARVEL SNAP, whichever page you report from. To show a SNAP Stat page, pick it above and add a screenshot.</span>` : ""}
       <label class="check"><input type="checkbox" data-bugchk="errs" ${bug.errs ? "checked" : ""}> Add the app's recent problems (${ERRLOG.length})</label>
-      <span class="muted small">Sent with it: the page you were on (${esc(w.label)}), your player name, ${esc(dev.app)} on ${esc([dev.os, dev.model].filter(Boolean).join(" "))} and the app version.${store.mode !== "cloud" ? " You're not signed in, so it's kept on this device and sent once you sign in. Copy report sends it another way." : ""}</span>
+      <span class="muted small">Sent with it: the page you picked, your player name, ${esc(dev.app)} on ${esc([dev.os, dev.model].filter(Boolean).join(" "))} and the app version.${store.mode !== "cloud" ? " You're not signed in, so it's kept on this device and sent once you sign in. Copy report sends it another way." : ""}</span>
       <div class="row"><button class="btn snap" data-a="bugSend" ${bug.sending ? "disabled" : ""}>${bug.sending ? "Sending…" : "Send report"}</button>${store.mode !== "cloud" ? `<button class="btn" data-a="bugCopy">${ICON.copy} Copy report</button>` : ""}</div>
     </div>`;
 }
 function bugOpen(opts = {}) {
-  if (bug.sent) Object.assign(bug, { sent: "", queued: false, text: "", files: [], change: "" });
+  if (bug.sent) Object.assign(bug, { sent: "", queued: false, text: "", files: [], change: "", page: "" });
   Object.assign(bug, opts); openSheet(bugSheet);
   setTimeout(() => { const t = document.getElementById("bug-text"); if (t && !opts.noFocus) t.focus(); }, 60);
 }
@@ -14852,6 +14938,7 @@ document.addEventListener("change", (e) => {
   const t = e.target; if (!t || !t.dataset) return;
   if (t.dataset.bugfile !== undefined) { bugAddFiles(t.files); t.value = ""; }
   if (t.dataset.bugchk) bug[t.dataset.bugchk] = t.checked;
+  if (t.dataset.bugpage !== undefined) bug.page = t.value;
 });
 Object.assign(A, {
   bugOpen: (el) => bugOpen({ change: (el && el.dataset.change) || "", kind: (el && el.dataset.kind) || bug.kind }),
@@ -14859,20 +14946,20 @@ Object.assign(A, {
   bugDropFile: (el) => { bug.files.splice(num(el.dataset.i), 1); refreshSheet(); },
   bugCopy: () => copyText(bugText(bugBuild()), "Report copied"),
   bugCopyId: () => copyText(bug.sent, "Copied"),
-  bugDone: () => { Object.assign(bug, { sent: "", queued: false, text: "", files: [], change: "", kind: "broke" }); closeSheet(); render(); },
+  bugDone: () => { Object.assign(bug, { sent: "", queued: false, text: "", files: [], change: "", page: "", kind: "broke" }); closeSheet(); render(); },
   bugSend: async () => {
     if (bug.sending) return;
     if (bug.text.trim().length < 4 && !bug.files.length) { toast("Write a few words about what happened"); return; }
     const r = bugBuild(), files = bug.files.slice();
     if (store.mode !== "cloud" || !store.db || !store.uid) {
       if (!bugQueueSet([...bugQueue(), { r, files }].slice(-5))) { toast("Couldn't save it here. Tap Copy report instead."); return; }
-      Object.assign(bug, { sent: r.id, queued: true, text: "", files: [], change: "" }); refreshSheet(); return;
+      Object.assign(bug, { sent: r.id, queued: true, text: "", files: [], change: "", page: "" }); refreshSheet(); return;
     }
     bug.sending = true; refreshSheet();
-    try { await bugUpload(r, files); Object.assign(bug, { sent: r.id, queued: false, text: "", files: [], change: "" }); }
+    try { await bugUpload(r, files); Object.assign(bug, { sent: r.id, queued: false, text: "", files: [], change: "", page: "" }); }
     catch (e) {
       // Keep it so nothing is lost; the rules may not be pasted yet, or the phone is offline
-      bugQueueSet([...bugQueue(), { r, files }].slice(-5)); Object.assign(bug, { sent: r.id, queued: true, text: "", files: [], change: "" });
+      bugQueueSet([...bugQueue(), { r, files }].slice(-5)); Object.assign(bug, { sent: r.id, queued: true, text: "", files: [], change: "", page: "" });
       toast(/permission/i.test(errText(e)) ? "Reports aren't switched on yet (the app owner pastes the new security rules). It's saved here for now." : "Couldn't send it right now. It's saved and will be sent later.");
     }
     finally { bug.sending = false; refreshSheet(); }
@@ -14891,9 +14978,21 @@ async function bugCheckMine(force) {
   for (const x of arr(S.myBugs).slice(0, 15)) {
     if (x.status === "fixed" && !force) continue;
     try { const s = await store.db.doc("bugs/" + x.id).get(); if (!s.exists) continue; const d = obj(s.data());
-      if (d.status !== x.status || (d.reply || "") !== (x.reply || "")) { x.status = d.status; x.reply = String(d.reply || "").slice(0, 400); x.statusAt = d.statusAt || Date.now(); changed = true; } } catch { /* rules not pasted yet */ }
+      if (!x.text && d.text) { x.text = String(d.text).slice(0, 1500); x.kind = d.kind; x.where = d.where; x.nfiles = num(d.nfiles || d.files); changed = true; }
+      if (d.status !== x.status || (d.reply || "") !== (x.reply || "")) { const was = x.status; x.status = d.status; x.reply = String(d.reply || "").slice(0, 400); x.statusAt = d.statusAt || Date.now(); x.unread = true; changed = true; if (was !== undefined) bugTellChange(x); } } catch { /* rules not pasted yet */ }
   }
   if (changed) { save(); refreshView(); }
+}
+// Says so right away: a phone notification (Android app, or the website when notifications are allowed) and a note in the app
+function bugTellChange(x) {
+  const word = { seen: "has been seen", fixing: "is being fixed", fixed: "is fixed", wontfix: "was answered", dupe: "was already reported" }[x.status] || "was updated";
+  const title = `Your report ${word}`, body = `${x.title || x.id}${x.reply ? ": " + String(x.reply).slice(0, 160) : ""}`;
+  try {
+    if (natAlerts() && typeof SnapStatNative.showAlert === "function" && (!SnapStatNative.canNotify || SnapStatNative.canNotify())) SnapStatNative.showAlert(title, body, "bug:" + x.id + ":" + x.status, "#settings/about");
+    else if ("Notification" in window && Notification.permission === "granted" && document.visibilityState !== "visible") new Notification(title, { body, tag: "bug:" + x.id });
+  } catch { /* the note in the app still shows */ }
+  x.told = x.status + "|" + (x.reply || "");
+  toast(`${title}. See Settings › About › Your reports.`);
 }
 const BUG_STATUS = { new: ["New", "dim"], seen: ["Seen", ""], fixing: ["Being fixed", "warn"], fixed: ["Fixed", "W"], wontfix: ["Not changing", "dim"], dupe: ["Already reported", "dim"] };
 const bugPill = (s) => { const [l, c] = BUG_STATUS[s] || BUG_STATUS.new; return `<span class="pill ${c}">${l}</span>`; };
@@ -14904,12 +15003,50 @@ function bugAboutHtml() {
       <p>Tell us what went wrong (and add screenshots). Every report is read.</p>
       <div class="row"><button class="btn snap" data-a="bugOpen">Report a bug</button><button class="btn ghost" data-a="bugOpen" data-kind="idea">Suggest an idea</button></div>
       ${q.length ? `<span class="muted">${q.length} report${q.length > 1 ? "s" : ""} waiting to be sent${store.mode === "cloud" ? "" : " (sign in to send)"}.</span>` : ""}</div>
-      ${mine.length ? `<h3 class="small eyebrow" style="margin-top:14px">Your reports</h3><div class="list">${mine.slice(0, 15).map((x) => `<div class="li"><div class="grow"><div class="t">${esc(x.title || "Report")}</div><div class="s"><span class="num">${esc(x.id)}</span> · ${esc(agoTxt(x.at))}${x.reply ? ` · ${esc(x.reply)}` : ""}</div></div>${bugPill(x.status)}</div>`).join("")}</div>
+      ${mine.length ? `<h3 class="small eyebrow" style="margin-top:14px">Your reports</h3><div class="list">${mine.slice(0, 15).map((x) => `<button class="li bug-li" data-a="bugMineOpen" data-id="${esc(x.id)}"><div class="grow"><div class="t">${x.unread ? '<span class="dot" aria-label="New update"></span> ' : ""}${esc(x.title || "Report")}</div><div class="s"><span class="num">${esc(x.id)}</span> · ${esc(agoTxt(x.at))}${x.reply ? ` · ${esc(x.reply)}` : ""}</div></div>${bugPill(x.status)}<span class="muted" aria-hidden="true">›</span></button>`).join("")}</div>
       <div><button class="btn sm ghost" data-a="bugCheck">Check for updates</button></div>` : ""}</section>`;
 }
 Object.assign(A, { bugCheck: () => { toast("Checking…"); bugCheckMine(true); } });
+
+/* ---------- One of your reports, in full ---------- */
+const bugMine = { id: "", full: null, files: null };
+function bugMineSheet() {
+  const x = arr(S.myBugs).find((b) => b.id === bugMine.id); if (!x) return `${sheetHead("Report", "")}<p class="muted">That report isn't on this device any more.</p>`;
+  const d = obj(bugMine.full), text = d.text || x.text || "", kind = (BUG_KINDS.find(([k]) => k === (d.kind || x.kind)) || [0, ""])[1], nf = num(d.nfiles || d.files || x.nfiles);
+  const files = bugMine.files;
+  return `${sheetHead(x.id, kind ? `${kind} · sent ${agoTxt(x.at)}` : `Sent ${agoTxt(x.at)}`)}<div class="stack">
+    <div class="row between"><span>Status</span>${bugPill(x.status)}</div>
+    ${x.reply ? `<div class="note"><b>Reply:</b> ${esc(x.reply)}${x.statusAt ? ` <span class="muted small">· ${esc(agoTxt(x.statusAt))}</span>` : ""}</div>` : `<span class="muted small">No reply yet. You'll get a notification when it changes.</span>`}
+    ${d.where || x.where ? `<div class="small"><span class="muted">Page:</span> ${esc(d.where || x.where)}</div>` : ""}
+    ${d.device ? `<div class="small"><span class="muted">Sent from:</span> ${esc(bugDeviceLine(obj(d.device)))}</div>` : ""}
+    <div class="panel small bug-text">${text ? esc(text).replace(/\n/g, "<br>") : `<span class="muted">${bugMine.full === "loading" ? "Loading…" : "The words aren't on this device. Sign in to see them."}</span>`}</div>
+    ${nf ? (Array.isArray(files) ? `<div class="bug-files">${files.map((f) => (/^data:image\//.test(f.data) ? `<a class="bug-file" href="${f.data}" target="_blank" rel="noopener"><img src="${f.data}" alt="${esc(f.name)}"></a>` : `<div class="bug-file"><span class="small">${esc(f.name)}</span></div>`)).join("")}</div>` : `<span class="muted small">${files === "loading" ? `Loading ${nf} file${nf > 1 ? "s" : ""}…` : `${nf} file${nf > 1 ? "s" : ""} sent`}</span>`) : ""}
+    <div class="row"><button class="btn" data-a="bugMineCopy">${ICON.copy} Copy number</button><button class="btn ghost" data-a="bugOpen" data-kind="${esc(x.kind || "broke")}">Add more to it</button></div></div>`;
+}
+async function bugMineLoad(x) {
+  if (store.mode !== "cloud" || !store.db) return;
+  bugMine.full = "loading"; refreshSheet();
+  try { const s = await store.db.doc("bugs/" + x.id).get(); bugMine.full = s.exists ? obj(s.data()) : null; } catch { bugMine.full = null; }
+  if (bugMine.id !== x.id) return; refreshSheet();
+  const n = num(obj(bugMine.full).nfiles || obj(bugMine.full).files || x.nfiles); if (!n) return;
+  bugMine.files = "loading"; refreshSheet(); const out = [];
+  for (let i = 0; i < Math.min(BUG_MAX_FILES, n); i++) { try { const f = await store.db.doc(`bugs/${x.id}/files/${i}`).get(); if (f.exists) out.push(obj(f.data())); } catch { break; } }
+  if (bugMine.id === x.id) { bugMine.files = out; refreshSheet(); }
+}
+Object.assign(A, {
+  bugMineOpen: (el) => { const x = arr(S.myBugs).find((b) => b.id === el.dataset.id); if (!x) return; Object.assign(bugMine, { id: x.id, full: null, files: null }); if (x.unread) { x.unread = false; save(); } openSheet(bugMineSheet); bugMineLoad(x); },
+  bugMineCopy: () => copyText(bugMine.id, "Copied"),
+});
+// Checked every time the app opens or comes back on screen (and every 10 minutes while it's open)
+let _bugPollAt = 0;
+function bugPollSoon() { if (store.mode !== "cloud" || !arr(S.myBugs).length || Date.now() - _bugPollAt < 10 * 60e3) return; _bugPollAt = Date.now(); setTimeout(() => bugCheckMine(true).catch(() => {}), 3000); }
+EXT.afterRender.push(bugPollSoon);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { _bugPollAt = Math.min(_bugPollAt, Date.now() - 9 * 60e3); bugPollSoon(); } });
 EXT.styles.push(`
 .bug-files { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.bug-li { width: 100%; text-align: left; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; }
+.bug-li .dot { display: inline-block; width: 8px; height: 8px; border-radius: 99px; background: var(--snap-a); vertical-align: middle; }
+.bug-text { white-space: normal; overflow-wrap: anywhere; }
 .bug-file { position: relative; aspect-ratio: 9 / 16; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--surface-2); display: grid; place-items: center; text-align: center; padding: 4px; }
 .bug-file img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .bug-file .x { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; border-radius: 999px; background: rgba(0,0,0,.6); color: #fff; border: 0; display: grid; place-items: center; }
@@ -14956,16 +15093,16 @@ function ownerBugsHtml() {
       <span class="muted small">Both put every open report together, grouped by page, ready to paste into (or attach to) your SNAP Stat chat. The .zip also has the pictures.</span>` : ""}
     ${groups.length ? `<details class="panel small"><summary><b>Where they happen</b> · ${groups.length} page${groups.length > 1 ? "s" : ""}</summary><div class="list">${groups.map((x) => `<div class="li"><div class="grow"><div class="t">${esc(x.where)}</div><div class="s">${x.n} report${x.n > 1 ? "s" : ""} · ${x.who.size} player${x.who.size > 1 ? "s" : ""} · ${x.dev.size} device${x.dev.size > 1 ? "s" : ""} · ${esc(x.apps)}</div><div class="s">${esc(x.scope)}</div></div></div>`).join("")}</div></details>` : ""}
     ${shown.length ? `<div class="list">${shown.slice(0, 80).map((r) => `<button class="li" data-a="obOpen" data-id="${esc(r.id)}"><div class="grow"><div class="t">${esc(r.title || r.text || "Report")}</div>
-        <div class="s"><span class="num">${esc(r.id)}</span> · ${esc(obWho(r))} · ${esc(r.where || "")}</div><div class="s">${esc(obDev(r).app || "")} · ${esc([obDev(r).os, obDev(r).model].filter(Boolean).join(" "))} · ${esc(agoTxt(r.at))}${num(r.files) ? ` · ${num(r.files)} file${num(r.files) > 1 ? "s" : ""}` : ""}</div></div>${bugPill(r.status)}</button>`).join("")}</div>`
+        <div class="s"><span class="num">${esc(r.id)}</span> · ${esc(obWho(r))} · ${esc(r.where || "")}</div><div class="s">${esc(obDev(r).app || "")} · ${esc([obDev(r).os, obDev(r).model].filter(Boolean).join(" "))} · ${esc(agoTxt(r.at))}${num(r.nfiles || r.files) ? ` · ${num(r.nfiles || r.files)} file${num(r.nfiles || r.files) > 1 ? "s" : ""}` : ""}</div></div>${bugPill(r.status)}</button>`).join("")}</div>`
       : `<div class="empty"><strong>${ob.list.length ? "Nothing here" : "No reports yet"}</strong><span>${ob.list.length ? "Try another filter." : "When players tap Report a bug, their reports show up here."}</span></div>`}</section>`;
 }
 
 /* ---------- One report ---------- */
 async function obLoadFiles(r) {
-  if (!num(r.files) || ob.files[r.id]) return;
+  if (!num(r.nfiles || r.files) || ob.files[r.id]) return;
   ob.files[r.id] = "loading";
   const out = [];
-  for (let i = 0; i < Math.min(8, num(r.files)); i++) { try { const s = await store.db.doc(`bugs/${r.id}/files/${i}`).get(); if (s.exists) out.push(obj(s.data())); } catch (e) { errNote("loading a report's pictures", e, true); } }
+  for (let i = 0; i < Math.min(20, num(r.nfiles || r.files)); i++) { try { const s = await store.db.doc(`bugs/${r.id}/files/${i}`).get(); if (s.exists) out.push(obj(s.data())); } catch (e) { errNote("loading a report's pictures", e, true); } }
   ob.files[r.id] = out; if (sheetFn === obSheet) refreshSheet();
 }
 function obSheet() {
@@ -14978,7 +15115,7 @@ function obSheet() {
     <div class="stack">
       <div class="panel small" style="white-space:pre-wrap">${esc(r.text || "(No words, just files)")}</div>
       ${same.length ? `<div class="note">${same.length} other open report${same.length > 1 ? "s" : ""} on this page from ${new Set(same.map((x) => x.by)).size} player${new Set(same.map((x) => x.by)).size > 1 ? "s" : ""}.</div>` : ""}
-      ${num(r.files) ? `<div class="stack">${files === "loading" || !files ? `<span class="muted">Loading ${num(r.files)} file${num(r.files) > 1 ? "s" : ""}…</span>` : files.map((f) => /^data:image\//.test(f.data) ? `<img class="ob-pic" src="${f.data}" alt="${esc(f.name)}">` : `<details class="panel small"><summary>${esc(f.name)}</summary><pre class="ob-pre">${esc(obDecode(f.data).slice(0, 4000))}</pre></details>`).join("")}</div>` : ""}
+      ${num(r.nfiles || r.files) ? `<div class="stack">${files === "loading" || !files ? `<span class="muted">Loading ${num(r.nfiles || r.files)} file${num(r.nfiles || r.files) > 1 ? "s" : ""}…</span>` : files.map((f) => /^data:image\//.test(f.data) ? `<img class="ob-pic" src="${f.data}" alt="${esc(f.name)}">` : `<details class="panel small"><summary>${esc(f.name)}</summary><pre class="ob-pre">${esc(obDecode(f.data).slice(0, 4000))}</pre></details>`).join("")}</div>` : ""}
       <div class="list">${fact("Page", `${esc(r.where || "")} <button class="btn sm ghost" data-a="go" data-to="${esc(r.route || "home")}">Open it</button>`)}
         ${fact("Player", `${esc(obWho(r))}${r.by ? ` · <span class="num">${esc(String(r.by).slice(0, 8))}…</span>` : ""}`)}
         ${fact("Device", `${esc(bugDeviceLine(d))}<br><span class="muted small">Screen ${esc(d.screen || "?")} @${esc(d.dpr || 1)}x · window ${esc(d.view || "?")} · ${esc(d.lang || "")} · device ${esc(d.id || "?")}</span>`)}
@@ -15005,7 +15142,7 @@ function obReportMd(r, pics) {
     `- Page: ${r.where || "?"} (#${r.route || ""})`, `- Player: ${obWho(r)} · player id ${String(r.by || "").slice(0, 8)} · device ${d.id || "?"}`,
     `- Device: ${bugDeviceLine(d)} · screen ${d.screen || "?"} @${d.dpr || 1}x · window ${d.view || "?"} · ${d.lang || ""}`,
     `- App version: ${String(r.build || "?").slice(0, 7)}${r.build === BUILD ? " (current)" : ""} · sent ${new Date(num(r.at)).toISOString().slice(0, 16).replace("T", " ")} UTC`,
-    ch ? `- While testing: ${ch.title} (${ch.id})` : "", pics && pics.length ? `- Files: ${pics.join(", ")}` : num(r.files) ? `- Files: ${num(r.files)} (open the report in the app to see them)` : "",
+    ch ? `- While testing: ${ch.title} (${ch.id})` : "", pics && pics.length ? `- Files: ${pics.join(", ")}` : num(r.nfiles || r.files) ? `- Files: ${num(r.nfiles || r.files)} (open the report in the app to see them)` : "",
     r.reply ? `- My reply: ${r.reply}` : "", "", "What happened:", ...String(r.text || "").split("\n").map((l) => "> " + l),
     arr(r.errors).length ? `\nRecent problems:\n${arr(r.errors).map((e) => `- ${e.where}: ${e.msg}${e.stack ? `\n  ${String(e.stack).split("\n").slice(1, 3).map((x) => x.trim()).join(" | ")}` : ""}`).join("\n")}` : "",
     r.log ? `\nTracker log (last lines):\n\`\`\`\n${String(r.log).split("\n").slice(-40).join("\n")}\n\`\`\`` : ""].filter((x) => x !== "").join("\n");
@@ -15045,7 +15182,7 @@ Object.assign(A, {
   obDelete: async () => {
     if (ob.delArm !== ob.open) { ob.delArm = ob.open; refreshSheet(); return; }
     const r = ob.list.find((x) => x.id === ob.open); if (!r) return;
-    try { for (let i = 0; i < num(r.files); i++) await store.db.doc(`bugs/${r.id}/files/${i}`).delete(); await store.db.doc("bugs/" + r.id).delete(); closeSheet(); toast("Deleted"); }
+    try { for (let i = 0; i < num(r.nfiles || r.files); i++) await store.db.doc(`bugs/${r.id}/files/${i}`).delete(); await store.db.doc("bugs/" + r.id).delete(); closeSheet(); toast("Deleted"); }
     catch (e) { toast("Couldn't delete it: " + errText(e)); }
   },
   obCopyOne: () => { const r = ob.list.find((x) => x.id === ob.open); if (r) copyText(obCompile([r]), "Copied: paste it into your SNAP Stat chat"); },
@@ -15068,30 +15205,49 @@ Object.assign(A, {
 });
 
 /* ---------- Test this update ---------- */
+// The bar that waits while you take a screenshot of the page with the bug
+const otShot = { id: "", where: "" };
+function otShotDraw() {
+  let el = document.getElementById("otshot");
+  if (!otShot.id) { if (el) el.remove(); return; }
+  if (!el) { el = document.createElement("div"); el.id = "otshot"; document.body.appendChild(el); }
+  el.innerHTML = `<div class="panel small"><span>Take a phone screenshot of this page (or as many as you like), then tap Report.</span><div class="row"><button class="btn sm snap" data-a="otShotReport">Report</button><button class="btn sm ghost" data-a="otShotCancel">Cancel</button></div></div>`;
+}
 const otState = () => obj(S.ownerTests);
-const otMarks = () => obj(otState().marks);
+// Kept on this device too, so an answer never comes back even if a save doesn't reach the account
+const OT_LS = "snapstat.ownerTestMarks";
+const otLocal = () => { try { return obj(JSON.parse(localStorage.getItem(OT_LS) || "{}")); } catch { return {}; } };
+const otMarks = () => ({ ...otLocal(), ...obj(otState().marks) });
+function otSetMarks(marks) { S.ownerTests = { ...otState(), marks }; try { localStorage.setItem(OT_LS, JSON.stringify(marks)); } catch { /* private mode */ } save(); }
 function otTodo() { const m = otMarks(); return CHANGES.filter((c) => arr(c.test).length && !m[c.id]); }
 function otItem(c, done) {
   const kindL = { new: "New", better: "Better", fixed: "Fixed", removed: "Removed" }[c.kind] || "Changed";
   return `<div class="panel stack small ot-item"><div class="row" style="justify-content:space-between;align-items:flex-start"><b>${esc(c.title)}</b><span class="pill ${c.kind === "fixed" ? "W" : c.kind === "removed" ? "dim" : "gold"}">${kindL}</span></div>
     <span class="muted">${esc(c.body)}</span>
-    ${done ? `<span class="small">${done === "ok" ? "✓ Works" : "✗ Bug reported"}</span><div><button class="btn sm ghost" data-a="otMark" data-id="${esc(c.id)}" data-v="">Undo</button></div>`
+    ${done ? `<span class="small">${done === "ok" ? "✓ Works" : "✗ Bug reported"}</span><div class="row"><button class="btn sm ghost" data-a="otMark" data-id="${esc(c.id)}" data-v="">Change answer</button>${done === "bug" ? `<button class="btn sm ghost" data-a="otBug" data-id="${esc(c.id)}">Report it again</button>` : ""}</div>`
       : `<ol class="ot-steps">${arr(c.test).map((t) => `<li>${esc(t)}</li>`).join("")}</ol>
       <div class="row"><button class="btn sm snap" data-a="otMark" data-id="${esc(c.id)}" data-v="ok">✓ Works</button><button class="btn sm" data-a="otBug" data-id="${esc(c.id)}">✗ Found a bug</button>${c.where ? `<button class="btn sm ghost" data-a="otGo" data-to="${esc(c.where)}">Open it</button>` : ""}</div>`}</div>`;
 }
 function ownerTestsHtml(inSheet) {
   if (!isAppOwner()) return "";
-  const todo = otTodo(), m = otMarks(), done = CHANGES.filter((c) => arr(c.test).length && m[c.id]).slice(0, 12);
+  const todo = otTodo(), m = otMarks(), done = CHANGES.filter((c) => arr(c.test).length && m[c.id]);
   const total = CHANGES.filter((c) => arr(c.test).length).length;
   return `${inSheet ? "" : `<section class="sec"><div class="sec-h"><h2>Test this update</h2><span class="pill ${todo.length ? "warn" : "W"}">${todo.length ? `${todo.length} to check` : "All checked"}</span></div>`}
     <p class="muted small">What changed in the newest updates and what to try. Tap ✓ Works, or ✗ Found a bug to report it with the change filled in. ${total - todo.length} of ${total} checked.</p>
     ${todo.length ? todo.map((c) => otItem(c, "")).join("") : `<div class="empty"><strong>All checked</strong><span>The next update's list shows up here by itself.</span></div>`}
-    ${done.length && !inSheet ? `<details class="panel small"><summary>Checked (${done.length})</summary>${done.map((c) => otItem(c, m[c.id])).join("")}</details>` : ""}${inSheet ? "" : "</section>"}`;
+    ${done.length ? `<details class="panel small ot-done"><summary><b>Checked features (${done.length})</b> <span class="muted">· ${done.filter((c) => m[c.id] === "ok").length} work, ${done.filter((c) => m[c.id] === "bug").length} with a bug. Tap Change to answer again.</span></summary>${done.map((c) => otItem(c, m[c.id])).join("")}</details>` : ""}${inSheet ? "" : "</section>"}`;
 }
 function ownerTestsSheet() { return `${sheetHead("Test this update", "Only you see this, as the app owner")}${ownerTestsHtml(true)}<button class="btn block" data-a="close">Later</button>`; }
 Object.assign(A, {
-  otMark: (el) => { const marks = { ...otMarks() }; if (el.dataset.v) marks[el.dataset.id] = el.dataset.v; else delete marks[el.dataset.id]; S.ownerTests = { ...otState(), marks }; save(); render(); if (sheetFn) refreshSheet(); },
-  otBug: (el) => { const marks = { ...otMarks(), [el.dataset.id]: "bug" }; S.ownerTests = { ...otState(), marks }; save(); bugOpen({ change: el.dataset.id, kind: "broke" }); },
+  otMark: (el) => { const marks = { ...otMarks() }; if (el.dataset.v) marks[el.dataset.id] = el.dataset.v; else delete marks[el.dataset.id]; otSetMarks(marks); render(); if (sheetFn) refreshSheet(); if (el.dataset.v === "ok") toast("Marked as working. It's in Checked features."); },
+  // Found a bug: opens the page the change is on so you can take a screenshot there, then the report
+  otBug: (el) => {
+    const id = el.dataset.id, c = CHANGES.find((x) => x.id === id) || {}; otSetMarks({ ...otMarks(), [id]: "bug" });
+    if (!c.where) { bugOpen({ change: id, kind: "broke" }); return; }
+    closeSheet(); go(c.where); otShot.id = id; otShot.where = c.where; otShotDraw();
+  },
+  otShotReport: () => { const id = otShot.id, where = otShot.where; otShot.id = ""; otShotDraw(); bugOpen({ change: id, kind: "broke", page: where }); toast("Tap Add screenshots and pick the one you just took"); },
+  otShotCancel: () => { otShot.id = ""; otShotDraw(); },
   otGo: (el) => { closeSheet(); go(el.dataset.to); },
   otOpen: () => openSheet(ownerTestsSheet),
 });
@@ -15114,6 +15270,10 @@ EXT.styles.push(`
 .ob-pic { width: 100%; border-radius: 12px; border: 1px solid var(--line); }
 .ob-pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11.5px; max-height: 320px; overflow: auto; background: var(--surface-2); padding: 8px; border-radius: 8px; margin: 6px 0 0; }
 .ot-item { margin-bottom: 10px; }
+.ot-done > summary { cursor: pointer; padding: 4px 0; }
+.ot-done[open] > summary { margin-bottom: 10px; }
+#otshot { position: fixed; left: 10px; right: 10px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 30; max-width: 520px; margin: 0 auto; }
+#otshot .panel { display: flex; flex-direction: column; gap: 8px; box-shadow: 0 10px 28px rgba(0,0,0,.45); }
 .ot-steps { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; }`);
 /* ============ Review screenshots: what's being read right now, and why some couldn't be ============
    The top of Settings › Android › Review screenshots shows the picture the AI is reading this second (the same one
@@ -15456,7 +15616,10 @@ function tourSheet() {
     <div class="row between"><button class="btn ghost" data-a="tourDone">Skip</button><button class="btn snap" data-a="tourNext">${tour.i >= n - 1 ? "Start using SNAP Stat" : "Next ›"}</button></div>
     <p class="muted small">You can see this again in Settings › About.</p>`;
 }
-function tourMark() { if (!S.tourDone) { S.tourDone = Date.now(); save(); } }
+// Kept on the device too, so a save that doesn't reach the account can't bring the tour back at every start
+const TOUR_LS = "snapstat.tourDone";
+function tourSeen() { if (S.tourDone) return true; try { return !!localStorage.getItem(TOUR_LS); } catch { return false; } }
+function tourMark() { try { localStorage.setItem(TOUR_LS, String(Date.now())); } catch { /* private mode */ } if (!S.tourDone) { S.tourDone = Date.now(); save(); } }
 function tourScroll(i) {
   const tr = document.querySelector("[data-tourtrack]"); if (!tr) return;
   tour.i = clamp(i, 0, TOUR_CARDS.length - 1); tr.scrollTo({ left: tr.clientWidth * tour.i, behavior: "smooth" }); tourDots();
@@ -15465,8 +15628,8 @@ function tourDots() { document.querySelectorAll(".tour-dots span").forEach((d, i
 document.addEventListener("scroll", (e) => { const t = e.target; if (!t || !t.dataset || !t.dataset.tourtrack) return; const i = Math.round(t.scrollLeft / Math.max(1, t.clientWidth)); if (i !== tour.i) { tour.i = clamp(i, 0, TOUR_CARDS.length - 1); tourDots(); } }, true);
 // Once for everyone, after setting up a profile, on Home, when nothing else is open (never inside automated test browsers)
 EXT.afterRender.push(function tourAuto() {
-  if (S.tourDone || !S.me.onboarded || sheetFn || ui.tab !== "home" || navigator.webdriver || tour.auto) return;
-  tour.auto = true; setTimeout(() => { if (!sheetFn && !S.tourDone) { tour.i = 0; tourMark(); openSheet(tourSheet); } }, 1200);
+  if (tourSeen() || !S.me.onboarded || sheetFn || ui.tab !== "home" || navigator.webdriver || tour.auto) return;
+  tour.auto = true; setTimeout(() => { if (!sheetFn && !tourSeen()) { tour.i = 0; tourMark(); openSheet(tourSheet); } }, 1200);
 });
 
 /* ---------- 4. Status: is everything working right now? ---------- */
@@ -15502,11 +15665,11 @@ function ssmDraw() {
   if (!el) { el = document.createElement("div"); el.id = "ssm"; document.body.appendChild(el); }
   document.body.classList.add("ssm-on");
   const [, cap] = STORE_SHOTS[ssm.i];
-  el.innerHTML = `<div class="ssm-cap">${esc(cap)}</div><div class="ssm-ctl" data-ssmctl="1"><button class="btn sm" data-a="ssmStep" data-d="-1" aria-label="Previous">‹</button><span class="num">${ssm.i + 1}/${STORE_SHOTS.length}</span><button class="btn sm" data-a="ssmStep" data-d="1" aria-label="Next">›</button><button class="btn sm ghost" data-a="ssmEnd" aria-label="End">✕</button></div>`;
+  el.innerHTML = `<div class="ssm-cap">${esc(cap)}</div><div class="ssm-ctl" data-ssmctl="1"><button class="btn sm" data-a="ssmStep" data-d="-1" aria-label="Previous">‹</button><span class="num">${ssm.i + 1}/${STORE_SHOTS.length}</span><button class="btn sm" data-a="ssmStep" data-d="1" aria-label="Next">›</button><button class="btn sm snap" data-a="ssmEnd">Done ✕</button></div>`;
   clearTimeout(ssm.t); ssm.t = setTimeout(() => { const c = document.querySelector("[data-ssmctl]"); if (c) c.classList.add("faded"); }, 2500);
 }
 function ssmGo(i) { ssm.i = (i + STORE_SHOTS.length) % STORE_SHOTS.length; closeSheet(); go(STORE_SHOTS[ssm.i][0]); setTimeout(() => { window.scrollTo(0, 0); ssmDraw(); }, 60); }
-document.addEventListener("click", (e) => { if (!ssm.on) return; const c = e.target && e.target.closest ? e.target.closest("[data-ssmctl], .ssm-cap") : null; if (c) { const x = document.querySelector("[data-ssmctl]"); if (x) x.classList.remove("faded"); clearTimeout(ssm.t); ssm.t = setTimeout(() => { const y = document.querySelector("[data-ssmctl]"); if (y) y.classList.add("faded"); }, 2500); } }, true);
+document.addEventListener("click", (e) => { if (!ssm.on) return; const c = e.target && e.target.closest ? e.target.closest("[data-ssmctl], .ssm-cap") : null; if (c && c.classList.contains("ssm-cap")) toast("Store screenshots: tap Done ✕ at the bottom right to finish"); if (c) { const x = document.querySelector("[data-ssmctl]"); if (x) x.classList.remove("faded"); clearTimeout(ssm.t); ssm.t = setTimeout(() => { const y = document.querySelector("[data-ssmctl]"); if (y) y.classList.add("faded"); }, 2500); } }, true);
 
 /* ---------- 6. Community rules where people post ---------- */
 function rulesNoteHtml() { return `<p class="muted small y32-rules">By posting you agree to the <a href="terms.html" target="_blank" rel="noopener">community rules</a>: ${esc(COMMUNITY_RULES.slice(0, 2).join(" "))}</p>`; }
@@ -15573,7 +15736,7 @@ function bugAlerts(now = Date.now()) {
   const out = [];
   for (const x of arr(S.myBugs).slice(0, 15)) {
     const done = ["fixed", "wontfix", "dupe"].includes(x.status);
-    if (!done && !x.reply) continue;
+    if ((!done && !x.reply) || x.told === x.status + "|" + (x.reply || "")) continue; // already told straight away
     const at = num(x.statusAt) || now - 60e3;
     if (now - at > 7 * DAY) continue;
     const word = x.status === "fixed" ? "is fixed" : x.status === "wontfix" ? "was answered" : x.status === "dupe" ? "was already reported" : "has a reply";
@@ -15591,7 +15754,8 @@ async function y32BugPoll() {
   const changed = arr(S.myBugs).find((x) => before.has(x.id) && before.get(x.id) !== x.status + "|" + (x.reply || "") && (x.status === "fixed" || x.reply));
   if (changed) toast(`Your report ${changed.id} ${changed.status === "fixed" ? "is fixed" : "has a reply"}. See Settings › About.`);
 }
-EXT.afterRender.push(function y32BugSoon() { if (store.mode === "cloud" && arr(S.myBugs).length && Date.now() - _y32BugAt > 30 * 60e3) setTimeout(y32BugPoll, 5000); });
+// Replaced on Nov 11 by bugPollSoon in y25_report.js (checks on every open and says so straight away)
+if (false) EXT.afterRender.push(function y32BugSoon() { if (store.mode === "cloud" && arr(S.myBugs).length && Date.now() - _y32BugAt > 30 * 60e3) setTimeout(y32BugPoll, 5000); });
 
 /* ---------- 10. What's new, in the Android update window ---------- */
 // The newest three new or improved things from the What's new list
@@ -15613,9 +15777,9 @@ Object.assign(A, {
   pvError: () => { errShow("this preview", "Nothing is broken: this is what the problem bar looks like."); },
   pvPage: () => openSheet(pvPageSheet),
   pvUpdate: () => openSheet(pvUpdateSheet),
-  ssmStart: () => { ssm.on = true; toast("Take a phone screenshot on each page. Tap › for the next one."); ssmGo(0); },
+  ssmStart: () => { ssm.on = true; toast("Take a phone screenshot on each page. Tap › for the next one and Done ✕ to finish."); ssmGo(0); },
   ssmStep: (el) => ssmGo(ssm.i + num(el.dataset.d, 1)),
-  ssmEnd: () => { ssm.on = false; ssmDraw(); render(); },
+  ssmEnd: () => { ssm.on = false; clearTimeout(ssm.t); ssmDraw(); render(); toast("Store screenshots finished"); },
 });
 EXT.search.push((q) => (/terms|rules|privacy|status|tour|welcome|export|download/i.test(q) ? [{ label: "Status, tour and terms", sub: "Settings › About", route: "settings/about" }, { label: "Download all my data", sub: "Settings › Import & backup", route: "settings/data" }] : []));
 EXT.styles.push(`
@@ -15635,7 +15799,8 @@ body.ssm-on .me-chip, body.ssm-on #sync, body.ssm-on .topext, body.ssm-on #err-t
 #ssm .ssm-cap { position: fixed; left: 0; right: 0; top: 0; z-index: 70; padding: calc(18px + env(safe-area-inset-top, 0px)) 18px 18px; text-align: center; font-family: var(--comic); font-size: 30px; line-height: 1.1; letter-spacing: .5px;
   color: var(--snap-ink); background: linear-gradient(135deg, var(--snap-a), var(--snap-b)); box-shadow: 0 6px 24px rgba(0,0,0,.35); }
 #ssm .ssm-ctl { position: fixed; right: 10px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 71; display: flex; gap: 6px; align-items: center; padding: 6px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); transition: opacity .3s; }
-#ssm .ssm-ctl.faded { opacity: 0; }
+#ssm .ssm-ctl.faded { opacity: .45; }
+#ssm .ssm-cap { cursor: pointer; }
 body.ssm-on #view { padding-top: 60px; }`);
 /* ============ y33a_data.js: words for the fun extras (October 31, 2026) ============ */
 // MARVEL SNAP history and rules for the daily trivia: [question, right answer, three wrong answers]
@@ -17547,14 +17712,24 @@ if (typeof BADGES !== "undefined") BADGES.push(
 );
 
 /* ---------- 67. Your most played card as your banner ---------- */
-function topCardRecent() { const cnt = {}; realMatches().filter((m) => m.ts >= Date.now() - 30 * DAY).forEach((m) => { const d = S.decks.find((x) => x.id === m.deckId); if (d) arr(d.cards).forEach((k) => { if (!String(k).startsWith("custom:")) cnt[k] = (cnt[k] || 0) + 1; }); }); return (Object.entries(cnt).sort((a, b) => b[1] - a[1])[0] || [""])[0]; }
+// The card you played most in the last 30 days, and the art you played it with (the deck's variant, else your favourite)
+function topPlayRecent() {
+  const cnt = {}, vc = {};
+  realMatches().filter((m) => m.ts >= Date.now() - 30 * DAY).forEach((m) => { const d = S.decks.find((x) => x.id === m.deckId); if (d) arr(d.cards).forEach((k) => { if (String(k).startsWith("custom:")) return; cnt[k] = (cnt[k] || 0) + 1; const v = typeof myVariant === "function" ? myVariant(k, d) : deckVariant(d, k); const vid = v ? (v.cat ? "cat:" + v.cat : v.id) : ""; const o = (vc[k] = vc[k] || {}); o[vid] = (o[vid] || 0) + 1; }); });
+  const k = (Object.entries(cnt).sort((a, b) => b[1] - a[1])[0] || [""])[0]; if (!k) return { k: "", v: null };
+  const vid = (Object.entries(obj(vc[k])).sort((a, b) => b[1] - a[1])[0] || [""])[0];
+  return { k, v: vid ? (typeof variantAny === "function" ? variantAny(vid) : variantById(vid)) : null };
+}
+function topCardRecent() { return topPlayRecent().k; }
 let _y40BanDay = "";
 EXT.afterRender.push(function y40AutoBanner() {
   if (!S.autoBanner || _y40BanDay === localDate(Date.now())) return; _y40BanDay = localDate(Date.now());
-  const k = topCardRecent(); if (!k) return; const cur = obj(S.me.banner); if (cur.kind === "card" && cur.ref === k) return;
-  S.me.banner = { kind: "card", ref: k }; save(); if (typeof syncProfile === "function") syncProfile(); setTimeout(render, 0);
+  const { k, v } = topPlayRecent(); if (!k) return;
+  const want = v ? { kind: "look", card: k, cat: v.cat || "", var: v.cat ? "" : v.id, src: "art", fit: "whole", auto: 1 } : { kind: "card", ref: k };
+  if (JSON.stringify(obj(S.me.banner)) === JSON.stringify(want)) return;
+  S.me.banner = want; save(); if (typeof syncProfile === "function") syncProfile(); setTimeout(render, 0);
 });
-EXT.profile.push(function y40BannerToggle() { const k = topCardRecent(); return `<section class="sec"><div class="panel stack small"><label class="check"><input type="checkbox" data-y40ban="1" ${S.autoBanner ? "checked" : ""}> Use my most played card's art as my banner</label><span class="muted">${k ? `Right now that's ${esc(card(k).name)}. It changes as you play (checked once a day).` : "Play a few games with a deck and it picks the card you use most."}</span></div></section>`; });
+EXT.profile.push(function y40BannerToggle() { const { k, v } = topPlayRecent(); return `<section class="sec"><div class="panel stack small"><label class="check"><input type="checkbox" data-y40ban="1" ${S.autoBanner ? "checked" : ""}> Use my most played card's art as my banner</label><span class="muted">${k ? `Right now that's ${esc(card(k).name)}${v && v.name ? " (" + esc(v.name) + ")" : ""}, with the variant you play it with. It changes as you play (checked once a day).` : "Play a few games with a deck and it picks the card you use most."}</span></div></section>`; });
 document.addEventListener("change", (e) => { const t = e.target; if (!t || !t.dataset || !t.dataset.y40ban) return; S.autoBanner = !!t.checked; _y40BanDay = ""; save(); render(); });
 
 /* ---------- 68. People to follow who play your decks ---------- */
@@ -17705,14 +17880,21 @@ EXT.settingsAndroid.push(function y41Shortcuts() {
 });
 
 /* ---------- 87 + 88. Widget: wallpaper colours, and an offline line ---------- */
-if (typeof widgetLook === "function") { const _wl = widgetLook; widgetLook = function () { const l = _wl(); return S.widgetWall ? { ...l, mode: "wallpaper" } : l; }; } // eslint-disable-line no-func-assign
+if (typeof widgetLook === "function") { const _wl = widgetLook; widgetLook = function () { const l = _wl(), bg = widgetBg(); return { ...l, ...(bg === "you" ? { mode: "wallpaper" } : {}), bg, keepAccent: S.widgetKeepAccent !== false, shade: clamp(num(S.widgetShade), 0, 80) }; }; } // eslint-disable-line no-func-assign
 if (typeof widgetState === "function") { const _ws = widgetState; widgetState = function () { return { ..._ws(), offline: navigator.onLine === false, sentAt: Math.floor(Date.now() / 3600e3) * 3600e3 }; }; } // eslint-disable-line no-func-assign
 window.addEventListener("online", () => { try { pushWidget(); } catch { /* no widget */ } });
 window.addEventListener("offline", () => { try { pushWidget(); } catch { /* no widget */ } });
+// The widget's background: the app's colours, see-through (your wallpaper shows) or Material You colours
+function widgetBg() { const b = S.widgetBg || (S.widgetWall ? "you" : "app"); return ["app", "clear", "you"].includes(b) ? b : "app"; }
 EXT.settingsAndroid.push(function y41Widget() {
   if (!natCan("setWidget")) return "";
-  const v12 = num(natInfo().sdk) >= 31;
-  return `<div class="panel stack small"><b>Widget colours</b>${v12 ? `<label class="check"><input type="checkbox" data-y41="wall" ${S.widgetWall ? "checked" : ""}> Use my wallpaper's colours (Material You)</label>` : `<span class="muted">Wallpaper colours need Android 12 or newer.</span>`}
+  const v12 = num(natInfo().sdk) >= 31, bg = widgetBg();
+  const opts = [["app", "App colours"], ["clear", "See-through"], ...(v12 ? [["you", "Wallpaper colours"]] : [])];
+  return `<div class="panel stack small"><b>Widget background</b>
+    <div class="seg" role="group" aria-label="Widget background">${opts.map(([k, l]) => `<button data-a="y41WidgetBg" data-v="${k}" aria-pressed="${bg === k}">${l}</button>`).join("")}</div>
+    <span class="muted">${bg === "clear" ? "Your phone's wallpaper shows behind the widget. The small boxes keep their colour so the words stay easy to read." : bg === "you" ? "Colours picked from your wallpaper by Android (Material You)." : "The same colours as the app (Settings › App › Look)."}</span>
+    ${bg === "clear" ? `<label class="f"><span>Darken the background a little: ${clamp(num(S.widgetShade), 0, 80)}%</span><input type="range" min="0" max="80" step="5" value="${clamp(num(S.widgetShade), 0, 80)}" data-y41shade="1"></label>` : ""}
+    ${bg === "you" ? `<label class="check"><input type="checkbox" data-y41="keepAccent" ${S.widgetKeepAccent !== false ? "checked" : ""}> Keep my accent colour</label>` : `<span class="muted">Your accent colour stays the one you picked.</span>`}
     <span class="muted">The widget also says when it's offline or hasn't been updated for a day and a half. For the event countdown, long-press your home screen › Widgets › SNAP Stat › <b>SNAP event</b>.</span></div>`;
 });
 
@@ -17766,6 +17948,7 @@ document.addEventListener("change", (e) => {
   else if (k === "vib") { S.vibPatterns = on; if (on) vib("win"); }
   else if (k === "shortcuts") { S.deckShortcuts = on; _y41Sc = ""; if (on) deckShortcutsSync(); else { try { NATIVE.setDeckShortcuts("[]"); } catch { /* old app */ } } }
   else if (k === "wall") { S.widgetWall = on; setTimeout(() => { try { pushWidget(); } catch { /* no widget */ } }, 50); }
+  else if (k === "keepAccent") { S.widgetKeepAccent = on; setTimeout(() => { try { pushWidget(); } catch { /* no widget */ } }, 50); }
   else if (k === "backup") S.autoBackup = on;
   save(); render();
 });
@@ -17778,6 +17961,393 @@ EXT.styles.push(`
 .y41-pop { border-style: dashed; }
 body.y41-mini .tabhead h1 { font-size: 24px; } body.y41-mini .sec { margin-top: 10px; } body.y41-mini .panel { padding: 10px; }
 body.y41-mini header.top { padding-top: 4px; padding-bottom: 4px; } body.y41-mini .y41-pop { display: none; }`);
+
+Object.assign(A, { y41WidgetBg: (el) => { S.widgetBg = el.dataset.v; S.widgetWall = el.dataset.v === "you"; save(); render(); setTimeout(() => { try { pushWidget(); } catch { /* no widget */ } }, 50); toast("Widget updated. It can take a few seconds to change."); } });
+document.addEventListener("change", (e) => { const t = e.target; if (!t || !t.dataset || !t.dataset.y41shade) return; S.widgetShade = clamp(num(t.value), 0, 80); save(); render(); setTimeout(() => { try { pushWidget(); } catch { /* no widget */ } }, 50); });
+/* ============ Nov 11 navigation (Ryan's reports MN95, HXER, HNWH) ============
+   1 Tapping your name (top right) opens a menu: Profile, Settings and the pages people use most. Profile and Settings
+     leave the bottom bar by default (Settings › App › Bottom bar puts them back), and Profile gets a gear to Settings.
+   2 The bottom tabs can open where you left off (default) or always at their first section; tapping the tab you're
+     already on goes to its first section.
+   3 Scroll down and the row of sections at the top goes away; start scrolling up and it slides back in under the top bar. */
+
+/* ---------- 1. The menu under your name ---------- */
+const ME_MENU = () => [
+  ["profile", "Profile", "Your picture, banner, details and posts"],
+  ["settings/app", "Settings", "Look, AI keys, backup, account and more"],
+  null,
+  ["home/live", "Live match", ""], ["home/matches", "Matches", ""], ["home/missions", "Missions", ""], ["home/stats", "Stats", ""],
+  ["cards/decks", "My decks", ""], ["cards/wish", "Wishlist", ""], ["social/alliance", "Alliance", ""],
+  null,
+  ["settings/data", "Import & backup", ""], ["settings/ai", "AI keys", ""], ...(NATIVE ? [["settings/android", "Android app", ""]] : []), ["settings/about", "About & your reports", ""],
+];
+const meMenu = { open: false };
+function meMenuDraw() {
+  let el = document.getElementById("memenu");
+  if (!meMenu.open) { if (el) el.remove(); const c = document.getElementById("mechip"); if (c) c.setAttribute("aria-expanded", "false"); return; }
+  if (!el) { el = document.createElement("div"); el.id = "memenu"; document.body.appendChild(el); }
+  const hd = document.querySelector("header.top"), top = hd ? Math.round(hd.getBoundingClientRect().bottom) + 6 : 64;
+  el.innerHTML = `<div class="mm-back" data-a="meMenuClose"></div><div class="mm panel" role="menu" aria-label="Your menu" style="top:${top}px">
+    <div class="mm-who">${avatarHtml(S.me.avatar, S.me.handle || "?", store.uid || "me")}<div class="grow"><b>${esc(S.me.handle || "Set up your profile")}</b><span class="muted small">${S.me.rank ? "Rank " + esc(S.me.rank) : store.mode === "cloud" ? "Signed in" : "Saved on this device"}</span></div></div>
+    ${ME_MENU().map((x) => (x ? `<button class="mm-i" role="menuitem" data-a="meMenuGo" data-to="${esc(x[0])}"><span>${esc(x[1])}</span>${x[2] ? `<span class="muted small">${esc(x[2])}</span>` : ""}</button>` : `<hr>`)).join("")}
+    <button class="mm-i" role="menuitem" data-a="meMenuBug"><span>Report a bug or idea</span></button></div>`;
+  const c = document.getElementById("mechip"); if (c) c.setAttribute("aria-expanded", "true");
+}
+(() => { const c = document.getElementById("mechip"); if (c) { c.dataset.a = "meMenu"; c.setAttribute("aria-haspopup", "menu"); c.setAttribute("aria-label", "Your menu"); } })();
+window.addEventListener("hashchange", () => { if (meMenu.open) { meMenu.open = false; meMenuDraw(); } });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && meMenu.open) { meMenu.open = false; meMenuDraw(); } });
+
+// Profile and Settings in the bottom bar: off unless you turn them on
+const navFull = () => S.navFull === true;
+function navBarApply() {
+  const t = document.getElementById("tabs"); if (!t) return;
+  t.querySelectorAll("button").forEach((b) => { const tab = String(b.dataset.tab || b.dataset.to || "").split("/")[0]; if (tab === "profile" || tab === "settings") b.hidden = !navFull(); });
+  t.classList.toggle("tabs3", !navFull());
+  const c = document.getElementById("mechip"); if (c) c.classList.toggle("on", ui.tab === "profile" || ui.tab === "settings");
+}
+
+/* ---------- 2. Bottom tabs: where you left off, or the first section ---------- */
+const TAB_LAST = "snapstat.tabLast";
+const tabOpenLast = () => S.tabOpen !== "first";
+let tabLast = {}; try { tabLast = obj(JSON.parse(localStorage.getItem(TAB_LAST) || "{}")); } catch { tabLast = {}; }
+function tabFirst(tab) { const n = NAV[tab]; return n && n.subs ? n.subs()[0][0] : ""; }
+function tabsRetarget() {
+  const n = NAV[ui.tab];
+  if (n && n.key && ui[n.key] && tabLast[ui.tab] !== ui[n.key]) { tabLast[ui.tab] = ui[n.key]; try { localStorage.setItem(TAB_LAST, JSON.stringify(tabLast)); } catch { /* private mode */ } }
+  document.querySelectorAll("#tabs button").forEach((b) => {
+    if (!b.dataset.tab) b.dataset.tab = String(b.dataset.to || "").split("/")[0];
+    const tab = b.dataset.tab, nv = NAV[tab]; if (!nv || !nv.subs) return;
+    const ok = nv.subs().map(([k]) => k), first = ok[0];
+    // Tapping the tab you're on goes to its first section; another tab opens where you were (if that's the setting)
+    const sub = ui.tab === tab ? first : tabOpenLast() && ok.includes(tabLast[tab]) ? tabLast[tab] : first;
+    b.dataset.to = `${tab}/${sub}`;
+  });
+}
+
+/* ---------- 3. The sections row comes back when you scroll up ---------- */
+const subFloat = { y: 0, up: 0, shown: false };
+function subFloatEl() {
+  let el = document.getElementById("subfloat");
+  if (!el) { el = document.createElement("div"); el.id = "subfloat"; el.setAttribute("aria-hidden", "true"); document.body.appendChild(el); }
+  return el;
+}
+function subFloatHide() { const el = document.getElementById("subfloat"); if (el) el.classList.remove("show"); subFloat.shown = false; }
+function subFloatShow() {
+  const real = document.querySelector("#view .tabhead .subnav"); if (!real || swipeHolding() || (sheetFn && !$("#sheet").hidden)) return;
+  const hd = document.querySelector("header.top"), top = hd ? hd.getBoundingClientRect().bottom : 0;
+  if (real.getBoundingClientRect().bottom > top) { subFloatHide(); return; } // the real row is on the screen
+  const el = subFloatEl();
+  if (!subFloat.shown || el.dataset.tab !== ui.tab + "/" + (ui[obj(NAV[ui.tab]).key] || "")) {
+    el.innerHTML = subNav(ui.tab); el.dataset.tab = ui.tab + "/" + (ui[obj(NAV[ui.tab]).key] || "");
+    el.removeAttribute("aria-hidden");
+    const sn = el.querySelector(".subnav"), cur = sn && sn.querySelector('[aria-current="page"]');
+    if (cur) requestAnimationFrame(() => { sn.scrollLeft = Math.max(0, cur.offsetLeft - sn.clientWidth / 2 + cur.offsetWidth / 2); });
+  }
+  el.style.top = Math.round(top) + "px"; el.classList.add("show"); subFloat.shown = true;
+}
+window.addEventListener("scroll", () => {
+  const y = window.scrollY, dy = y - subFloat.y; subFloat.y = y;
+  if (S.subFloat === false || !document.querySelector("#view .tabhead .subnav")) { subFloatHide(); return; }
+  if (dy < 0) { subFloat.up += -dy; if (subFloat.up > 24) subFloatShow(); }
+  else if (dy > 0) { subFloat.up = 0; if (dy > 4 || y < 40) subFloatHide(); }
+  if (subFloat.shown) { const real = document.querySelector("#view .tabhead .subnav"), hd = document.querySelector("header.top"); if (real && hd && real.getBoundingClientRect().bottom > hd.getBoundingClientRect().bottom) subFloatHide(); }
+}, { passive: true });
+
+/* ---------- Hooks, settings and actions ---------- */
+EXT.afterRender.push(function y42Nav() {
+  navBarApply(); tabsRetarget();
+  if (subFloat.shown) { const el = document.getElementById("subfloat"); if (el) el.dataset.tab = ""; subFloatShow(); }
+  if (meMenu.open) meMenuDraw();
+  // A gear on the Profile page goes to Settings
+  if (ui.tab === "profile") { const h = document.querySelector("#view .tabhead"); if (h && !h.querySelector(".prof-gear")) h.insertAdjacentHTML("beforeend", `<button class="btn sm ghost prof-gear" data-a="go" data-to="settings/app" aria-label="Settings">${ICON.gear || "⚙"} Settings</button>`); }
+});
+EXT.settingsApp.push(() => `<section class="sec"><h2>Bottom bar and tabs</h2><div class="panel stack small">
+  <label class="check"><input type="checkbox" data-y42="navFull" ${navFull() ? "checked" : ""}> Show Profile and Settings in the bottom bar</label>
+  <span class="muted">Either way, tap your name at the top right for Profile, Settings and the pages you use most.</span>
+  <div><b>Tapping a bottom tab opens</b></div>
+  <div class="seg" role="group" aria-label="Tapping a bottom tab opens"><button data-a="y42TabOpen" data-v="last" aria-pressed="${tabOpenLast()}">Where I left off</button><button data-a="y42TabOpen" data-v="first" aria-pressed="${!tabOpenLast()}">Its first section</button></div>
+  <span class="muted">Tapping the tab you're already on always goes to its first section.</span>
+  <label class="check"><input type="checkbox" data-y42="subFloat" ${S.subFloat === false ? "" : "checked"}> Bring back the row of sections when I scroll up</label></div></section>`);
+document.addEventListener("change", (e) => {
+  const t = e.target; if (!t || !t.dataset || !t.dataset.y42) return;
+  const k = t.dataset.y42; S[k] = !!t.checked; save(); if (k === "subFloat" && !t.checked) subFloatHide(); render();
+});
+Object.assign(A, {
+  meMenu: () => { meMenu.open = !meMenu.open; meMenuDraw(); },
+  meMenuClose: () => { meMenu.open = false; meMenuDraw(); },
+  meMenuGo: (el) => { meMenu.open = false; meMenuDraw(); go(el.dataset.to); },
+  meMenuBug: () => { meMenu.open = false; meMenuDraw(); bugOpen({}); },
+  y42TabOpen: (el) => { S.tabOpen = el.dataset.v === "first" ? "first" : "last"; save(); render(); },
+});
+EXT.search.push((q) => (/menu|bottom bar|tabs?|left off|profile|settings/i.test(q) ? [{ label: "Bottom bar and tabs", sub: "Settings › App", route: "settings/app" }] : []));
+EXT.styles.push(`
+#memenu .mm-back { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.25); }
+#memenu .mm { position: fixed; right: max(10px, env(safe-area-inset-right, 0px)); z-index: 41; width: min(320px, calc(100vw - 20px)); max-height: calc(100vh - 160px); overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 12px 32px rgba(0,0,0,.45); }
+#memenu .mm-who { display: flex; gap: 10px; align-items: center; padding: 6px 8px 10px; }
+#memenu .mm-who .grow { display: flex; flex-direction: column; min-width: 0; }
+#memenu .mm-i { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; background: none; border: 0; color: var(--fg); font: inherit; font-weight: 600; padding: 10px; min-height: 42px; border-radius: 10px; cursor: pointer; }
+#memenu .mm-i:hover, #memenu .mm-i:focus-visible { background: var(--surface-2); }
+#memenu .mm-i .muted { font-weight: 400; }
+#memenu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 6px; width: auto; }
+.me-chip { cursor: pointer; }
+.me-chip.on { border-color: var(--snap-a); background: var(--snap-soft); }
+.tabs.tabs3 { grid-template-columns: repeat(3, 1fr); }
+.tabs button[hidden] { display: none; }
+.tabhead .prof-gear { align-self: flex-start; }
+#subfloat { position: fixed; left: 0; right: 0; z-index: 4; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+  transform: translateY(-110%); opacity: 0; transition: transform .2s ease, opacity .2s ease; pointer-events: none; }
+#subfloat.show { transform: none; opacity: 1; pointer-events: auto; }
+#subfloat .subnav { max-width: 780px; margin: 0 auto; padding: 6px 16px; }
+body.ssm-on #subfloat, html.overlay #subfloat { display: none; }`);
+/* ============ Nov 11: your own card art everywhere, the draft and the AI deck builder (Ryan's reports) ============
+   1 myVariant(k, d): the art you actually use for a card: the variant picked in that deck, else your Custom Card's
+     variant (S.looks), else your favourite. Used by shared decks, the auto banner (y40) and the draft.
+   2 Shared decks (posts) carry that art, load it straight away and fall back to SNAP Stat's own copy of the art if
+     the picture site doesn't answer (PVCK: a posted deck showed empty cards).
+   3 Draft a deck: the three cards side by side, each with its name and ability under it like the game, in your art (Q77D).
+   4 AI deck builder: live suggestions while you type (cards, by name or by what they do) and every effect type to tap (8VHP). */
+
+/* ---------- 1. The art you use ---------- */
+function myVariant(k, d) {
+  const any = (id) => (typeof variantAny === "function" ? variantAny(id) : variantById(id));
+  const picked = d ? obj(d.variants)[k] : ""; if (picked) { const v = any(picked); if (v) return v; }
+  const L = obj(obj(S.looks)[k]); if (L.v) { const v = any(L.v); if (v) return v; }
+  return favVariant(k) || null;
+}
+// SNAP Stat's own copy of a card's art, used when the usual picture doesn't load
+function artBackup(k, v) {
+  const c = card(k); if (!c || !c.catId || typeof LK_HOST === "undefined") return "";
+  const cv = v && v.cat && typeof _catVars !== "undefined" ? _catVars.get(v.cat) : null;
+  return `${LK_HOST}art/${c.catId}${cv ? "_" + pad2(cv.order) : ""}.webp`;
+}
+
+/* ---------- 2. Shared decks ---------- */
+if (typeof deckPublic === "function") {
+  const _dp = deckPublic;
+  deckPublic = function (d) { // eslint-disable-line no-func-assign
+    const out = _dp(d), art = {};
+    for (const k of arr(d.cards)) { if (String(k).startsWith("custom:")) continue; const v = myVariant(k, d), u = v ? variantArt(v) : ""; if (u && /^https:\/\//.test(u)) art[card(k).name] = u.slice(0, 300); }
+    return { ...out, art };
+  };
+}
+if (typeof sharedDeckHtml === "function") {
+  const _sd = sharedDeckHtml;
+  sharedDeckHtml = function (dk, author, id) { // eslint-disable-line no-func-assign
+    const arts = obj(dk && dk.art), vars = obj(dk && dk.variants);
+    const chips = arr(dk && dk.cards).slice(0, 12).map((n) => {
+      const c = cardByName(n); if (!c) return nameChip(n);
+      const u = safeUrl(arts[n]) || "", chip = cardChip(c.key, { noOwn: true, v: u ? { art: u } : null, a: "cardOpen" });
+      const alt = artBackup(c.key, null);
+      // Straight away (not when scrolled to), with SNAP Stat's own copy of the art as a backup
+      return chip.replace(' loading="lazy"', "").replace('<img class="cimg"', `<img class="cimg" data-alt="${esc(alt)}" title="${esc(vars[n] || "")}"`);
+    }).join("");
+    const html = _sd(dk, author, id);
+    return html.replace(/<div class="chiplist">[\s\S]*?<\/div>/, `<div class="chiplist sdeck">${chips}</div>`);
+  };
+}
+// A picture that fails tries the backup once before giving up
+if (typeof artFail === "function") {
+  const _af = artFail;
+  artFail = function (img) { // eslint-disable-line no-func-assign
+    const alt = img && img.dataset && img.dataset.alt;
+    if (alt && !img.dataset.tried) { img.dataset.tried = "1"; img.src = alt; return; }
+    _af(img);
+  };
+}
+// Pictures still loading after 6 seconds (a slow or blocked site) switch to the backup too
+EXT.afterRender.push(function y43ArtWatch() {
+  clearTimeout(y43ArtWatch.t);
+  y43ArtWatch.t = setTimeout(() => { document.querySelectorAll("img.cimg[data-alt]:not([data-tried])").forEach((img) => { if (!img.complete || !img.naturalWidth) artFail(img); }); }, 6000);
+});
+
+/* ---------- 3. Draft a deck ---------- */
+if (typeof draftSheet === "function") {
+  const _ds = draftSheet;
+  draftSheet = function () { // eslint-disable-line no-func-assign
+    if (!draft.on || draft.picks.length >= 12 || !draft.opts.length) return _ds();
+    const ownedN = allCards().filter((c) => S.owned[c.key]).length;
+    return `${sheetHead(`Pick ${draft.picks.length + 1} of 12`, draft.pool === "owned" ? `From your ${ownedN} cards` : "From every card")}
+      <div class="draft-row">${draft.opts.map((k) => { const c = card(k), v = myVariant(k, null); return `<div class="draft-pick">${cardFace(c, { a: "draftPick", cls: "own", variant: v, noSub: true })}
+        <button class="draft-txt" data-a="draftPick" data-k="${esc(k)}"><b>${esc(c.name)}</b><span class="small muted">${c.cost}·${c.power}</span><span class="small">${esc(c.ability || "No ability")}</span></button></div>`; }).join("")}</div>
+      ${draft.picks.length ? `<div class="chiplist">${draft.picks.map((k) => cardChip(k, { noOwn: true, v: myVariant(k, null) })).join("")}</div>` : ""}
+      <span class="muted small">Cards show the art you use (your Custom Card or favourite variant). Start again to switch between My cards and All cards.</span>`;
+  };
+}
+
+/* ---------- 4. AI deck builder: live suggestions ---------- */
+const AI_WORDS = [...new Set([...Object.values(TAGS), "End of Turn", "Activate", "Game Start", "Bounce", "Steal", "Afflict", "Copy", "Draw", "Hand size", "Ramp", "Cheap cards", "Moveable", "Zero cost", "Clog", "Junk", "Merge", "Replace", "Ongoing lock", "Big power", "Location control"])];
+const aiQ = (v) => { const parts = String(v || "").split(/\s*[+,&]\s*|\s+and\s+/i); return { head: parts.slice(0, -1), q: (parts[parts.length - 1] || "").trim() }; };
+// Loose matching, so you don't have to spell it right: words in order, letters in order, or a near miss
+function aiScore(text, q, loose = true) {
+  text = String(text || "").toLowerCase(); q = q.toLowerCase(); if (!q) return 0;
+  if (text.startsWith(q)) return 5; if (text.split(/[^a-z0-9]+/).some((w) => w.startsWith(q))) return 4; if (text.includes(q)) return 3;
+  if (!loose || !text.split(/[^a-z0-9]+/).some((w) => w[0] === q[0])) return 0; let i = 0; for (const ch of text) if (ch === q[i]) i++; if (q.length >= 3 && i >= q.length) return 1.5; // letters in order (agth → Agatha)
+  return 0;
+}
+function aiSuggHtml(value) {
+  const { q } = aiQ(value), own = ai.ownedOnly;
+  const words = q ? AI_WORDS.filter((w) => aiScore(w, q) >= 3) : AI_WORDS;
+  let cards = [];
+  if (q.length >= 1) {
+    cards = allCards().filter((c) => !c.upcoming && !c.custom && c.cost !== "?").map((c) => { const m = aiScore(c.name, q) * 2 + (q.length >= 3 ? Math.min(3, aiScore(c.ability, q, false)) : 0); return { c, s: m ? m + (own && S.owned[c.key] ? 0.5 : 0) : 0 }; })
+      .filter((x) => x.s > 0).sort((a, b) => b.s - a.s || a.c.name.localeCompare(b.c.name)).slice(0, 10).map((x) => x.c);
+  }
+  return `<div class="stack small" style="gap:6px">
+    ${cards.length ? `<div class="muted small">Cards${q.length >= 3 ? " (by name or what they do)" : ""}: tap to build around one</div><div class="chiplist ai-cards">${cards.map((c) => cardChip(c.key, { a: "aiSuggCard", size: "xs" })).join("")}</div>` : q ? `<span class="muted small">No card matches “${esc(q)}” yet. Keep typing, or tap an effect.</span>` : ""}
+    <div class="muted small">${q ? "Effects that match" : "Or tap an effect type"}</div>
+    <div class="chips ai-words">${words.map((w) => `<button class="chip" data-a="aiSuggWord" data-w="${esc(w)}">${esc(w)}</button>`).join("") || `<span class="muted small">—</span>`}</div></div>`;
+}
+if (typeof aiSheet === "function") {
+  const _as = aiSheet;
+  aiSheet = function () { // eslint-disable-line no-func-assign
+    const html = _as();
+    if (ai.improve) return html;
+    return html.replace(/(<input type="text" id="ai-theme"[^>]*>)<\/label>/, `$1</label><div id="ai-sugg">${aiSuggHtml(ai.theme)}</div>`).replace('id="ai-theme"', 'id="ai-theme" autocomplete="off" enterkeyhint="search"');
+  };
+}
+document.addEventListener("input", (e) => { const t = e.target; if (!t || t.id !== "ai-theme") return; const box = document.getElementById("ai-sugg"); if (box) box.innerHTML = aiSuggHtml(t.value); });
+function aiSuggSet(word) {
+  const el = document.getElementById("ai-theme"), { head } = aiQ(el ? el.value : ai.theme);
+  ai.theme = [...head, word].join(" + ");
+  if (el) { el.value = ai.theme; el.focus(); try { el.setSelectionRange(ai.theme.length, ai.theme.length); } catch { /* fine */ } }
+  const box = document.getElementById("ai-sugg"); if (box) box.innerHTML = aiSuggHtml("");
+}
+Object.assign(A, {
+  aiSuggCard: (el) => aiSuggSet(card(el.dataset.k).name),
+  aiSuggWord: (el) => aiSuggSet(el.dataset.w),
+});
+
+EXT.styles.push(`
+.draft-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: start; margin-bottom: 12px; }
+.draft-pick { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.draft-pick .ct { width: 100%; }
+.draft-txt { display: flex; flex-direction: column; gap: 3px; text-align: center; background: none; border: 0; color: var(--fg); font: inherit; padding: 0 2px; cursor: pointer; overflow-wrap: anywhere; }
+.draft-txt b { font-size: 14px; line-height: 1.15; }
+.draft-txt .small { line-height: 1.3; }
+#ai-sugg { margin: 6px 0 10px; }
+#ai-sugg .ai-words { flex-wrap: wrap; }
+#ai-sugg .ai-cards { max-height: 260px; overflow-y: auto; }`);
+EXT.search.push((q) => (/draft|ai deck|build around/i.test(q) ? [{ label: "Draft a deck · AI deck builder", sub: "Cards › Decks", route: "cards/decks" }] : []));
+/* ============ Nov 11: SnapVault match history file, and SNAP Stat on iPhone ============
+   1 Settings › Import & backup › SnapVault match history: the CSV file SnapVault exports (snapvault-matches-….csv).
+     Every match comes in with its time, mode, deck, result, cubes, snaps, turn, opponent and locations. Matches already
+     in SNAP Stat are skipped (same file twice, or a match Track & play already saved), and SnapVault sync's rough
+     entries for those days can be swapped for the real ones.
+   2 Settings › About › On iPhone: SNAP Stat works in Safari and can be added to the home screen (ZN6W). */
+
+/* ---------- 1. SnapVault match history (CSV) ---------- */
+function csvParse(text) {
+  const rows = []; let row = [], f = "", q = false;
+  text = String(text || "").replace(/^﻿/, "");
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += ch; continue; }
+    if (ch === '"') q = true; else if (ch === ",") { row.push(f); f = ""; } else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(f); rows.push(row); row = []; f = ""; } else f += ch;
+  }
+  if (f || row.length) { row.push(f); rows.push(row); }
+  return rows.filter((r) => r.some((x) => String(x).trim()));
+}
+// Spreadsheets put a ' in front of values starting with - + = @ so they aren't read as formulas; that's taken off here
+const svcCell = (v) => String(v == null ? "" : v).replace(/^'(?=[-+=@])/, "").trim();
+const SVC_MODES = { ranked: "Ranked", conquest: "Conquest", friendly: "Friendly", location_war: "Sanctum Showdown", ltm_deadpool_diner: "Deadpool's Diner", high_voltage: "High Voltage", ltm_high_voltage: "High Voltage" };
+function svcMode(code, label) { const c = String(code || "").toLowerCase(); return SVC_MODES[c] || (/draft/.test(c) ? "Draft" : /conquest/.test(c) ? "Conquest" : String(label || "").trim().slice(0, 30) || "Other"); }
+const svcDeckKey = (n) => String(n || "").normalize("NFKD").replace(/[^\p{L}\p{N}]+/gu, "").toLowerCase();
+function svcRows(text) {
+  const rows = csvParse(text); if (rows.length < 2) return { list: [], bad: "That file is empty." };
+  const head = rows[0].map((h) => svcCell(h)), ix = (n) => head.indexOf(n);
+  if (ix("playedAt") < 0 || ix("result") < 0) return { list: [], bad: "That isn't a SnapVault match history file (it needs playedAt and result columns)." };
+  const g = (r, n) => (ix(n) >= 0 ? svcCell(r[ix(n)]) : "");
+  const decks = new Map(S.decks.map((d) => [svcDeckKey(d.name), d]));
+  const list = [];
+  for (const r of rows.slice(1)) {
+    const ts = Date.parse(g(r, "playedAt")); if (!Number.isFinite(ts)) continue;
+    const res = g(r, "result").toLowerCase(), won = g(r, "won") === "true", oppQuit = g(r, "opponentConceded") === "true";
+    const result = res === "win" || (won && res !== "tie") ? "W" : res === "tie" ? "T" : res === "loss" || res === "conceded" ? "L" : "";
+    if (!result) continue;
+    const mode = svcMode(g(r, "gameMode"), g(r, "gameModeLabel")), pts = Math.round(num(g(r, "cubes")));
+    const ranked = mode === "Ranked", deckName = g(r, "deckName").slice(0, 60), d = decks.get(svcDeckKey(deckName)) || null;
+    const locs = g(r, "locations").split("|").map((x) => x.trim()).filter(Boolean).slice(0, 3).map((name) => ({ name: name.slice(0, 40), my: 0, opp: 0 }));
+    const turn = num(g(r, "endTurn")), snapT = num(g(r, "playerSnapTurn"));
+    list.push({
+      id: "svc-" + ts.toString(36) + "-" + svcDeckKey(g(r, "opponentName")).slice(0, 12), ts, result, mode, deckId: d ? d.id : "", deckName: d ? d.name : deckName,
+      // Cubes count only in Ranked; event points (Deadpool's Diner) go in the notes so they don't change your cube stats
+      cubes: ranked ? (result === "W" ? Math.abs(pts) : result === "L" ? -Math.abs(pts) : 0) : 0, ...(ranked ? {} : { noCubes: true }),
+      oppName: g(r, "opponentName").replace(/^'/, "").slice(0, 40), oppCards: [], snapped: g(r, "playerSnapped") === "true", ...(snapT ? { snapTurn: snapT } : {}),
+      oppSnapped: g(r, "opponentSnapped") === "true", retreated: res === "conceded", oppRetreated: oppQuit, turn: turn || (oppQuit || res === "conceded" ? 0 : 6), bot: "unsure",
+      notes: ["From SnapVault's match history file", !ranked && pts ? `${mode}: ${signed(pts)} points` : "", g(r, "lanesWon") !== "" ? `${num(g(r, "lanesWon"))} location${num(g(r, "lanesWon")) === 1 ? "" : "s"} won` : ""].filter(Boolean).join(" · "),
+      locs, tracked: false, lanes: num(g(r, "lanesWon")), svFile: true,
+    });
+  }
+  return { list, bad: list.length ? "" : "No matches found in that file." };
+}
+const svc = { list: [], files: 0, replace: true, busy: false, done: "" };
+// The same match already saved some other way (Track & play, a screenshot, the PC tracker): within 3 minutes, same result
+function svcSame(m) { return realMatches().find((x) => x.id === m.id || (Math.abs(num(x.ts) - m.ts) < 3 * 60e3 && x.result === m.result && !x.svSync)); }
+function svcPlan() {
+  const seen = new Set(), fresh = [];
+  for (const m of svc.list) { if (seen.has(m.id)) continue; seen.add(m.id); if (!svcSame(m)) fresh.push(m); }
+  const all = [...seen].length, ts = svc.list.map((m) => m.ts), lo = Math.min(...ts), hi = Math.max(...ts);
+  const rough = svc.list.length ? realMatches().filter((x) => x.svSync && x.ts >= lo - DAY && x.ts <= hi + DAY) : [];
+  return { all, fresh, lo, hi, rough };
+}
+function svcSheet() {
+  if (svc.done) return `${sheetHead("SnapVault match history", "")}<div class="panel stack small"><p>${esc(svc.done)}</p><div class="row"><button class="btn snap" data-a="svcGo" data-to="home/matches">See my matches</button><button class="btn ghost" data-a="close">Close</button></div></div>`;
+  const p = svcPlan(), modes = {}; p.fresh.forEach((m) => { modes[m.mode] = (modes[m.mode] || 0) + 1; });
+  const noDeck = new Set(p.fresh.filter((m) => !m.deckId && m.deckName).map((m) => m.deckName));
+  const day = (t) => new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return `${sheetHead("SnapVault match history", `${svc.files} file${svc.files === 1 ? "" : "s"} · ${p.all} match${p.all === 1 ? "" : "es"}${p.all ? ` · ${day(p.lo)} to ${day(p.hi)}` : ""}`)}<div class="stack small">
+    <div class="tiles"><div class="tile"><div class="k">New</div><div class="v">${fmt(p.fresh.length)}</div></div><div class="tile"><div class="k">Already in</div><div class="v">${fmt(p.all - p.fresh.length)}</div></div></div>
+    ${p.fresh.length ? `<div class="chiplist">${Object.entries(modes).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<span class="pill">${esc(k)} · ${n}</span>`).join("")}</div>` : `<p class="muted">Everything in ${svc.files > 1 ? "these files" : "this file"} is already in SNAP Stat.</p>`}
+    ${noDeck.size ? `<span class="muted">No SNAP Stat deck has these names, so their matches come in with just the name: ${esc([...noDeck].slice(0, 6).join(", "))}${noDeck.size > 6 ? "…" : ""}. Import your decks from SnapVault first to link them.</span>` : ""}
+    ${p.rough.length ? `<label class="check"><input type="checkbox" data-svc="replace" ${svc.replace ? "checked" : ""}> Swap SnapVault sync's ${p.rough.length} rough entr${p.rough.length === 1 ? "y" : "ies"} for these days (deck and result only) for the real matches</label>` : ""}
+    <span class="muted">Ranked cubes count toward your rank maths. Event points (like Deadpool's Diner) are kept in each match's notes, not as cubes.</span>
+    <div class="row"><button class="btn snap" data-a="svcImport" ${!p.fresh.length || svc.busy ? "disabled" : ""}>Import ${fmt(p.fresh.length)} match${p.fresh.length === 1 ? "" : "es"}</button><button class="btn ghost" data-a="close">Cancel</button></div></div>`;
+}
+async function svcFiles(files) {
+  svc.list = []; svc.files = 0; svc.done = ""; let bad = "";
+  for (const f of Array.from(files || [])) {
+    if (f.size > 8e6) { bad = `${f.name} is too big`; continue; }
+    try { const r = svcRows(await f.text()); if (r.bad) bad = r.bad; else { svc.list.push(...r.list); svc.files++; } } catch (e) { bad = errText(e); }
+  }
+  if (!svc.list.length) { toast(bad || "No matches found"); return; }
+  openSheet(svcSheet);
+}
+document.addEventListener("change", (e) => {
+  const t = e.target; if (!t || !t.dataset) return;
+  if (t.dataset.svcfile !== undefined) { svcFiles(t.files); t.value = ""; }
+  if (t.dataset.svc === "replace") { svc.replace = !!t.checked; }
+});
+Object.assign(A, {
+  svcImport: () => {
+    if (svc.busy) return; svc.busy = true;
+    try {
+      const p = svcPlan(); let gone = 0;
+      if (svc.replace && p.rough.length) for (const x of p.rough) { removeMatch(x.id); gone++; }
+      for (const m of p.fresh) putMatch(m);
+      save(); svc.done = `${fmt(p.fresh.length)} match${p.fresh.length === 1 ? "" : "es"} added${gone ? `, and ${gone} rough SnapVault sync entr${gone === 1 ? "y" : "ies"} replaced` : ""}. Your stats, decks and rank update by themselves.`;
+    } catch (e) { errNote("importing SnapVault matches", e); }
+    finally { svc.busy = false; refreshSheet(); render(); }
+  },
+  svcGo: (el) => { closeSheet(); go(el.dataset.to); },
+});
+EXT.settingsData.push(() => `<section class="sec"><h2>SnapVault match history</h2><div class="panel stack small">
+  <p>In SnapVault, export your matches (a file like <b>snapvault-matches-2026-11-12.csv</b>) and choose it here. Each match comes in with its time, mode, deck, result, cubes, snaps and locations.</p>
+  <label class="btn">Choose the match file<input type="file" accept=".csv,text/csv,text/plain" multiple hidden data-svcfile></label>
+  <span class="muted">Choosing the same file again (or several copies) is fine: matches already in SNAP Stat are skipped.</span></div></section>`);
+EXT.search.push((q) => (/snapvault|csv|match history|export/i.test(q) ? [{ label: "SnapVault match history file", sub: "Settings › Import & backup", route: "settings/data" }] : []));
+
+/* ---------- 2. On iPhone ---------- */
+const APP_LINK = "https://rhaddaddy.github.io/snap-stat/";
+EXT.about.push(() => `<section class="sec"><h2>On iPhone</h2><div class="panel stack small">
+  <p>There's no App Store app yet, but SNAP Stat works on iPhone and iPad in Safari, and it can sit on the home screen like an app:</p>
+  <ol class="ot-steps"><li>Open <b>${esc(APP_LINK.replace("https://", ""))}</b> in Safari.</li><li>Tap the Share button (the square with an arrow), then <b>Add to Home Screen</b>, then <b>Add</b>.</li><li>Open SNAP Stat from the home screen and sign in with Google.</li></ol>
+  <span class="muted">Everything works there except the Android-only extras: Track &amp; play's automatic tracking, the home-screen widgets and reading new screenshots by itself. On iPhone you log matches in two taps or add screenshots yourself.</span>
+  <div class="row"><button class="btn sm" data-a="iosCopy">${ICON.copy} Copy the link for a friend</button>${navigator.share ? `<button class="btn sm ghost" data-a="iosShare">Share</button>` : ""}</div></div></section>`);
+Object.assign(A, {
+  iosCopy: () => copyText(APP_LINK, "Link copied. Send it to your friend and tell them to open it in Safari."),
+  iosShare: () => { try { navigator.share({ title: "SNAP Stat", text: "SNAP Stat, a MARVEL SNAP companion. On iPhone: open it in Safari › Share › Add to Home Screen.", url: APP_LINK }); } catch { copyText(APP_LINK, "Link copied"); } },
+});
+EXT.search.push((q) => (/iphone|ios|ipad|apple|safari/i.test(q) ? [{ label: "SNAP Stat on iPhone", sub: "Settings › About", route: "settings/about" }] : []));
 /* ============ Standalone (Firebase) sign-in and storage ============ */
 const FB_CFG_KEY = "snapstat.firebaseConfig", FB_SKIP_KEY = "snapstat.skipSignIn";
 function parseFirebaseConfig(text) {

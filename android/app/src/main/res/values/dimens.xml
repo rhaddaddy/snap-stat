@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The widget's corner: matches the phone's own widget corners on Android 12+ (values-v31), so the edge isn't cut off -->
+    <dimen name="widget_radius">22dp</dimen>
+</resources>

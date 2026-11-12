@@ -40,16 +40,16 @@ function ownerBugsHtml() {
       <span class="muted small">Both put every open report together, grouped by page, ready to paste into (or attach to) your SNAP Stat chat. The .zip also has the pictures.</span>` : ""}
     ${groups.length ? `<details class="panel small"><summary><b>Where they happen</b> · ${groups.length} page${groups.length > 1 ? "s" : ""}</summary><div class="list">${groups.map((x) => `<div class="li"><div class="grow"><div class="t">${esc(x.where)}</div><div class="s">${x.n} report${x.n > 1 ? "s" : ""} · ${x.who.size} player${x.who.size > 1 ? "s" : ""} · ${x.dev.size} device${x.dev.size > 1 ? "s" : ""} · ${esc(x.apps)}</div><div class="s">${esc(x.scope)}</div></div></div>`).join("")}</div></details>` : ""}
     ${shown.length ? `<div class="list">${shown.slice(0, 80).map((r) => `<button class="li" data-a="obOpen" data-id="${esc(r.id)}"><div class="grow"><div class="t">${esc(r.title || r.text || "Report")}</div>
-        <div class="s"><span class="num">${esc(r.id)}</span> · ${esc(obWho(r))} · ${esc(r.where || "")}</div><div class="s">${esc(obDev(r).app || "")} · ${esc([obDev(r).os, obDev(r).model].filter(Boolean).join(" "))} · ${esc(agoTxt(r.at))}${num(r.files) ? ` · ${num(r.files)} file${num(r.files) > 1 ? "s" : ""}` : ""}</div></div>${bugPill(r.status)}</button>`).join("")}</div>`
+        <div class="s"><span class="num">${esc(r.id)}</span> · ${esc(obWho(r))} · ${esc(r.where || "")}</div><div class="s">${esc(obDev(r).app || "")} · ${esc([obDev(r).os, obDev(r).model].filter(Boolean).join(" "))} · ${esc(agoTxt(r.at))}${num(r.nfiles || r.files) ? ` · ${num(r.nfiles || r.files)} file${num(r.nfiles || r.files) > 1 ? "s" : ""}` : ""}</div></div>${bugPill(r.status)}</button>`).join("")}</div>`
       : `<div class="empty"><strong>${ob.list.length ? "Nothing here" : "No reports yet"}</strong><span>${ob.list.length ? "Try another filter." : "When players tap Report a bug, their reports show up here."}</span></div>`}</section>`;
 }
 
 /* ---------- One report ---------- */
 async function obLoadFiles(r) {
-  if (!num(r.files) || ob.files[r.id]) return;
+  if (!num(r.nfiles || r.files) || ob.files[r.id]) return;
   ob.files[r.id] = "loading";
   const out = [];
-  for (let i = 0; i < Math.min(8, num(r.files)); i++) { try { const s = await store.db.doc(`bugs/${r.id}/files/${i}`).get(); if (s.exists) out.push(obj(s.data())); } catch (e) { errNote("loading a report's pictures", e, true); } }
+  for (let i = 0; i < Math.min(20, num(r.nfiles || r.files)); i++) { try { const s = await store.db.doc(`bugs/${r.id}/files/${i}`).get(); if (s.exists) out.push(obj(s.data())); } catch (e) { errNote("loading a report's pictures", e, true); } }
   ob.files[r.id] = out; if (sheetFn === obSheet) refreshSheet();
 }
 function obSheet() {
@@ -62,7 +62,7 @@ function obSheet() {
     <div class="stack">
       <div class="panel small" style="white-space:pre-wrap">${esc(r.text || "(No words, just files)")}</div>
       ${same.length ? `<div class="note">${same.length} other open report${same.length > 1 ? "s" : ""} on this page from ${new Set(same.map((x) => x.by)).size} player${new Set(same.map((x) => x.by)).size > 1 ? "s" : ""}.</div>` : ""}
-      ${num(r.files) ? `<div class="stack">${files === "loading" || !files ? `<span class="muted">Loading ${num(r.files)} file${num(r.files) > 1 ? "s" : ""}…</span>` : files.map((f) => /^data:image\//.test(f.data) ? `<img class="ob-pic" src="${f.data}" alt="${esc(f.name)}">` : `<details class="panel small"><summary>${esc(f.name)}</summary><pre class="ob-pre">${esc(obDecode(f.data).slice(0, 4000))}</pre></details>`).join("")}</div>` : ""}
+      ${num(r.nfiles || r.files) ? `<div class="stack">${files === "loading" || !files ? `<span class="muted">Loading ${num(r.nfiles || r.files)} file${num(r.nfiles || r.files) > 1 ? "s" : ""}…</span>` : files.map((f) => /^data:image\//.test(f.data) ? `<img class="ob-pic" src="${f.data}" alt="${esc(f.name)}">` : `<details class="panel small"><summary>${esc(f.name)}</summary><pre class="ob-pre">${esc(obDecode(f.data).slice(0, 4000))}</pre></details>`).join("")}</div>` : ""}
       <div class="list">${fact("Page", `${esc(r.where || "")} <button class="btn sm ghost" data-a="go" data-to="${esc(r.route || "home")}">Open it</button>`)}
         ${fact("Player", `${esc(obWho(r))}${r.by ? ` · <span class="num">${esc(String(r.by).slice(0, 8))}…</span>` : ""}`)}
         ${fact("Device", `${esc(bugDeviceLine(d))}<br><span class="muted small">Screen ${esc(d.screen || "?")} @${esc(d.dpr || 1)}x · window ${esc(d.view || "?")} · ${esc(d.lang || "")} · device ${esc(d.id || "?")}</span>`)}
@@ -89,7 +89,7 @@ function obReportMd(r, pics) {
     `- Page: ${r.where || "?"} (#${r.route || ""})`, `- Player: ${obWho(r)} · player id ${String(r.by || "").slice(0, 8)} · device ${d.id || "?"}`,
     `- Device: ${bugDeviceLine(d)} · screen ${d.screen || "?"} @${d.dpr || 1}x · window ${d.view || "?"} · ${d.lang || ""}`,
     `- App version: ${String(r.build || "?").slice(0, 7)}${r.build === BUILD ? " (current)" : ""} · sent ${new Date(num(r.at)).toISOString().slice(0, 16).replace("T", " ")} UTC`,
-    ch ? `- While testing: ${ch.title} (${ch.id})` : "", pics && pics.length ? `- Files: ${pics.join(", ")}` : num(r.files) ? `- Files: ${num(r.files)} (open the report in the app to see them)` : "",
+    ch ? `- While testing: ${ch.title} (${ch.id})` : "", pics && pics.length ? `- Files: ${pics.join(", ")}` : num(r.nfiles || r.files) ? `- Files: ${num(r.nfiles || r.files)} (open the report in the app to see them)` : "",
     r.reply ? `- My reply: ${r.reply}` : "", "", "What happened:", ...String(r.text || "").split("\n").map((l) => "> " + l),
     arr(r.errors).length ? `\nRecent problems:\n${arr(r.errors).map((e) => `- ${e.where}: ${e.msg}${e.stack ? `\n  ${String(e.stack).split("\n").slice(1, 3).map((x) => x.trim()).join(" | ")}` : ""}`).join("\n")}` : "",
     r.log ? `\nTracker log (last lines):\n\`\`\`\n${String(r.log).split("\n").slice(-40).join("\n")}\n\`\`\`` : ""].filter((x) => x !== "").join("\n");
@@ -129,7 +129,7 @@ Object.assign(A, {
   obDelete: async () => {
     if (ob.delArm !== ob.open) { ob.delArm = ob.open; refreshSheet(); return; }
     const r = ob.list.find((x) => x.id === ob.open); if (!r) return;
-    try { for (let i = 0; i < num(r.files); i++) await store.db.doc(`bugs/${r.id}/files/${i}`).delete(); await store.db.doc("bugs/" + r.id).delete(); closeSheet(); toast("Deleted"); }
+    try { for (let i = 0; i < num(r.nfiles || r.files); i++) await store.db.doc(`bugs/${r.id}/files/${i}`).delete(); await store.db.doc("bugs/" + r.id).delete(); closeSheet(); toast("Deleted"); }
     catch (e) { toast("Couldn't delete it: " + errText(e)); }
   },
   obCopyOne: () => { const r = ob.list.find((x) => x.id === ob.open); if (r) copyText(obCompile([r]), "Copied: paste it into your SNAP Stat chat"); },
@@ -152,30 +152,49 @@ Object.assign(A, {
 });
 
 /* ---------- Test this update ---------- */
+// The bar that waits while you take a screenshot of the page with the bug
+const otShot = { id: "", where: "" };
+function otShotDraw() {
+  let el = document.getElementById("otshot");
+  if (!otShot.id) { if (el) el.remove(); return; }
+  if (!el) { el = document.createElement("div"); el.id = "otshot"; document.body.appendChild(el); }
+  el.innerHTML = `<div class="panel small"><span>Take a phone screenshot of this page (or as many as you like), then tap Report.</span><div class="row"><button class="btn sm snap" data-a="otShotReport">Report</button><button class="btn sm ghost" data-a="otShotCancel">Cancel</button></div></div>`;
+}
 const otState = () => obj(S.ownerTests);
-const otMarks = () => obj(otState().marks);
+// Kept on this device too, so an answer never comes back even if a save doesn't reach the account
+const OT_LS = "snapstat.ownerTestMarks";
+const otLocal = () => { try { return obj(JSON.parse(localStorage.getItem(OT_LS) || "{}")); } catch { return {}; } };
+const otMarks = () => ({ ...otLocal(), ...obj(otState().marks) });
+function otSetMarks(marks) { S.ownerTests = { ...otState(), marks }; try { localStorage.setItem(OT_LS, JSON.stringify(marks)); } catch { /* private mode */ } save(); }
 function otTodo() { const m = otMarks(); return CHANGES.filter((c) => arr(c.test).length && !m[c.id]); }
 function otItem(c, done) {
   const kindL = { new: "New", better: "Better", fixed: "Fixed", removed: "Removed" }[c.kind] || "Changed";
   return `<div class="panel stack small ot-item"><div class="row" style="justify-content:space-between;align-items:flex-start"><b>${esc(c.title)}</b><span class="pill ${c.kind === "fixed" ? "W" : c.kind === "removed" ? "dim" : "gold"}">${kindL}</span></div>
     <span class="muted">${esc(c.body)}</span>
-    ${done ? `<span class="small">${done === "ok" ? "✓ Works" : "✗ Bug reported"}</span><div><button class="btn sm ghost" data-a="otMark" data-id="${esc(c.id)}" data-v="">Undo</button></div>`
+    ${done ? `<span class="small">${done === "ok" ? "✓ Works" : "✗ Bug reported"}</span><div class="row"><button class="btn sm ghost" data-a="otMark" data-id="${esc(c.id)}" data-v="">Change answer</button>${done === "bug" ? `<button class="btn sm ghost" data-a="otBug" data-id="${esc(c.id)}">Report it again</button>` : ""}</div>`
       : `<ol class="ot-steps">${arr(c.test).map((t) => `<li>${esc(t)}</li>`).join("")}</ol>
       <div class="row"><button class="btn sm snap" data-a="otMark" data-id="${esc(c.id)}" data-v="ok">✓ Works</button><button class="btn sm" data-a="otBug" data-id="${esc(c.id)}">✗ Found a bug</button>${c.where ? `<button class="btn sm ghost" data-a="otGo" data-to="${esc(c.where)}">Open it</button>` : ""}</div>`}</div>`;
 }
 function ownerTestsHtml(inSheet) {
   if (!isAppOwner()) return "";
-  const todo = otTodo(), m = otMarks(), done = CHANGES.filter((c) => arr(c.test).length && m[c.id]).slice(0, 12);
+  const todo = otTodo(), m = otMarks(), done = CHANGES.filter((c) => arr(c.test).length && m[c.id]);
   const total = CHANGES.filter((c) => arr(c.test).length).length;
   return `${inSheet ? "" : `<section class="sec"><div class="sec-h"><h2>Test this update</h2><span class="pill ${todo.length ? "warn" : "W"}">${todo.length ? `${todo.length} to check` : "All checked"}</span></div>`}
     <p class="muted small">What changed in the newest updates and what to try. Tap ✓ Works, or ✗ Found a bug to report it with the change filled in. ${total - todo.length} of ${total} checked.</p>
     ${todo.length ? todo.map((c) => otItem(c, "")).join("") : `<div class="empty"><strong>All checked</strong><span>The next update's list shows up here by itself.</span></div>`}
-    ${done.length && !inSheet ? `<details class="panel small"><summary>Checked (${done.length})</summary>${done.map((c) => otItem(c, m[c.id])).join("")}</details>` : ""}${inSheet ? "" : "</section>"}`;
+    ${done.length ? `<details class="panel small ot-done"><summary><b>Checked features (${done.length})</b> <span class="muted">· ${done.filter((c) => m[c.id] === "ok").length} work, ${done.filter((c) => m[c.id] === "bug").length} with a bug. Tap Change to answer again.</span></summary>${done.map((c) => otItem(c, m[c.id])).join("")}</details>` : ""}${inSheet ? "" : "</section>"}`;
 }
 function ownerTestsSheet() { return `${sheetHead("Test this update", "Only you see this, as the app owner")}${ownerTestsHtml(true)}<button class="btn block" data-a="close">Later</button>`; }
 Object.assign(A, {
-  otMark: (el) => { const marks = { ...otMarks() }; if (el.dataset.v) marks[el.dataset.id] = el.dataset.v; else delete marks[el.dataset.id]; S.ownerTests = { ...otState(), marks }; save(); render(); if (sheetFn) refreshSheet(); },
-  otBug: (el) => { const marks = { ...otMarks(), [el.dataset.id]: "bug" }; S.ownerTests = { ...otState(), marks }; save(); bugOpen({ change: el.dataset.id, kind: "broke" }); },
+  otMark: (el) => { const marks = { ...otMarks() }; if (el.dataset.v) marks[el.dataset.id] = el.dataset.v; else delete marks[el.dataset.id]; otSetMarks(marks); render(); if (sheetFn) refreshSheet(); if (el.dataset.v === "ok") toast("Marked as working. It's in Checked features."); },
+  // Found a bug: opens the page the change is on so you can take a screenshot there, then the report
+  otBug: (el) => {
+    const id = el.dataset.id, c = CHANGES.find((x) => x.id === id) || {}; otSetMarks({ ...otMarks(), [id]: "bug" });
+    if (!c.where) { bugOpen({ change: id, kind: "broke" }); return; }
+    closeSheet(); go(c.where); otShot.id = id; otShot.where = c.where; otShotDraw();
+  },
+  otShotReport: () => { const id = otShot.id, where = otShot.where; otShot.id = ""; otShotDraw(); bugOpen({ change: id, kind: "broke", page: where }); toast("Tap Add screenshots and pick the one you just took"); },
+  otShotCancel: () => { otShot.id = ""; otShotDraw(); },
   otGo: (el) => { closeSheet(); go(el.dataset.to); },
   otOpen: () => openSheet(ownerTestsSheet),
 });
@@ -198,4 +217,8 @@ EXT.styles.push(`
 .ob-pic { width: 100%; border-radius: 12px; border: 1px solid var(--line); }
 .ob-pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11.5px; max-height: 320px; overflow: auto; background: var(--surface-2); padding: 8px; border-radius: 8px; margin: 6px 0 0; }
 .ot-item { margin-bottom: 10px; }
+.ot-done > summary { cursor: pointer; padding: 4px 0; }
+.ot-done[open] > summary { margin-bottom: 10px; }
+#otshot { position: fixed; left: 10px; right: 10px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 30; max-width: 520px; margin: 0 auto; }
+#otshot .panel { display: flex; flex-direction: column; gap: 8px; box-shadow: 0 10px 28px rgba(0,0,0,.45); }
 .ot-steps { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; }`);

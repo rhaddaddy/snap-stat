@@ -88,7 +88,7 @@ service cloud.firestore {
       allow create: if signedIn() && request.resource.data.by == request.auth.uid
         && request.resource.data.status == "new"
         && request.resource.data.text is string && request.resource.data.text.size() <= 4000
-        && request.resource.data.files is int && request.resource.data.files <= 8;
+        && request.resource.data.files is int && request.resource.data.files <= 20;
       allow read: if isAppOwner() || (signedIn() && resource.data.by == request.auth.uid);
       allow update: if isAppOwner() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "reply", "statusAt"]);
       allow delete: if isAppOwner();

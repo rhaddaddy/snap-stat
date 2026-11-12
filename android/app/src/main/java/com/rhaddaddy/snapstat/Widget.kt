@@ -105,15 +105,24 @@ object Widget {
     private fun paint(ctx: Context, v: RemoteViews, j: JSONObject, big: Boolean) {
         val lk = j.optJSONObject("look")
         val mode = lk?.optString("mode") ?: "auto"
+        // Background (Settings › Android › Widget): "app" colours, "clear" (see-through: your wallpaper shows) or "you"
+        // (Material You colours from your wallpaper). keepAccent keeps the accent you picked in the app either way.
+        val bgMode = lk?.optString("bg")?.ifEmpty { null } ?: if (mode == "wallpaper") "you" else "app"
+        val keepAccent = lk?.optBoolean("keepAccent", true) != false
         val black = lk?.optBoolean("black") == true
         var L = pal(lk, true, black); var D = pal(lk, false, black)
         var a = col(lk?.optString("a"), 0xFFFFD23F.toInt()); var b = col(lk?.optString("b"), 0xFFFF7A1A.toInt()); var ink = col(lk?.optString("ink"), 0xFF1A0E00.toInt())
         // "Wallpaper colours" (Settings › Android): the phone's own Material You colours, light or dark with the phone
-        if (mode == "wallpaper" && Build.VERSION.SDK_INT >= 31) {
+        if (bgMode == "you" && Build.VERSION.SDK_INT >= 31) {
             val c = { id: Int -> ctx.getColor(id) }
             L = Pal(c(android.R.color.system_neutral1_50), c(android.R.color.system_neutral1_900), c(android.R.color.system_neutral2_600), c(android.R.color.system_accent1_600), c(android.R.color.system_accent1_200), 255, 40, R.drawable.widget_tile_light, 0xFF1E8E5A.toInt())
             D = Pal(c(android.R.color.system_neutral1_900), c(android.R.color.system_neutral1_50), c(android.R.color.system_neutral2_300), c(android.R.color.system_accent1_200), c(android.R.color.system_accent1_700), 255, 70, R.drawable.widget_tile_dark, 0xFF3DD68C.toInt())
-            a = c(android.R.color.system_accent1_200); b = c(android.R.color.system_accent1_500); ink = c(android.R.color.system_neutral1_900)
+            if (keepAccent) {
+                // The phone's backgrounds and text, with your own accent colour
+                val mine = pal(lk, true, black); val mineD = pal(lk, false, black)
+                L = Pal(L.bg, L.fg, L.muted, mine.accent, L.edge, L.edgeAlpha, L.glowAlpha, L.tile, L.win)
+                D = Pal(D.bg, D.fg, D.muted, mineD.accent, D.edge, D.edgeAlpha, D.glowAlpha, D.tile, D.win)
+            } else { a = c(android.R.color.system_accent1_200); b = c(android.R.color.system_accent1_500); ink = c(android.R.color.system_neutral1_900) }
         }
         val followPhone = mode != "dark" && mode != "light" && Build.VERSION.SDK_INT >= 31
         val night = when (mode) {
@@ -126,6 +135,11 @@ object Widget {
         }
         set(R.id.w_bg, "setColorFilter", L.bg, D.bg)
         v.setInt(R.id.w_glow, "setColorFilter", b); set(R.id.w_glow, "setImageAlpha", L.glowAlpha, D.glowAlpha)
+        // See-through: no background or glow, so the wallpaper shows; the tiles keep theirs so the words stay readable
+        val clear = bgMode == "clear"
+        val shade = (lk?.optInt("shade", 0) ?: 0).coerceIn(0, 80)
+        v.setInt(R.id.w_bg, "setImageAlpha", if (clear) shade * 255 / 100 else 255)
+        if (clear) v.setInt(R.id.w_glow, "setImageAlpha", 0)
         set(R.id.w_edge, "setColorFilter", L.edge, D.edge); set(R.id.w_edge, "setImageAlpha", L.edgeAlpha, D.edgeAlpha)
         for (id in if (big) WidgetIds.FG_BIG else WidgetIds.FG_SMALL) set(id, "setTextColor", L.fg, D.fg)
         for (id in if (big) WidgetIds.MUTED_BIG else WidgetIds.MUTED_SMALL) set(id, "setTextColor", L.muted, D.muted)

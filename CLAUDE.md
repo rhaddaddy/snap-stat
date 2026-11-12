@@ -31,7 +31,7 @@ Live: https://rhaddaddy.github.io/snap-stat/ · Repo: rhaddaddy/snap-stat · Fir
   LATER files (one global scope, TDZ). `node --check` runs inside build.sh.
 - Publish: push to `main` → GitHub Pages serves the repo root (~1 min). The app checks `version.json` and reloads itself.
 - Android app (`android/`, Kotlin WebView wrapper, package com.rhaddaddy.snapstat): any push touching `android/**` runs
-  `.github/workflows/android.yml` → signed APK published to the GitHub release tagged `android` (1.22 live: widget colours + web shop sign-in pop-up). Signing key is
+  `.github/workflows/android.yml` → signed APK published to the GitHub release tagged `android` (1.24 = Nov 11 widget edge + see-through). Signing key is
   the `ANDROID_KEYSTORE` secret, never in the repo. Build failures are saved to the `android-build-log` branch.
 - Backend: Firebase Auth (Google) + Firestore (`firestore.rules`; Ryan pastes rule changes into the Firebase console himself).
   `firebase-config.js` + `firebase-init.js` load it. AI keys (Gemini, Claude, ChatGPT, Grok, Perplexity) stay on the device;
@@ -42,8 +42,9 @@ Live: https://rhaddaddy.github.io/snap-stat/ · Repo: rhaddaddy/snap-stat · Fir
 - EVERY push that adds, changes or removes a feature adds entries at the top of `CHANGES` in `src/b4_changes.js` (id, date, kind
   new/better/fixed/removed, title, body, where, test steps). It drives What's new for everyone and the owner's "Test this update"
   checklist (Settings › App owner, pops up once per build). Never skip it.
-- Firestore rules changes: tell Ryan to paste `firestore.rules` (Firebase › Firestore › Rules › Publish). Oct 31: `bugs/{id}`+`files/{n}`, then
-  `config/flags`, `h2h/{uid}`, `ally/{key}/m/{uid}` (chat + bounty claims), `races/{id}`.
+- Firestore rules changes: tell Ryan to paste `firestore.rules` (Firebase › Firestore › Rules › Publish). Oct 31: bugs, config/flags, h2h,
+  ally chat, races. Nov 11: bugs `files <= 20` (the app sends files ≤ 8 + `nfiles`, so it works before he pastes it).
+- Saves to Firestore go through `fsEnc`/`fsDec` (c_core): lists in lists, empty/`__x__`/`$` keys, depth > 16 are encoded. Keep it on every set/get.
 - Rules: never put the owner's email, account ids, tokens, purchases or payment data anywhere, including this file and tests
   (`tests/check.sh` stops if any email address is in `index.html`). Web shop window must never save card/bank details. Never copy values from Ryan's real game
   files or data request into code or tests. Never suggest turning Play Protect off.
@@ -108,6 +109,13 @@ Data & state: `S` (saved state, c_core) · `ui` (view state) · matches in `matc
   lab, alliance board, badges, auto banner, follow suggestions, live tourney scores, post later · `y41_android` lock-screen note
   route `#quicklog=W` / `#playdeck=id` (wraps window.snapNative.on), pop-up tip + mini layout, vibration patterns, deck shortcuts,
   widget wallpaper/offline (wraps widgetLook/widgetState), weekly backup + Drive share, battery & data. `terms.html` at the root.
+- Nov 11 (Ryan's 17 reports): `y42_nav` name menu (`meMenu`, Profile/Settings off the bottom bar unless `S.navFull`), tabs open where you
+  left off (`S.tabOpen`, localStorage `snapstat.tabLast`), `#subfloat` sections row on scroll-up · `y43_cards` `myVariant(k, d)` (deck variant ›
+  Custom Card `S.looks[k].v` › favourite), deckPublic `art` map, sharedDeckHtml/artFail backup art (`data-alt`, LK_HOST), draft row, AI
+  builder live search (`aiSuggHtml`) · `y44_more` SnapVault match CSV import (`svcRows`, ids `svc-…`, `svFile`, replaces `svSync` rough
+  entries), About › On iPhone. Also: y25 reports (20 files, page picker `bug.page`, `bugMineSheet`, `bugTellChange` notifies via showAlert),
+  y26 test marks in localStorage too + Checked features + `otShot` bar, y24 quick flick (`swipe.quick`) + prewarmed neighbours (`swipe.pre`),
+  y41 widget `S.widgetBg` app/clear/you, `widgetKeepAccent`, `widgetShade`; Widget.kt `bg`/`keepAccent`/`shade`; res `@dimen/widget_radius`.
 - `k_firebase.js` 7 · Firebase sign-in/storage · `z_boot.js` · boot, flush on pagehide · `build.sh` · `README.md`
 Tests `tests/`: `check.sh` (run before every push) · `serve.py` test server · `mock-firebase-init.js` fake sign-in · `crawl.cjs`.
 Root: `index.html` (BUILT, 1.4 MB: never edit or read whole) · `version.json` · `sw.js` (service worker: share target,
@@ -127,23 +135,15 @@ Widget colours: the web app sends `look` (mode, black, accent a/b/ink/text/light
 ImageView layers (`w_bg`, `w_glow`, `w_edge`, `w_play_bg/hi`) and texts (ids in `WidgetIds.kt`); Auto follows the phone on 12+ via
 `RemoteViews.setColorInt`. No Android SDK in the sandbox: Kotlin is only checked by the GitHub build (see android-build-log).
 
-## 4. Status (October 31, 2026)
-- Last working code commit before this push: `78beb41`. This push: "Ryan's 100 ideas (#2-100)" (y32-y41, Android 1.23).
-  UNDO = `git revert` that commit (bots commit data files to main in between, so revert, don't reset).
-- Earlier Oct 31: swipe anywhere, widget colours (1.22), bug reports + owner inbox, What's new/owner tests, on-screen errors,
-  Mastery + Custom Card 2, Review screenshots panel. `tests/check.sh` must print ALL GOOD (signed out + in) before each push.
+## 4. Status (November 11, 2026)
+- This push: "Fix Ryan's 17 reports + SnapVault match CSV" (y42-y44, Android 1.24). Previous code commit: `81ac7c8` (Oct 31, 100 ideas).
+  UNDO = `git revert` that commit (bots commit data files in between: revert, don't reset).
+- Root cause of "Couldn't save", the tour returning and test answers returning: Firestore rejected the state (nested arrays from AI
+  readings) → `fsEnc`. check.sh ALL GOOD both ways; Playwright checks for menu, tabs, subfloat, reports, draft, AI search, CSV, flicks.
 - Locked working features (don't change without being asked): match tracking (manual, AI screenshots, Android Track & play,
-  PC tracker), SnapVault sync, game-file import, collection/variants/cosmetics, decks, stats & rank maths, seasons/events/
+  PC tracker), SnapVault sync + CSV, game-file import, collection/variants/cosmetics, decks, stats & rank maths, seasons/events/
   shops/missions, alliance & social, profile pictures, widget & notifications, self-update, history import, bug reports.
-- Oct 31 (2nd push): 99 ideas built (see the y32-y41 line in §3); check.sh ALL GOOD both ways; per-file Playwright checks with a
-  fake Android bridge. Kotlin untested locally: if the Android run fails, read the android-build-log branch and fix.
-  Substitutes: lock screen/AOD → ongoing notification; Wear tile → watch-mirrored notification; floating bubble → Samsung pop-up
-  view tip (no overlay permission); Drive → share sheet; Spotlight/Series data → manual planner + watch from daily data.
-- Waiting on Ryan: paste the new firestore.rules, install Android 1.23, run the owner test list, send failed-picture
-  reasons. Unknowns: where the game files keep Mastery XP and a deck's avatar (read generically; ask Ryan for "Copy what's in the
-  files, for Claude").
-- AI: every player uses their own key (Settings › AI); nothing is shared. AI reads screenshots/tracker pictures and powers the deck
-  builder, swaps, coach and opponent guesses. PC tracker, game files, SnapVault and daily data need no AI.
-- Next tech to-dos: split the GIANT files (l_features, n_more, q_auto, c_core, a_head CSS); add feature tests (made-up data) to
-  `tests/`. The 100-idea list (project doc "SNAP Stat 100 ideas") is built except #1 (shared AI, on hold).
-- Open decisions: deleted SnapVault decks return on sync; two phones saving one week (last wins); News needs a daily job.
+- Waiting on Ryan: paste firestore.rules (files ≤ 20), install Android 1.24, run the owner test list. Card art in posts: couldn't
+  reproduce the blank cards (art hosts blocked in the sandbox); added eager loading + backup art; ask for a new report if it recurs.
+- Report-status notifications only come when the app opens (no server push; FCM would need a server). Kotlin untested locally.
+- To-do: split GIANT files; feature tests (made-up data) in tests/. Open: deleted SnapVault decks return on sync; two phones saving one week (last wins); News needs a daily job. AI keys stay per player.

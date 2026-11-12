@@ -19,7 +19,10 @@ function tourSheet() {
     <div class="row between"><button class="btn ghost" data-a="tourDone">Skip</button><button class="btn snap" data-a="tourNext">${tour.i >= n - 1 ? "Start using SNAP Stat" : "Next ›"}</button></div>
     <p class="muted small">You can see this again in Settings › About.</p>`;
 }
-function tourMark() { if (!S.tourDone) { S.tourDone = Date.now(); save(); } }
+// Kept on the device too, so a save that doesn't reach the account can't bring the tour back at every start
+const TOUR_LS = "snapstat.tourDone";
+function tourSeen() { if (S.tourDone) return true; try { return !!localStorage.getItem(TOUR_LS); } catch { return false; } }
+function tourMark() { try { localStorage.setItem(TOUR_LS, String(Date.now())); } catch { /* private mode */ } if (!S.tourDone) { S.tourDone = Date.now(); save(); } }
 function tourScroll(i) {
   const tr = document.querySelector("[data-tourtrack]"); if (!tr) return;
   tour.i = clamp(i, 0, TOUR_CARDS.length - 1); tr.scrollTo({ left: tr.clientWidth * tour.i, behavior: "smooth" }); tourDots();
@@ -28,8 +31,8 @@ function tourDots() { document.querySelectorAll(".tour-dots span").forEach((d, i
 document.addEventListener("scroll", (e) => { const t = e.target; if (!t || !t.dataset || !t.dataset.tourtrack) return; const i = Math.round(t.scrollLeft / Math.max(1, t.clientWidth)); if (i !== tour.i) { tour.i = clamp(i, 0, TOUR_CARDS.length - 1); tourDots(); } }, true);
 // Once for everyone, after setting up a profile, on Home, when nothing else is open (never inside automated test browsers)
 EXT.afterRender.push(function tourAuto() {
-  if (S.tourDone || !S.me.onboarded || sheetFn || ui.tab !== "home" || navigator.webdriver || tour.auto) return;
-  tour.auto = true; setTimeout(() => { if (!sheetFn && !S.tourDone) { tour.i = 0; tourMark(); openSheet(tourSheet); } }, 1200);
+  if (tourSeen() || !S.me.onboarded || sheetFn || ui.tab !== "home" || navigator.webdriver || tour.auto) return;
+  tour.auto = true; setTimeout(() => { if (!sheetFn && !tourSeen()) { tour.i = 0; tourMark(); openSheet(tourSheet); } }, 1200);
 });
 
 /* ---------- 4. Status: is everything working right now? ---------- */
@@ -65,11 +68,11 @@ function ssmDraw() {
   if (!el) { el = document.createElement("div"); el.id = "ssm"; document.body.appendChild(el); }
   document.body.classList.add("ssm-on");
   const [, cap] = STORE_SHOTS[ssm.i];
-  el.innerHTML = `<div class="ssm-cap">${esc(cap)}</div><div class="ssm-ctl" data-ssmctl="1"><button class="btn sm" data-a="ssmStep" data-d="-1" aria-label="Previous">‹</button><span class="num">${ssm.i + 1}/${STORE_SHOTS.length}</span><button class="btn sm" data-a="ssmStep" data-d="1" aria-label="Next">›</button><button class="btn sm ghost" data-a="ssmEnd" aria-label="End">✕</button></div>`;
+  el.innerHTML = `<div class="ssm-cap">${esc(cap)}</div><div class="ssm-ctl" data-ssmctl="1"><button class="btn sm" data-a="ssmStep" data-d="-1" aria-label="Previous">‹</button><span class="num">${ssm.i + 1}/${STORE_SHOTS.length}</span><button class="btn sm" data-a="ssmStep" data-d="1" aria-label="Next">›</button><button class="btn sm snap" data-a="ssmEnd">Done ✕</button></div>`;
   clearTimeout(ssm.t); ssm.t = setTimeout(() => { const c = document.querySelector("[data-ssmctl]"); if (c) c.classList.add("faded"); }, 2500);
 }
 function ssmGo(i) { ssm.i = (i + STORE_SHOTS.length) % STORE_SHOTS.length; closeSheet(); go(STORE_SHOTS[ssm.i][0]); setTimeout(() => { window.scrollTo(0, 0); ssmDraw(); }, 60); }
-document.addEventListener("click", (e) => { if (!ssm.on) return; const c = e.target && e.target.closest ? e.target.closest("[data-ssmctl], .ssm-cap") : null; if (c) { const x = document.querySelector("[data-ssmctl]"); if (x) x.classList.remove("faded"); clearTimeout(ssm.t); ssm.t = setTimeout(() => { const y = document.querySelector("[data-ssmctl]"); if (y) y.classList.add("faded"); }, 2500); } }, true);
+document.addEventListener("click", (e) => { if (!ssm.on) return; const c = e.target && e.target.closest ? e.target.closest("[data-ssmctl], .ssm-cap") : null; if (c && c.classList.contains("ssm-cap")) toast("Store screenshots: tap Done ✕ at the bottom right to finish"); if (c) { const x = document.querySelector("[data-ssmctl]"); if (x) x.classList.remove("faded"); clearTimeout(ssm.t); ssm.t = setTimeout(() => { const y = document.querySelector("[data-ssmctl]"); if (y) y.classList.add("faded"); }, 2500); } }, true);
 
 /* ---------- 6. Community rules where people post ---------- */
 function rulesNoteHtml() { return `<p class="muted small y32-rules">By posting you agree to the <a href="terms.html" target="_blank" rel="noopener">community rules</a>: ${esc(COMMUNITY_RULES.slice(0, 2).join(" "))}</p>`; }
@@ -136,7 +139,7 @@ function bugAlerts(now = Date.now()) {
   const out = [];
   for (const x of arr(S.myBugs).slice(0, 15)) {
     const done = ["fixed", "wontfix", "dupe"].includes(x.status);
-    if (!done && !x.reply) continue;
+    if ((!done && !x.reply) || x.told === x.status + "|" + (x.reply || "")) continue; // already told straight away
     const at = num(x.statusAt) || now - 60e3;
     if (now - at > 7 * DAY) continue;
     const word = x.status === "fixed" ? "is fixed" : x.status === "wontfix" ? "was answered" : x.status === "dupe" ? "was already reported" : "has a reply";
@@ -154,7 +157,8 @@ async function y32BugPoll() {
   const changed = arr(S.myBugs).find((x) => before.has(x.id) && before.get(x.id) !== x.status + "|" + (x.reply || "") && (x.status === "fixed" || x.reply));
   if (changed) toast(`Your report ${changed.id} ${changed.status === "fixed" ? "is fixed" : "has a reply"}. See Settings › About.`);
 }
-EXT.afterRender.push(function y32BugSoon() { if (store.mode === "cloud" && arr(S.myBugs).length && Date.now() - _y32BugAt > 30 * 60e3) setTimeout(y32BugPoll, 5000); });
+// Replaced on Nov 11 by bugPollSoon in y25_report.js (checks on every open and says so straight away)
+if (false) EXT.afterRender.push(function y32BugSoon() { if (store.mode === "cloud" && arr(S.myBugs).length && Date.now() - _y32BugAt > 30 * 60e3) setTimeout(y32BugPoll, 5000); });
 
 /* ---------- 10. What's new, in the Android update window ---------- */
 // The newest three new or improved things from the What's new list
@@ -176,9 +180,9 @@ Object.assign(A, {
   pvError: () => { errShow("this preview", "Nothing is broken: this is what the problem bar looks like."); },
   pvPage: () => openSheet(pvPageSheet),
   pvUpdate: () => openSheet(pvUpdateSheet),
-  ssmStart: () => { ssm.on = true; toast("Take a phone screenshot on each page. Tap › for the next one."); ssmGo(0); },
+  ssmStart: () => { ssm.on = true; toast("Take a phone screenshot on each page. Tap › for the next one and Done ✕ to finish."); ssmGo(0); },
   ssmStep: (el) => ssmGo(ssm.i + num(el.dataset.d, 1)),
-  ssmEnd: () => { ssm.on = false; ssmDraw(); render(); },
+  ssmEnd: () => { ssm.on = false; clearTimeout(ssm.t); ssmDraw(); render(); toast("Store screenshots finished"); },
 });
 EXT.search.push((q) => (/terms|rules|privacy|status|tour|welcome|export|download/i.test(q) ? [{ label: "Status, tour and terms", sub: "Settings › About", route: "settings/about" }, { label: "Download all my data", sub: "Settings › Import & backup", route: "settings/data" }] : []));
 EXT.styles.push(`
@@ -198,5 +202,6 @@ body.ssm-on .me-chip, body.ssm-on #sync, body.ssm-on .topext, body.ssm-on #err-t
 #ssm .ssm-cap { position: fixed; left: 0; right: 0; top: 0; z-index: 70; padding: calc(18px + env(safe-area-inset-top, 0px)) 18px 18px; text-align: center; font-family: var(--comic); font-size: 30px; line-height: 1.1; letter-spacing: .5px;
   color: var(--snap-ink); background: linear-gradient(135deg, var(--snap-a), var(--snap-b)); box-shadow: 0 6px 24px rgba(0,0,0,.35); }
 #ssm .ssm-ctl { position: fixed; right: 10px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 71; display: flex; gap: 6px; align-items: center; padding: 6px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); transition: opacity .3s; }
-#ssm .ssm-ctl.faded { opacity: 0; }
+#ssm .ssm-ctl.faded { opacity: .45; }
+#ssm .ssm-cap { cursor: pointer; }
 body.ssm-on #view { padding-top: 60px; }`);

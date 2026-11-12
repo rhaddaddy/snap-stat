@@ -76,14 +76,21 @@ EXT.settingsAndroid.push(function y41Shortcuts() {
 });
 
 /* ---------- 87 + 88. Widget: wallpaper colours, and an offline line ---------- */
-if (typeof widgetLook === "function") { const _wl = widgetLook; widgetLook = function () { const l = _wl(); return S.widgetWall ? { ...l, mode: "wallpaper" } : l; }; } // eslint-disable-line no-func-assign
+if (typeof widgetLook === "function") { const _wl = widgetLook; widgetLook = function () { const l = _wl(), bg = widgetBg(); return { ...l, ...(bg === "you" ? { mode: "wallpaper" } : {}), bg, keepAccent: S.widgetKeepAccent !== false, shade: clamp(num(S.widgetShade), 0, 80) }; }; } // eslint-disable-line no-func-assign
 if (typeof widgetState === "function") { const _ws = widgetState; widgetState = function () { return { ..._ws(), offline: navigator.onLine === false, sentAt: Math.floor(Date.now() / 3600e3) * 3600e3 }; }; } // eslint-disable-line no-func-assign
 window.addEventListener("online", () => { try { pushWidget(); } catch { /* no widget */ } });
 window.addEventListener("offline", () => { try { pushWidget(); } catch { /* no widget */ } });
+// The widget's background: the app's colours, see-through (your wallpaper shows) or Material You colours
+function widgetBg() { const b = S.widgetBg || (S.widgetWall ? "you" : "app"); return ["app", "clear", "you"].includes(b) ? b : "app"; }
 EXT.settingsAndroid.push(function y41Widget() {
   if (!natCan("setWidget")) return "";
-  const v12 = num(natInfo().sdk) >= 31;
-  return `<div class="panel stack small"><b>Widget colours</b>${v12 ? `<label class="check"><input type="checkbox" data-y41="wall" ${S.widgetWall ? "checked" : ""}> Use my wallpaper's colours (Material You)</label>` : `<span class="muted">Wallpaper colours need Android 12 or newer.</span>`}
+  const v12 = num(natInfo().sdk) >= 31, bg = widgetBg();
+  const opts = [["app", "App colours"], ["clear", "See-through"], ...(v12 ? [["you", "Wallpaper colours"]] : [])];
+  return `<div class="panel stack small"><b>Widget background</b>
+    <div class="seg" role="group" aria-label="Widget background">${opts.map(([k, l]) => `<button data-a="y41WidgetBg" data-v="${k}" aria-pressed="${bg === k}">${l}</button>`).join("")}</div>
+    <span class="muted">${bg === "clear" ? "Your phone's wallpaper shows behind the widget. The small boxes keep their colour so the words stay easy to read." : bg === "you" ? "Colours picked from your wallpaper by Android (Material You)." : "The same colours as the app (Settings › App › Look)."}</span>
+    ${bg === "clear" ? `<label class="f"><span>Darken the background a little: ${clamp(num(S.widgetShade), 0, 80)}%</span><input type="range" min="0" max="80" step="5" value="${clamp(num(S.widgetShade), 0, 80)}" data-y41shade="1"></label>` : ""}
+    ${bg === "you" ? `<label class="check"><input type="checkbox" data-y41="keepAccent" ${S.widgetKeepAccent !== false ? "checked" : ""}> Keep my accent colour</label>` : `<span class="muted">Your accent colour stays the one you picked.</span>`}
     <span class="muted">The widget also says when it's offline or hasn't been updated for a day and a half. For the event countdown, long-press your home screen › Widgets › SNAP Stat › <b>SNAP event</b>.</span></div>`;
 });
 
@@ -137,6 +144,7 @@ document.addEventListener("change", (e) => {
   else if (k === "vib") { S.vibPatterns = on; if (on) vib("win"); }
   else if (k === "shortcuts") { S.deckShortcuts = on; _y41Sc = ""; if (on) deckShortcutsSync(); else { try { NATIVE.setDeckShortcuts("[]"); } catch { /* old app */ } } }
   else if (k === "wall") { S.widgetWall = on; setTimeout(() => { try { pushWidget(); } catch { /* no widget */ } }, 50); }
+  else if (k === "keepAccent") { S.widgetKeepAccent = on; setTimeout(() => { try { pushWidget(); } catch { /* no widget */ } }, 50); }
   else if (k === "backup") S.autoBackup = on;
   save(); render();
 });
@@ -149,3 +157,6 @@ EXT.styles.push(`
 .y41-pop { border-style: dashed; }
 body.y41-mini .tabhead h1 { font-size: 24px; } body.y41-mini .sec { margin-top: 10px; } body.y41-mini .panel { padding: 10px; }
 body.y41-mini header.top { padding-top: 4px; padding-bottom: 4px; } body.y41-mini .y41-pop { display: none; }`);
+
+Object.assign(A, { y41WidgetBg: (el) => { S.widgetBg = el.dataset.v; S.widgetWall = el.dataset.v === "you"; save(); render(); setTimeout(() => { try { pushWidget(); } catch { /* no widget */ } }, 50); toast("Widget updated. It can take a few seconds to change."); } });
+document.addEventListener("change", (e) => { const t = e.target; if (!t || !t.dataset || !t.dataset.y41shade) return; S.widgetShade = clamp(num(t.value), 0, 80); save(); render(); setTimeout(() => { try { pushWidget(); } catch { /* no widget */ } }, 50); });

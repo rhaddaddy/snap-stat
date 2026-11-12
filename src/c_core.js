@@ -17,6 +17,22 @@ const DAY = 864e5;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const signed = (n) => (n > 0 ? "+" + n : String(n));
 const clone = (x) => JSON.parse(JSON.stringify(x));
+// Firestore turns down lists inside lists, empty or __reserved__ field names and very deep nesting (plain JSON allows them).
+// fsEnc makes any saved value safe and fsDec turns it back, so one odd AI reading can't block every save after it.
+function fsEnc(x, d = 0) {
+  if (x && typeof x === "object" && d > 16) return { $j: JSON.stringify(x) };
+  if (Array.isArray(x)) return x.map((v) => (Array.isArray(v) ? { $a: fsEnc(v, d + 2) } : fsEnc(v, d + 1)));
+  if (!x || typeof x !== "object") return x;
+  const o = {}; for (const k of Object.keys(x)) { const nk = k === "" || /^__.*__$/.test(k) || k.startsWith("$") ? "$k" + k : k; o[nk] = fsEnc(x[k], d + 1); } return o;
+}
+function fsDec(x) {
+  if (Array.isArray(x)) return x.map(fsDec);
+  if (!x || typeof x !== "object") return x;
+  const ks = Object.keys(x);
+  if (ks.length === 1 && ks[0] === "$a") return fsDec(x.$a);
+  if (ks.length === 1 && ks[0] === "$j" && typeof x.$j === "string") { try { return JSON.parse(x.$j); } catch { return null; } }
+  const o = {}; for (const k of ks) o[k.startsWith("$k") ? k.slice(2) : k] = fsDec(x[k]); return o;
+}
 const arr = (x) => (Array.isArray(x) ? x : []);
 const obj = (x) => (x && typeof x === "object" && !Array.isArray(x) ? x : {});
 let _dayFmt = null, _dtFmt = null;
@@ -365,7 +381,7 @@ async function flushState() {
   if (store.mode === "cloud" && !flushState.warned) { let n = 0; try { n = JSON.stringify(body).length; } catch { /* fine */ } if (n > 850000) { flushState.warned = true; toast("Your saved data is nearly too big for one account to hold. Please tell Claude in your SNAP Stat chat."); } }
   // A save the database turned down for good (too big, not allowed) isn't kept waiting, or other devices' changes would never arrive
   let permanent = false;
-  writing = (async () => { if (store.mode === "cloud") { try { await store.stateRef.set(body); } catch (e) { ok = false; permanent = /invalid-argument|permission/.test(String(e && e.code)); handleDbErr(e, "save"); } } else { ok = lsSet(LS.state, body); if (ok && store.ready) lsSet(LOCAL_AT, Date.now()); } })();
+  writing = (async () => { if (store.mode === "cloud") { try { await store.stateRef.set(fsEnc(body)); } catch (e) { ok = false; permanent = /invalid-argument|permission/.test(String(e && e.code)); handleDbErr(e, "save"); } } else { ok = lsSet(LS.state, body); if (ok && store.ready) lsSet(LOCAL_AT, Date.now()); } })();
   await writing; writing = null; if ((ok || permanent) && saveVer === ver) dirty = false; syncProfile();
   if (natAlerts() && notifyPrefs().on) saveNotifyState();
   pushWidget();
@@ -377,7 +393,7 @@ async function flushWeeks() {
   if ((store.mode === "cloud" && !store.matchesLoaded) || (store.provider === "firebase" && !store.ready)) { clearTimeout(weekTimer); weekTimer = setTimeout(flushWeeks, 1500); return; }
   weekWriting = (async () => {
     const wks = [...dirtyWeeks]; dirtyWeeks.clear();
-    if (store.mode === "cloud") for (const wk of wks) { const ref = store.stateRef.collection("matches").doc(wk); const items = arr(matchWeeks[wk]); try { if (items.length) await ref.set({ items: clone(items) }); else await ref.delete(); } catch (e) { if (!/invalid-argument|permission/.test(String(e && e.code))) dirtyWeeks.add(wk); handleDbErr(e, "save matches"); } }
+    if (store.mode === "cloud") for (const wk of wks) { const ref = store.stateRef.collection("matches").doc(wk); const items = arr(matchWeeks[wk]); try { if (items.length) await ref.set({ items: fsEnc(clone(items)) }); else await ref.delete(); } catch (e) { if (!/invalid-argument|permission/.test(String(e && e.code))) dirtyWeeks.add(wk); handleDbErr(e, "save matches"); } }
     else if (lsSet(LS.matches, matchWeeks)) { if (store.ready) lsSet(LOCAL_AT, Date.now()); } else wks.forEach((wk) => dirtyWeeks.add(wk));
   })();
   await weekWriting; weekWriting = null; syncProfile(); pushWidget();
@@ -501,7 +517,7 @@ function subscribeCloud(localState, localMatches) {
     if (!first && (dirty || snap.metadata.hasPendingWrites)) return;
     if (!snap.exists && snap.metadata.fromCache) return;
     if (snap.exists) {
-      const cloud = mergeDefaults(clone(snap.data()));
+      const cloud = mergeDefaults(fsDec(clone(snap.data())));
       if (first && dirty) { dirty = false; clearTimeout(saveTimer); toast("Your saved data just finished loading. If you changed something in the last few seconds, please do it again."); }
       // Used without an account on this device, and the account has data too: you pick which to keep
       if (first && mergeLocal && localState && num(localState.updated) > num(cloud.updated) && (Object.keys(obj(localState.owned)).length || arr(localState.decks).length)) { pendingLocal = localState; setTimeout(() => openSheet(stateChoiceSheet), 300); }
@@ -518,14 +534,14 @@ function subscribeCloud(localState, localMatches) {
       let changed = false;
       for (const d of qs.docs) {
         if (dirtyWeeks.has(d.id) || (d.metadata && d.metadata.hasPendingWrites)) continue;
-        const b = d.data(), items = arr(b && b.items).length ? clone(b.items) : [];
+        const b = d.data(), items = arr(b && b.items).length ? fsDec(clone(b.items)) : [];
         if (JSON.stringify(items) !== JSON.stringify(arr(matchWeeks[d.id]))) { matchWeeks[d.id] = items; changed = true; }
       }
       if (changed) { _mVer++; requestRender(); }
       return;
     }
     if (qs.empty && qs.metadata.fromCache) return;
-    const next = {}; qs.docs.forEach((d) => { const b = d.data(); next[d.id] = arr(b && b.items).length ? clone(b.items) : []; });
+    const next = {}; qs.docs.forEach((d) => { const b = d.data(); next[d.id] = arr(b && b.items).length ? fsDec(clone(b.items)) : []; });
     if (first) {
       const pending = matchWeeks; dirtyWeeks.clear(); clearTimeout(weekTimer);
       const have = new Set(); Object.values(next).forEach((l) => l.forEach((m) => m && have.add(m.id)));
