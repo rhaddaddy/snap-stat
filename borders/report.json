@@ -1,8 +1,7 @@
 {
  "anim": [
-  "FireRed",
-  "CosmicGreen",
-  "WebBlack"
+  "CosmicGold",
+  "CosmicRed"
  ],
  "still": [
   "WebPink",
@@ -51,6 +50,7 @@
   "FirePink",
   "FirePurple",
   "FireRainbow",
+  "FireRed",
   "FireWhite",
   "Overloaded",
   "DistressedGold",
@@ -69,11 +69,10 @@
   "Common",
   "CosmicBlack",
   "CosmicBlue",
-  "CosmicGold",
+  "CosmicGreen",
   "CosmicOrange",
   "CosmicPink",
   "CosmicRainbow",
-  "CosmicRed",
   "DistressedBlue",
   "DistressedRed",
   "Epic",
@@ -96,6 +95,7 @@
   "SnowflakesRed",
   "UltraLegendary",
   "Uncommon",
+  "WebBlack",
   "WebRed",
   "WrappingPaper"
  ]
