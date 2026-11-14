@@ -1,7 +1,12 @@
 {
  "anim": [
+  "FirePink",
+  "DistressedOrange",
+  "RefractionRainbow",
   "CosmicGold",
-  "CosmicRed"
+  "CosmicPink",
+  "NeonRed",
+  "NeonWhite"
  ],
  "still": [
   "WebPink",
@@ -47,7 +52,6 @@
   "Fire",
   "FireBlue",
   "FireGold",
-  "FirePink",
   "FirePurple",
   "FireRainbow",
   "FireRed",
@@ -56,12 +60,10 @@
   "DistressedGold",
   "DistressedCopperPatina",
   "DistressedGrey",
-  "DistressedOrange",
   "DistressedPink",
   "DistressedPurple",
   "DistressedRainbow",
   "Pax2025",
-  "RefractionRainbow",
   "GlyphsGreen",
   "MetalChains",
   "NeonNights",
@@ -71,8 +73,8 @@
   "CosmicBlue",
   "CosmicGreen",
   "CosmicOrange",
-  "CosmicPink",
   "CosmicRainbow",
+  "CosmicRed",
   "DistressedBlue",
   "DistressedRed",
   "Epic",
@@ -87,8 +89,6 @@
   "NeonBlue",
   "NeonGreen",
   "NeonPurple",
-  "NeonRed",
-  "NeonWhite",
   "NeonYellow",
   "Rare",
   "SnowflakesBlue",
