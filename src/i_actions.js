@@ -489,7 +489,7 @@ document.addEventListener("change", (e) => {
   if (d.evchk) { (S.eventProg[d.id] = obj(S.eventProg[d.id]))[d.evchk] = t.checked; save(); return; }
   if (d.avsel) { if (t.value) { S.me[d.avsel] = { kind: "variant", ref: t.value }; save(); render(); toast(d.avsel === "banner" ? "Banner updated" : "Profile picture updated"); } return; }
   if (d.upload) { const f = t.files && t.files[0]; t.value = ""; if (f) uploadImage(f, d.upload); return; }
-  if (d.svquick) { const f = t.files && t.files[0]; t.value = ""; if (!f) return; f.text().then(svQuickSync).catch(() => toast("Couldn't read that file.")); return; }
+  if (d.svquick) { const fs = Array.from(t.files || []); t.value = ""; if (!fs.length) return; svBothFiles(fs).catch(() => toast("Couldn't read that file.")); return; }
   if (d.svfile) { const f = t.files && t.files[0]; t.value = ""; if (!f) return; f.text().then((txt) => { sv.text = ""; const r = parseSnapVault(txt); sv.err = r.err || ""; sv.res = r.err ? null : r; refreshSheet(); }).catch(() => { sv.err = "Couldn't read that file."; refreshSheet(); }); return; }
   if (d.svchk) { sv[d.svchk] = t.checked; refreshSheet(); return; }
   if (d.deck) { render(); return; }

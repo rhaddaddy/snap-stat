@@ -4,6 +4,9 @@
    kind: "new" (a new feature) · "better" (an existing one changed) · "fixed" (a bug fix) · "removed"
    where: the page it's on (opens when tapped) · test: what to try in the app to make sure it works */
 const CHANGES = [
+  { id: "1114a-svboth", date: "2026-11-14", kind: "new", title: "Sync both SnapVault files at once", where: "home/overview",
+    body: "Pick SnapVault's decks & collections file (.json) and its match history file (.csv) together. SNAP Stat brings in every match first, then your cards and decks, then joins each match to its deck, and shows one summary. Nothing comes in twice if you pick the same files again.",
+    test: ["Home › SnapVault sync › Sync now (or Cards › Sync from SnapVault): pick both files at once. The summary shows new matches, new cards and new/updated decks.", "Do it again with the same two files: it says every match was already in and nothing new.", "Cards › Decks: the imported games show on each deck (Round Table, Test 3, Deck 16)."] },
   { id: "1111d-wildreroll", date: "2026-11-11", kind: "fixed", title: "Wild Boosters and Split Reroll Coins from screenshots", where: "home/shops",
     body: "Screenshots of a card's screen now save your Wild Boosters (the rainbow booster count) instead of mixing them up with the card's own boosters or Gold, and split screens save your Split Reroll Coins instead of reading them as Credits.",
     test: ["Screenshot a card's screen in the game and read it: Home › Shops shows your Wild Boosters, and Gold doesn't change to that card's boosters.", "Screenshot the New Split Unlocked screen and read it: Split Reroll Coins updates and Credits stays the same."] },

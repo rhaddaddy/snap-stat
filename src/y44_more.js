@@ -101,7 +101,7 @@ async function svcFiles(files) {
 }
 document.addEventListener("change", (e) => {
   const t = e.target; if (!t || !t.dataset) return;
-  if (t.dataset.svcfile !== undefined) { svcFiles(t.files); t.value = ""; }
+  if (t.dataset.svcfile !== undefined) { svBothFiles(Array.from(t.files || [])); t.value = ""; }
   if (t.dataset.svc === "replace") { svc.replace = !!t.checked; }
 });
 Object.assign(A, {
@@ -158,8 +158,8 @@ EXT.afterRender.push(function svcAutoLink() {
 });
 EXT.settingsData.push(() => `<section class="sec"><h2>SnapVault match history</h2><div class="panel stack small">
   <p>In SnapVault, export your matches (a file like <b>snapvault-matches-2026-11-12.csv</b>) and choose it here. Each match comes in with its time, mode, deck, result, cubes, snaps and locations, and everything that uses matches updates: rank, decks, stats, goals, achievements, events and the widget.</p>
-  <label class="btn">Choose the match file<input type="file" accept=".csv,text/csv,text/plain" multiple hidden data-svcfile></label>
-  <span class="muted">Choosing the same file again (or several copies) is fine: matches already in SNAP Stat are skipped.</span></div></section>`);
+  <label class="btn">Choose the match file<input type="file" accept=".csv,.json,text/csv,application/json,text/plain" multiple hidden data-svcfile></label>
+  <span class="muted">You can pick the decks &amp; collections file (.json) with it to sync everything at once. Choosing the same file again (or several copies) is fine: matches already in SNAP Stat are skipped.</span></div></section>`);
 EXT.search.push((q) => (/snapvault|csv|match history|export/i.test(q) ? [{ label: "SnapVault match history file", sub: "Settings › Import & backup", route: "settings/data" }] : []));
 
 /* ---------- 2. On iPhone ---------- */

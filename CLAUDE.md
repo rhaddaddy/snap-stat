@@ -116,6 +116,8 @@ Data & state: `S` (saved state, c_core) · `ui` (view state) · matches in `matc
   bulk via c_core `matchBulk` (onMatch isNew=false), then `onMatchSaved` once; `svcLinkDecks` by name; j_import sync skips logged games), About › On iPhone. Also: y25 reports (20 files, page picker `bug.page`, `bugMineSheet`, `bugTellChange` notifies via showAlert),
   y26 test marks in localStorage too + Checked features + `otShot` bar, y24 quick flick (`swipe.quick`) + prewarmed neighbours (`swipe.pre`),
   y41 widget `S.widgetBg` app/clear/you, `widgetKeepAccent`, `widgetShade`; Widget.kt `bg`/`keepAccent`/`shade`; res `@dimen/widget_radius`.
+- Nov 14: `y45_svboth` `svBothFiles(files)`: every SnapVault picker (data-svquick, data-svcfile) takes .json + .csv together → CSV matches first
+  (`A.svcImport`), then `applySnapVault`, then `svcLinkDecks`, one summary sheet `svBothSheet`. One file alone = old flows.
 - `k_firebase.js` 7 · Firebase sign-in/storage · `z_boot.js` · boot, flush on pagehide · `build.sh` · `README.md`
 Tests `tests/`: `check.sh` (run before every push) · `serve.py` test server · `mock-firebase-init.js` fake sign-in · `crawl.cjs`.
 Root: `index.html` (BUILT, 1.4 MB: never edit or read whole) · `version.json` · `sw.js` (service worker: share target,
@@ -135,8 +137,9 @@ Widget colours: the web app sends `look` (mode, black, accent a/b/ink/text/light
 ImageView layers (`w_bg`, `w_glow`, `w_edge`, `w_play_bg/hi`) and texts (ids in `WidgetIds.kt`); Auto follows the phone on 12+ via
 `RemoteViews.setColorInt`. No Android SDK in the sandbox: Kotlin is only checked by the GitHub build (see android-build-log).
 
-## 4. Status (November 11, 2026)
-- This push: q_auto `sortTopBar(n, raw, hint, colour, kind)`: split screens = Split Reroll Coins top left (icon "rerolls"; blue box fooled the colour check into Credits), card screens = card boosters top right (not Gold) + Wild Boosters under. Previous: `07ce038` event points from SnapVault file (y44, h_more, y38).
+## 4. Status (November 14, 2026)
+- This push: SnapVault both-files sync (y45; tested with Ryan's real files in Playwright: 200 matches, 43 decks, all linked, re-run adds 0).
+- Before: q_auto `sortTopBar(n, raw, hint, colour, kind)`: split screens = Split Reroll Coins top left (icon "rerolls"; blue box fooled the colour check into Credits), card screens = card boosters top right (not Gold) + Wild Boosters under. Previous: `07ce038` event points from SnapVault file (y44, h_more, y38).
   UNDO = `git revert` that commit (bots commit data files in between: revert, don't reset).
 - Root cause of "Couldn't save", the tour returning and test answers returning: Firestore rejected the state (nested arrays from AI
   readings) → `fsEnc`. check.sh ALL GOOD both ways; Playwright checks for menu, tabs, subfloat, reports, draft, AI search, CSV, flicks.

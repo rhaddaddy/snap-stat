@@ -112,8 +112,8 @@ function svSyncPanel() {
   const stale = !last || days >= 3, lr = obj(S.svLast);
   return `<section class="sec"><div class="panel stack ${stale ? "halftone" : ""}" style="gap:8px">
     <div class="row between"><span class="eyebrow">SnapVault sync</span><span class="small ${stale ? "" : "muted"}">${when}</span></div>
-    <p class="small muted">In SnapVault, tap <b>Export decks &amp; collections</b>. Then tap <b>Sync now</b> and pick that file. It's usually the first one in the list.</p>
-    <div class="row"><a class="btn" href="https://www.snapvault.app/" target="_blank" rel="noopener">Open SnapVault ↗</a><label class="btn snap">Sync now<input type="file" accept=".json,application/json,text/plain" data-svquick="1" hidden></label></div>
+    <p class="small muted">In SnapVault, export your <b>decks &amp; collections</b> (.json) and your <b>match history</b> (.csv). Then tap <b>Sync now</b> and pick both files at once: cards, decks and every match come in together.</p>
+    <div class="row"><a class="btn" href="https://www.snapvault.app/" target="_blank" rel="noopener">Open SnapVault ↗</a><label class="btn snap">Sync now<input type="file" accept=".json,.csv,application/json,text/csv,text/plain" multiple data-svquick="1" hidden></label></div>
     ${last && (lr.owned || lr.made || lr.updated) ? `<span class="muted small">Last sync: ${svSummary(lr)}</span>` : ""}</div></section>`;
 }
 function svSummary(r) { const p = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`; return [r.owned ? p(r.owned, "new card") : "", r.made ? p(r.made, "new deck") : "", r.updated ? p(r.updated, "deck") + " updated" : "", r.games ? p(r.games, "new result") : ""].filter(Boolean).join(", ") || "nothing new"; }
