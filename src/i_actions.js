@@ -146,6 +146,30 @@ function showLocInfo(input) {
 const delArm = { key: "", at: 0 };
 function armDel(key, msg) { if (delArm.key === key && Date.now() - delArm.at < 4000) { delArm.key = ""; return true; } delArm.key = key; delArm.at = Date.now(); toast(msg); return false; }
 function starFlip(el, on) { el.setAttribute("aria-pressed", on); el.setAttribute("aria-label", el.getAttribute("aria-label").replace(/^(On|Add to) wishlist/, on ? "On wishlist" : "Add to wishlist")); }
+/* Tests one AI key (the Test it button, and every time the app opens). Gemini also re-finds the way and models that answer. */
+async function aiKeyTestRun(p) {
+    const n = AI_PROVIDERS[p].name; if (obj(aiTests[p]).busy) return aiTests[p];
+    const ask = () => aiJson('Return {"ok": true, "card": "the name of any MARVEL SNAP card"}', { only: p });
+    const good = (r) => (r && r.ok ? { ok: true, msg: `${n} works. It picked ${r.card || "a card"}.` } : { ok: false, msg: `${n} answered, but not in the expected way. Try again.` });
+    aiTests[p] = { busy: true }; refreshView();
+    if (p === "gemini") {
+      // Check every way and model at once (about 45 seconds at most), then use whichever answers first.
+      aiTests[p] = { busy: true, msg: "Checking your key and Google's models. This can take up to 45 seconds…" }; render();
+      const pr = await gemProbe(aiKeyFor("gemini"));
+      const trouble = pr.steps.some((x) => !x.ok);
+      if (pr.works) {
+        setAiState("gemini", { mode: pr.works, models: [pr.model, ...pr.models.filter((m) => m !== pr.model)], modelsAt: Date.now(), pickV: AI_PICK_V, until: 0, why: "", msg: "" });
+        aiWaitNow = 30e3; try { aiTests[p] = { ...good(await ask()), steps: trouble ? pr.steps : [] }; } catch (e) { aiTests[p] = { ok: false, msg: e.message, steps: pr.steps }; }
+      } else {
+        const bad = pr.steps.find((x) => /^Ask/.test(x.label) && x.status) || pr.steps.find((x) => !x.ok);
+        aiTests[p] = { ok: false, msg: !pr.steps[0].ok && !pr.steps[1].ok ? `${n} turned down the key or can't be reached.` : `Your key works, but Google's AI models didn't answer just now${bad && bad.status ? ` (${bad.status})` : ""}. Try again in a few minutes.`, steps: pr.steps };
+      }
+    } else {
+      aiWaitNow = 20e3;
+      try { aiTests[p] = good(await ask()); } catch (e) { aiTests[p] = { ok: false, msg: e.message || `${n} didn't answer.` }; }
+    }
+    aiWaitNow = 0; return aiTests[p];
+}
 const A = {
   go: (el) => go(el.dataset.to), close: () => closeSheet(),
   period: (el) => { ui.period = el.dataset.v; render(); }, playSeg: (el) => { ui.playSeg = el.dataset.v; render(); }, statView: (el) => { ui.statView = el.dataset.v; render(); },
@@ -243,29 +267,7 @@ const A = {
   metaSave: () => { const r = mc.res; if (!r || !r.cards.length) return; S.decks.push({ id: uid(), name: r.name || "Checked deck", cards: r.cards.slice(0, 12), status: "future", variants: {}, created: Date.now() }); save(); closeSheet(); ui.deckFilter = "all"; go("decks"); toast("Saved to your decks as a future deck"); },
   aiKeySave: (el) => { const p = el.dataset.p; const k = String(($("#ai-key-" + p) || {}).value || "").trim(); if (!k) { toast("Paste the key first"); return; } if (!lsPut(aiKeyName(p), k)) { toast("This browser won't save the key."); return; } setAiState(p, null); delete aiTests[p]; setupAI(); render(); toast(`${AI_PROVIDERS[p].name} key saved. Tap Test it to check it.`); },
   aiKeyRemove: (el) => { const p = el.dataset.p; if (!armDel("ai:" + p, "Tap Remove key again to remove it. You'd need to paste it again.")) return; lsPut(aiKeyName(p), ""); setAiState(p, null); delete aiTests[p]; setupAI(); render(); toast(`${AI_PROVIDERS[p].name} key removed`); },
-  aiKeyTest: async (el) => {
-    const p = el.dataset.p, n = AI_PROVIDERS[p].name; if (obj(aiTests[p]).busy) return;
-    const ask = () => aiJson('Return {"ok": true, "card": "the name of any MARVEL SNAP card"}', { only: p });
-    const good = (r) => (r && r.ok ? { ok: true, msg: `${n} works. It picked ${r.card || "a card"}.` } : { ok: false, msg: `${n} answered, but not in the expected way. Try again.` });
-    aiTests[p] = { busy: true }; toast(`Asking ${n}…`); refreshView();
-    if (p === "gemini") {
-      // Check every way and model at once (about 45 seconds at most), then use whichever answers first.
-      aiTests[p] = { busy: true, msg: "Checking your key and Google's models. This can take up to 45 seconds…" }; render();
-      const pr = await gemProbe(aiKeyFor("gemini"));
-      const trouble = pr.steps.some((x) => !x.ok);
-      if (pr.works) {
-        setAiState("gemini", { mode: pr.works, models: [pr.model, ...pr.models.filter((m) => m !== pr.model)], modelsAt: Date.now(), pickV: AI_PICK_V, until: 0, why: "", msg: "" });
-        aiWaitNow = 30e3; try { aiTests[p] = { ...good(await ask()), steps: trouble ? pr.steps : [] }; } catch (e) { aiTests[p] = { ok: false, msg: e.message, steps: pr.steps }; }
-      } else {
-        const bad = pr.steps.find((x) => /^Ask/.test(x.label) && x.status) || pr.steps.find((x) => !x.ok);
-        aiTests[p] = { ok: false, msg: !pr.steps[0].ok && !pr.steps[1].ok ? `${n} turned down the key or can't be reached.` : `Your key works, but Google's AI models didn't answer just now${bad && bad.status ? ` (${bad.status})` : ""}. Try again in a few minutes.`, steps: pr.steps };
-      }
-    } else {
-      aiWaitNow = 20e3;
-      try { aiTests[p] = good(await ask()); } catch (e) { aiTests[p] = { ok: false, msg: e.message || `${n} didn't answer.` }; }
-    }
-    aiWaitNow = 0; toast(aiTests[p].msg); render();
-  },
+  aiKeyTest: async (el) => { const p = el.dataset.p; if (obj(aiTests[p]).busy) return; toast(`Asking ${AI_PROVIDERS[p].name}…`); await aiKeyTestRun(p); toast(aiTests[p].msg); render(); },
   aiMove: (el) => { const o = aiOrder(); const i = o.indexOf(el.dataset.p), j = i + num(el.dataset.v); if (i < 0 || j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; lsPut(AI_ORDER_KEY, o.join(",")); render(); },
   aiRelaySave: () => { const v = String(($("#ai-relay") || {}).value || "").trim().replace(/\/+$/, ""); if (v && !/^https:\/\/[^\s/]+/.test(v)) { toast("The relay address starts with https://"); return; } lsPut(AI_RELAY_KEY, v); setAiState("perplexity", null); setAiState("xai", null); render(); toast(v ? "Relay saved" : "Relay removed"); },
   installApp: async () => { if (!installEvt) return; installEvt.prompt(); try { await installEvt.userChoice; } catch { /* ignore */ } installEvt = null; render(); },

@@ -4,6 +4,9 @@
    kind: "new" (a new feature) · "better" (an existing one changed) · "fixed" (a bug fix) · "removed"
    where: the page it's on (opens when tapped) · test: what to try in the app to make sure it works */
 const CHANGES = [
+  { id: "1114b-aicheck", date: "2026-11-14", kind: "fixed", title: "AI keys checked every time the app opens", where: "settings/ai",
+    body: "Screenshots used to wait until you tapped Test it in Settings › AI. Now SNAP Stat runs that same test by itself each time it opens (and when you come back after 10 minutes or more), then reads the screenshots that were waiting.",
+    test: ["Close SNAP Stat fully, take a MARVEL SNAP screenshot, open SNAP Stat: within about a minute the screenshot is read without tapping Test it.", "Settings › AI: under your Gemini key it already says it works, without tapping Test it."] },
   { id: "1114a-svboth", date: "2026-11-14", kind: "new", title: "Sync both SnapVault files at once", where: "home/overview",
     body: "Pick SnapVault's decks & collections file (.json) and its match history file (.csv) together. SNAP Stat brings in every match first, then your cards and decks, then joins each match to its deck, and shows one summary. Nothing comes in twice if you pick the same files again.",
     test: ["Home › SnapVault sync › Sync now (or Cards › Sync from SnapVault): pick both files at once. The summary shows new matches, new cards and new/updated decks.", "Do it again with the same two files: it says every match was already in and nothing new.", "Cards › Decks: the imported games show on each deck (Round Table, Test 3, Deck 16)."] },

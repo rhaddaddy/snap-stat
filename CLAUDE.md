@@ -117,7 +117,8 @@ Data & state: `S` (saved state, c_core) · `ui` (view state) · matches in `matc
   y26 test marks in localStorage too + Checked features + `otShot` bar, y24 quick flick (`swipe.quick`) + prewarmed neighbours (`swipe.pre`),
   y41 widget `S.widgetBg` app/clear/you, `widgetKeepAccent`, `widgetShade`; Widget.kt `bg`/`keepAccent`/`shade`; res `@dimen/widget_radius`.
 - Nov 14: `y45_svboth` `svBothFiles(files)`: every SnapVault picker (data-svquick, data-svcfile) takes .json + .csv together → CSV matches first
-  (`A.svcImport`), then `applySnapVault`, then `svcLinkDecks`, one summary sheet `svBothSheet`. One file alone = old flows.
+  (`A.svcImport`), then `applySnapVault`, then `svcLinkDecks`, one summary sheet `svBothSheet`. One file alone = old flows. `y46_aicheck`
+  `aiAutoCheck()` runs i_actions `aiKeyTestRun(p)` (= Test it) for every keyed AI on open + on return after 10 min, then `aiAutoResume()` reads waiting shots.
 - `k_firebase.js` 7 · Firebase sign-in/storage · `z_boot.js` · boot, flush on pagehide · `build.sh` · `README.md`
 Tests `tests/`: `check.sh` (run before every push) · `serve.py` test server · `mock-firebase-init.js` fake sign-in · `crawl.cjs`.
 Root: `index.html` (BUILT, 1.4 MB: never edit or read whole) · `version.json` · `sw.js` (service worker: share target,
@@ -138,8 +139,8 @@ ImageView layers (`w_bg`, `w_glow`, `w_edge`, `w_play_bg/hi`) and texts (ids in 
 `RemoteViews.setColorInt`. No Android SDK in the sandbox: Kotlin is only checked by the GitHub build (see android-build-log).
 
 ## 4. Status (November 14, 2026)
-- This push: SnapVault both-files sync (y45; tested with Ryan's real files in Playwright: 200 matches, 43 decks, all linked, re-run adds 0).
-- Before: q_auto `sortTopBar(n, raw, hint, colour, kind)`: split screens = Split Reroll Coins top left (icon "rerolls"; blue box fooled the colour check into Credits), card screens = card boosters top right (not Gold) + Wild Boosters under. Previous: `07ce038` event points from SnapVault file (y44, h_more, y38).
+- This push: AI keys auto-tested on open (y46; Playwright with a mocked Gemini: a resting key is cleared and reading turns on). Previous:
+  `643f668` SnapVault both-files sync (y45; Ryan's real files: 200 matches, 43 decks, all linked, re-run adds 0).
   UNDO = `git revert` that commit (bots commit data files in between: revert, don't reset).
 - Root cause of "Couldn't save", the tour returning and test answers returning: Firestore rejected the state (nested arrays from AI
   readings) → `fsEnc`. check.sh ALL GOOD both ways; Playwright checks for menu, tabs, subfloat, reports, draft, AI search, CSV, flicks.
@@ -148,5 +149,5 @@ ImageView layers (`w_bg`, `w_glow`, `w_edge`, `w_play_bg/hi`) and texts (ids in 
   shops/missions, alliance & social, profile pictures, widget & notifications, self-update, history import, bug reports.
 - Waiting on Ryan: paste firestore.rules (files ≤ 20), install Android 1.24, run the owner test list. Card art in posts: couldn't
   reproduce the blank cards (art hosts blocked in the sandbox); added eager loading + backup art; ask for a new report if it recurs.
-- Report-status notifications only come when the app opens (no server push; FCM would need a server). Kotlin untested locally.
+- Report-status notifications only come on open (no server push). Kotlin untested locally.
 - To-do: split GIANT files; feature tests (made-up data) in tests/. Open: deleted SnapVault decks return on sync; two phones saving one week (last wins); News needs a daily job. AI keys stay per player.

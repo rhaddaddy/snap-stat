@@ -730,7 +730,7 @@ tr.me td { font-weight: 800; color: var(--cube); }
 </style>
 
 <style>html, body { margin: 0; } :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); } img { max-width: 100%; }</style>
-<script>window.SNAPSTAT_BUILD = "a7fa30553030"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
+<script>window.SNAPSTAT_BUILD = "f6ccd5b17f5a"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
 <script src="firebase-config.js"></script>
 <script type="module" src="firebase-init.js"></script>
 </head>
@@ -1381,6 +1381,9 @@ function extStyles() {
    kind: "new" (a new feature) · "better" (an existing one changed) · "fixed" (a bug fix) · "removed"
    where: the page it's on (opens when tapped) · test: what to try in the app to make sure it works */
 const CHANGES = [
+  { id: "1114b-aicheck", date: "2026-11-14", kind: "fixed", title: "AI keys checked every time the app opens", where: "settings/ai",
+    body: "Screenshots used to wait until you tapped Test it in Settings › AI. Now SNAP Stat runs that same test by itself each time it opens (and when you come back after 10 minutes or more), then reads the screenshots that were waiting.",
+    test: ["Close SNAP Stat fully, take a MARVEL SNAP screenshot, open SNAP Stat: within about a minute the screenshot is read without tapping Test it.", "Settings › AI: under your Gemini key it already says it works, without tapping Test it."] },
   { id: "1114a-svboth", date: "2026-11-14", kind: "new", title: "Sync both SnapVault files at once", where: "home/overview",
     body: "Pick SnapVault's decks & collections file (.json) and its match history file (.csv) together. SNAP Stat brings in every match first, then your cards and decks, then joins each match to its deck, and shows one summary. Nothing comes in twice if you pick the same files again.",
     test: ["Home › SnapVault sync › Sync now (or Cards › Sync from SnapVault): pick both files at once. The summary shows new matches, new cards and new/updated decks.", "Do it again with the same two files: it says every match was already in and nothing new.", "Cards › Decks: the imported games show on each deck (Round Table, Test 3, Deck 16)."] },
@@ -4973,6 +4976,30 @@ function showLocInfo(input) {
 const delArm = { key: "", at: 0 };
 function armDel(key, msg) { if (delArm.key === key && Date.now() - delArm.at < 4000) { delArm.key = ""; return true; } delArm.key = key; delArm.at = Date.now(); toast(msg); return false; }
 function starFlip(el, on) { el.setAttribute("aria-pressed", on); el.setAttribute("aria-label", el.getAttribute("aria-label").replace(/^(On|Add to) wishlist/, on ? "On wishlist" : "Add to wishlist")); }
+/* Tests one AI key (the Test it button, and every time the app opens). Gemini also re-finds the way and models that answer. */
+async function aiKeyTestRun(p) {
+    const n = AI_PROVIDERS[p].name; if (obj(aiTests[p]).busy) return aiTests[p];
+    const ask = () => aiJson('Return {"ok": true, "card": "the name of any MARVEL SNAP card"}', { only: p });
+    const good = (r) => (r && r.ok ? { ok: true, msg: `${n} works. It picked ${r.card || "a card"}.` } : { ok: false, msg: `${n} answered, but not in the expected way. Try again.` });
+    aiTests[p] = { busy: true }; refreshView();
+    if (p === "gemini") {
+      // Check every way and model at once (about 45 seconds at most), then use whichever answers first.
+      aiTests[p] = { busy: true, msg: "Checking your key and Google's models. This can take up to 45 seconds…" }; render();
+      const pr = await gemProbe(aiKeyFor("gemini"));
+      const trouble = pr.steps.some((x) => !x.ok);
+      if (pr.works) {
+        setAiState("gemini", { mode: pr.works, models: [pr.model, ...pr.models.filter((m) => m !== pr.model)], modelsAt: Date.now(), pickV: AI_PICK_V, until: 0, why: "", msg: "" });
+        aiWaitNow = 30e3; try { aiTests[p] = { ...good(await ask()), steps: trouble ? pr.steps : [] }; } catch (e) { aiTests[p] = { ok: false, msg: e.message, steps: pr.steps }; }
+      } else {
+        const bad = pr.steps.find((x) => /^Ask/.test(x.label) && x.status) || pr.steps.find((x) => !x.ok);
+        aiTests[p] = { ok: false, msg: !pr.steps[0].ok && !pr.steps[1].ok ? `${n} turned down the key or can't be reached.` : `Your key works, but Google's AI models didn't answer just now${bad && bad.status ? ` (${bad.status})` : ""}. Try again in a few minutes.`, steps: pr.steps };
+      }
+    } else {
+      aiWaitNow = 20e3;
+      try { aiTests[p] = good(await ask()); } catch (e) { aiTests[p] = { ok: false, msg: e.message || `${n} didn't answer.` }; }
+    }
+    aiWaitNow = 0; return aiTests[p];
+}
 const A = {
   go: (el) => go(el.dataset.to), close: () => closeSheet(),
   period: (el) => { ui.period = el.dataset.v; render(); }, playSeg: (el) => { ui.playSeg = el.dataset.v; render(); }, statView: (el) => { ui.statView = el.dataset.v; render(); },
@@ -5070,29 +5097,7 @@ const A = {
   metaSave: () => { const r = mc.res; if (!r || !r.cards.length) return; S.decks.push({ id: uid(), name: r.name || "Checked deck", cards: r.cards.slice(0, 12), status: "future", variants: {}, created: Date.now() }); save(); closeSheet(); ui.deckFilter = "all"; go("decks"); toast("Saved to your decks as a future deck"); },
   aiKeySave: (el) => { const p = el.dataset.p; const k = String(($("#ai-key-" + p) || {}).value || "").trim(); if (!k) { toast("Paste the key first"); return; } if (!lsPut(aiKeyName(p), k)) { toast("This browser won't save the key."); return; } setAiState(p, null); delete aiTests[p]; setupAI(); render(); toast(`${AI_PROVIDERS[p].name} key saved. Tap Test it to check it.`); },
   aiKeyRemove: (el) => { const p = el.dataset.p; if (!armDel("ai:" + p, "Tap Remove key again to remove it. You'd need to paste it again.")) return; lsPut(aiKeyName(p), ""); setAiState(p, null); delete aiTests[p]; setupAI(); render(); toast(`${AI_PROVIDERS[p].name} key removed`); },
-  aiKeyTest: async (el) => {
-    const p = el.dataset.p, n = AI_PROVIDERS[p].name; if (obj(aiTests[p]).busy) return;
-    const ask = () => aiJson('Return {"ok": true, "card": "the name of any MARVEL SNAP card"}', { only: p });
-    const good = (r) => (r && r.ok ? { ok: true, msg: `${n} works. It picked ${r.card || "a card"}.` } : { ok: false, msg: `${n} answered, but not in the expected way. Try again.` });
-    aiTests[p] = { busy: true }; toast(`Asking ${n}…`); refreshView();
-    if (p === "gemini") {
-      // Check every way and model at once (about 45 seconds at most), then use whichever answers first.
-      aiTests[p] = { busy: true, msg: "Checking your key and Google's models. This can take up to 45 seconds…" }; render();
-      const pr = await gemProbe(aiKeyFor("gemini"));
-      const trouble = pr.steps.some((x) => !x.ok);
-      if (pr.works) {
-        setAiState("gemini", { mode: pr.works, models: [pr.model, ...pr.models.filter((m) => m !== pr.model)], modelsAt: Date.now(), pickV: AI_PICK_V, until: 0, why: "", msg: "" });
-        aiWaitNow = 30e3; try { aiTests[p] = { ...good(await ask()), steps: trouble ? pr.steps : [] }; } catch (e) { aiTests[p] = { ok: false, msg: e.message, steps: pr.steps }; }
-      } else {
-        const bad = pr.steps.find((x) => /^Ask/.test(x.label) && x.status) || pr.steps.find((x) => !x.ok);
-        aiTests[p] = { ok: false, msg: !pr.steps[0].ok && !pr.steps[1].ok ? `${n} turned down the key or can't be reached.` : `Your key works, but Google's AI models didn't answer just now${bad && bad.status ? ` (${bad.status})` : ""}. Try again in a few minutes.`, steps: pr.steps };
-      }
-    } else {
-      aiWaitNow = 20e3;
-      try { aiTests[p] = good(await ask()); } catch (e) { aiTests[p] = { ok: false, msg: e.message || `${n} didn't answer.` }; }
-    }
-    aiWaitNow = 0; toast(aiTests[p].msg); render();
-  },
+  aiKeyTest: async (el) => { const p = el.dataset.p; if (obj(aiTests[p]).busy) return; toast(`Asking ${AI_PROVIDERS[p].name}…`); await aiKeyTestRun(p); toast(aiTests[p].msg); render(); },
   aiMove: (el) => { const o = aiOrder(); const i = o.indexOf(el.dataset.p), j = i + num(el.dataset.v); if (i < 0 || j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; lsPut(AI_ORDER_KEY, o.join(",")); render(); },
   aiRelaySave: () => { const v = String(($("#ai-relay") || {}).value || "").trim().replace(/\/+$/, ""); if (v && !/^https:\/\/[^\s/]+/.test(v)) { toast("The relay address starts with https://"); return; } lsPut(AI_RELAY_KEY, v); setAiState("perplexity", null); setAiState("xai", null); render(); toast(v ? "Relay saved" : "Relay removed"); },
   installApp: async () => { if (!installEvt) return; installEvt.prompt(); try { await installEvt.userChoice; } catch { /* ignore */ } installEvt = null; render(); },
@@ -18490,6 +18495,40 @@ function svBothSheet() {
     <div class="row"><button class="btn snap" data-a="svcGo" data-to="home/matches">See my matches</button><button class="btn" data-a="svcGo" data-to="cards/decks">See my decks</button><button class="btn ghost" data-a="close">Close</button></div></div>`;
 }
 EXT.search.push((q) => (/snapvault|sync/i.test(q) ? [{ label: "Sync both SnapVault files", sub: "Home › SnapVault sync › Sync now", route: "settings/data" }] : []));
+/* ============ AI keys checked every time SNAP Stat opens (Nov 14) ============
+   Screenshots weren't read until "Test it" was tapped: the test re-finds Gemini's working way and models and wakes up a
+   resting service. Now that same test runs on its own when the app opens (and when it comes back after 10+ minutes), one
+   service after another, then the pictures waiting on the phone or in the reading window are read. */
+const aiAuto = { at: 0, busy: false };
+async function aiAutoCheck() {
+  if (aiAuto.busy || !window.SNAPSTAT_STANDALONE || typeof aiKeyTestRun !== "function") return;
+  const list = aiOrder().filter((p) => aiKeyFor(p)); if (!list.length) return;
+  aiAuto.busy = true; aiAuto.at = Date.now();
+  const bad = [];
+  try {
+    for (const p of list) {
+      try { const r = await aiKeyTestRun(p); if (!obj(r).ok) bad.push(`${AI_PROVIDERS[p].name}: ${obj(r).msg || "didn't answer"}`); }
+      catch (e) { aiTests[p] = { ok: false, msg: errText(e) }; bad.push(`${AI_PROVIDERS[p].name}: ${errText(e)}`); }
+    }
+  } finally { aiAuto.busy = false; aiWaitNow = 0; }
+  setupAI();
+  if (bad.length === list.length) toast(`AI key check: ${bad[0]}. Screenshots wait until it works (Settings › AI).`);
+  aiAutoResume();
+  try { if (ui.tab === "settings") render(); else if (sheetFn) refreshSheet(); } catch { /* next render */ }
+}
+// Pictures that were waiting for a working key get read now
+function aiAutoResume() {
+  if (!canReadShots()) return;
+  try { if (NATIVE && typeof natPull === "function") natPull(); } catch { /* older app */ }
+  try {
+    if (typeof shots !== "object" || shots.busy) return;
+    const wait = shots.items.filter((y) => !y.done && y.file && !y.native); if (!wait.length) return;
+    shots.items = shots.items.filter((y) => !wait.includes(y));
+    readShots(wait.map((y) => y.file));
+  } catch (e) { errNote("reading waiting screenshots", e, true); }
+}
+setTimeout(() => { aiAutoCheck(); }, 2500);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && Date.now() - aiAuto.at > 10 * 60e3) aiAutoCheck(); });
 /* ============ Standalone (Firebase) sign-in and storage ============ */
 const FB_CFG_KEY = "snapstat.firebaseConfig", FB_SKIP_KEY = "snapstat.skipSignIn";
 function parseFirebaseConfig(text) {
