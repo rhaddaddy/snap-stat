@@ -4,6 +4,9 @@
    kind: "new" (a new feature) · "better" (an existing one changed) · "fixed" (a bug fix) · "removed"
    where: the page it's on (opens when tapped) · test: what to try in the app to make sure it works */
 const CHANGES = [
+  { id: "1114c-aipick", date: "2026-11-14", kind: "new", title: "AI deck builder: pick up to 12 cards, built for the meta", where: "cards/decks",
+    body: "In the AI deck builder, search and tap cards to lock them in (up to 12). The AI works out the best current meta deck for each one, keeps them all, and fills the rest with the cards that win most with them, using today's card stats and the latest balance changes. Pick all 12 and it tells you which meta deck yours is closest to and suggests swaps (tick the ones you want, then save).",
+    test: ["Cards › Decks › AI deck builder: type a card name, tap it, then pick 2 more. Build deck: all 3 are in the new deck and the plan names the meta deck.", "Pick 12 cards and tap Check against the meta: it lists each card's best meta deck and up to 4 swaps; untick one and Save as deck."] },
   { id: "1114b-aicheck", date: "2026-11-14", kind: "fixed", title: "AI keys checked every time the app opens", where: "settings/ai",
     body: "Screenshots used to wait until you tapped Test it in Settings › AI. Now SNAP Stat runs that same test by itself each time it opens (and when you come back after 10 minutes or more), then reads the screenshots that were waiting.",
     test: ["Close SNAP Stat fully, take a MARVEL SNAP screenshot, open SNAP Stat: within about a minute the screenshot is read without tapping Test it.", "Settings › AI: under your Gemini key it already says it works, without tapping Test it."] },

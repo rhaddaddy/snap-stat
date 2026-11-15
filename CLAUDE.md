@@ -119,6 +119,7 @@ Data & state: `S` (saved state, c_core) · `ui` (view state) · matches in `matc
 - Nov 14: `y45_svboth` `svBothFiles(files)`: every SnapVault picker (data-svquick, data-svcfile) takes .json + .csv together → CSV matches first
   (`A.svcImport`), then `applySnapVault`, then `svcLinkDecks`, one summary sheet `svBothSheet`. One file alone = old flows. `y46_aicheck`
   `aiAutoCheck()` runs i_actions `aiKeyTestRun(p)` (= Test it) for every keyed AI on open + on return after 10 min, then `aiAutoResume()` reads waiting shots.
+  `y47_aipick` AI builder `ai.picks` (≤12, chips via `aiSuggCard`/`aipDrop`), wraps `aiSheet` + `runAiBuild`: <12 = meta build keeping picks; 12 = `ai.metaSwaps` swaps.
 - `k_firebase.js` 7 · Firebase sign-in/storage · `z_boot.js` · boot, flush on pagehide · `build.sh` · `README.md`
 Tests `tests/`: `check.sh` (run before every push) · `serve.py` test server · `mock-firebase-init.js` fake sign-in · `crawl.cjs`.
 Root: `index.html` (BUILT, 1.4 MB: never edit or read whole) · `version.json` · `sw.js` (service worker: share target,
@@ -139,8 +140,8 @@ ImageView layers (`w_bg`, `w_glow`, `w_edge`, `w_play_bg/hi`) and texts (ids in 
 `RemoteViews.setColorInt`. No Android SDK in the sandbox: Kotlin is only checked by the GitHub build (see android-build-log).
 
 ## 4. Status (November 14, 2026)
-- This push: AI keys auto-tested on open (y46; Playwright with a mocked Gemini: a resting key is cleared and reading turns on). Previous:
-  `643f668` SnapVault both-files sync (y45; Ryan's real files: 200 matches, 43 decks, all linked, re-run adds 0).
+- This push: AI builder picks + meta (y47; Playwright with mocked Gemini: picks kept, 12 → swaps applied on save). Earlier today:
+  y46 AI keys auto-tested on open; y45 SnapVault both-files sync (Ryan's files: 200 matches, 43 decks, all linked).
   UNDO = `git revert` that commit (bots commit data files in between: revert, don't reset).
 - Root cause of "Couldn't save", the tour returning and test answers returning: Firestore rejected the state (nested arrays from AI
   readings) → `fsEnc`. check.sh ALL GOOD both ways; Playwright checks for menu, tabs, subfloat, reports, draft, AI search, CSV, flicks.
