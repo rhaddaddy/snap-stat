@@ -1,13 +1,13 @@
 {
- "anim": [
-  "Common"
- ],
+ "anim": [],
  "still": [
   "WebPink",
   "MetalChainsGold",
   "DistressedGreen"
  ],
  "drawn": [
+  "AdornedBranches",
+  "FrostedSnow",
   "ChromaticAqua",
   "ChromaticBlack",
   "ChromaticBlue",
@@ -65,7 +65,6 @@
   "MetalChains",
   "NeonNights",
   "CandyCane",
-  "CosmicBlack",
   "CosmicBlue",
   "CosmicGold",
   "CosmicGreen",
