@@ -1,5 +1,8 @@
 {
- "anim": [],
+ "anim": [
+  "Common",
+  "CosmicBlack"
+ ],
  "still": [
   "WebPink",
   "MetalChainsGold",
