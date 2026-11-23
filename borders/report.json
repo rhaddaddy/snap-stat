@@ -1,7 +1,5 @@
 {
- "anim": [
-  "DistressedPurple"
- ],
+ "anim": [],
  "still": [
   "WebPink",
   "MetalChainsGold",
@@ -59,6 +57,7 @@
   "DistressedGrey",
   "DistressedOrange",
   "DistressedPink",
+  "DistressedPurple",
   "DistressedRainbow",
   "Pax2025",
   "RefractionRainbow",
