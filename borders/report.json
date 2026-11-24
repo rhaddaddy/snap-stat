@@ -1,5 +1,9 @@
 {
- "anim": [],
+ "anim": [
+  "FireBlue",
+  "NeonGreen",
+  "NeonWhite"
+ ],
  "still": [
   "WebPink",
   "MetalChainsGold",
@@ -44,7 +48,6 @@
  "kept": [
   "FireGreen",
   "Fire",
-  "FireBlue",
   "FireGold",
   "FirePink",
   "FirePurple",
@@ -86,10 +89,8 @@
   "MetallicGold",
   "MetallicSilver",
   "NeonBlue",
-  "NeonGreen",
   "NeonPurple",
   "NeonRed",
-  "NeonWhite",
   "NeonYellow",
   "Rare",
   "SnowflakesBlue",
