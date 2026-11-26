@@ -116,8 +116,9 @@ Data & state: `S` (saved state, c_core) · `ui` (view state) · matches in `matc
   bulk via c_core `matchBulk` (onMatch isNew=false), then `onMatchSaved` once; `svcLinkDecks` by name; j_import sync skips logged games), About › On iPhone. Also: y25 reports (20 files, page picker `bug.page`, `bugMineSheet`, `bugTellChange` notifies via showAlert),
   y26 test marks in localStorage too + Checked features + `otShot` bar, y24 quick flick (`swipe.quick`) + prewarmed neighbours (`swipe.pre`),
   y41 widget `S.widgetBg` app/clear/you, `widgetKeepAccent`, `widgetShade`; Widget.kt `bg`/`keepAccent`/`shade`; res `@dimen/widget_radius`.
-- Nov 14: `y45_svboth` `svBothFiles(files)`: every SnapVault picker (data-svquick, data-svcfile) takes .json + .csv together → CSV matches first
-  (`A.svcImport`), then `applySnapVault`, then `svcLinkDecks`, one summary sheet `svBothSheet`. One file alone = old flows. `y46_aicheck`
+- Nov 14/26: `y45_svboth` `svBothFiles(files)`: EVERY SnapVault picker (data-svquick, data-svcfile, svSheet's data-svmany) takes any number of
+  .json + .csv → CSV matches (`A.svcImport`), newest json via `applySnapVault` (older jsons add cards only), `svcLinkDecks`, `svBothSheet`.
+  One json alone = preview/quick sync, csv only = `svcSheet`. MainActivity file chooser opens `*/*` for mixed/extension accepts. `y46_aicheck`
   `aiAutoCheck()` runs i_actions `aiKeyTestRun(p)` (= Test it) for every keyed AI on open + on return after 10 min, then `aiAutoResume()` reads waiting shots.
   `y47_aipick` AI builder `ai.picks` (≤12, chips via `aiSuggCard`/`aipDrop`), wraps `aiSheet` + `runAiBuild`: <12 = meta build keeping picks; 12 = `ai.metaSwaps` swaps.
 - `k_firebase.js` 7 · Firebase sign-in/storage · `z_boot.js` · boot, flush on pagehide · `build.sh` · `README.md`
@@ -135,20 +136,15 @@ screen-capture tracker · `Screenshots` + `ShotQueue` picture reading queue · `
 Google sign-in open as a second WebView over the shop via onCreateWindow, so window.opener works) ·
 `TrackerTile` Quick Settings tile · `StatusNote` lock-screen reset countdown + Won/Lost/Tie · `EventWidget` event countdown
 widget (layout widget_event, xml/event_widget_info) · Bridge: setStatusNote, setBatterySaver, trackerStats, setDeckShortcuts. Res: `values/themes.xml` + `values-night/`, `xml/shortcuts.xml`.
-Widget colours: the web app sends `look` (mode, black, accent a/b/ink/text/lightText) in `widgetState()`; `Widget.paint()` tints
-ImageView layers (`w_bg`, `w_glow`, `w_edge`, `w_play_bg/hi`) and texts (ids in `WidgetIds.kt`); Auto follows the phone on 12+ via
-`RemoteViews.setColorInt`. No Android SDK in the sandbox: Kotlin is only checked by the GitHub build (see android-build-log).
+Widget colours: web sends `look` in `widgetState()`; `Widget.paint()` tints ImageView layers + texts (`WidgetIds.kt`). No Android SDK in the sandbox: Kotlin is only checked by the GitHub build (android-build-log).
 
-## 4. Status (November 14, 2026)
-- This push: AI builder picks + meta (y47; Playwright with mocked Gemini: picks kept, 12 → swaps applied on save). Earlier today:
-  y46 AI keys auto-tested on open; y45 SnapVault both-files sync (Ryan's files: 200 matches, 43 decks, all linked).
-  UNDO = `git revert` that commit (bots commit data files in between: revert, don't reset).
-- Root cause of "Couldn't save", the tour returning and test answers returning: Firestore rejected the state (nested arrays from AI
-  readings) → `fsEnc`. check.sh ALL GOOD both ways; Playwright checks for menu, tabs, subfloat, reports, draft, AI search, CSV, flicks.
+## 4. Status (November 26, 2026)
+- This push: SnapVault multi-file import everywhere (Playwright with Ryan's Nov 26 files: 207 matches, 49 decks, 514 cards; re-pick adds 0)
+  + Android picker fix (Kotlin, built only on GitHub). UNDO = `git revert` that commit (bots commit data files in between: revert, don't reset).
+- "Couldn't save" root cause was Firestore rejecting nested arrays → `fsEnc` (keep it). check.sh ALL GOOD both ways.
 - Locked working features (don't change without being asked): match tracking (manual, AI screenshots, Android Track & play,
   PC tracker), SnapVault sync + CSV, game-file import, collection/variants/cosmetics, decks, stats & rank maths, seasons/events/
   shops/missions, alliance & social, profile pictures, widget & notifications, self-update, history import, bug reports.
-- Waiting on Ryan: paste firestore.rules (files ≤ 20), install Android 1.24, run the owner test list. Card art in posts: couldn't
+- Waiting on Ryan: paste firestore.rules (files ≤ 20), install the newest Android update, run the owner test list. Report alerts only on open. Card art in posts: couldn't
   reproduce the blank cards (art hosts blocked in the sandbox); added eager loading + backup art; ask for a new report if it recurs.
-- Report-status notifications only come on open (no server push). Kotlin untested locally.
 - To-do: split GIANT files; feature tests (made-up data) in tests/. Open: deleted SnapVault decks return on sync; two phones saving one week (last wins); News needs a daily job. AI keys stay per player.

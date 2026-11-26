@@ -730,7 +730,7 @@ tr.me td { font-weight: 800; color: var(--cube); }
 </style>
 
 <style>html, body { margin: 0; } :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); } img { max-width: 100%; }</style>
-<script>window.SNAPSTAT_BUILD = "148645ac581c"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
+<script>window.SNAPSTAT_BUILD = "c699cfa95828"; window.SNAPSTAT_STANDALONE = true; window.snapFirebaseReady = new Promise(function (r) { window.__resolveFirebase = r; });</script>
 <script src="firebase-config.js"></script>
 <script type="module" src="firebase-init.js"></script>
 </head>
@@ -1381,6 +1381,9 @@ function extStyles() {
    kind: "new" (a new feature) · "better" (an existing one changed) · "fixed" (a bug fix) · "removed"
    where: the page it's on (opens when tapped) · test: what to try in the app to make sure it works */
 const CHANGES = [
+  { id: "1126a-svmany", date: "2026-11-26", kind: "better", title: "SnapVault import: pick several files at once, .json and .csv", where: "settings/data",
+    body: "Every SnapVault button now takes as many files as you pick in one go: decks & collections files (.json) and match history files (.csv), in any mix. That includes Import from SnapVault, which used to take one .json only. Matches come in first, then cards and decks from the newest decks file (older ones still add their cards), then matches join their decks, with one summary. The Android app's file picker (after its next update) no longer hides .csv files.",
+    test: ["Settings › Import & backup › Import from SnapVault › Choose SnapVault files: pick snapvault-data-….json and snapvault-matches-….csv together. One summary shows new matches, cards and decks.", "Do it again with the same two files: it says every match was already in and nothing is added twice.", "Pick only the .json: the preview with the Import button still shows."] },
   { id: "1114c-aipick", date: "2026-11-14", kind: "new", title: "AI deck builder: pick up to 12 cards, built for the meta", where: "cards/decks",
     body: "In the AI deck builder, search and tap cards to lock them in (up to 12). The AI works out the best current meta deck for each one, keeps them all, and fills the rest with the cards that win most with them, using today's card stats and the latest balance changes. Pick all 12 and it tells you which meta deck yours is closest to and suggests swaps (tick the ones you want, then save).",
     test: ["Cards › Decks › AI deck builder: type a card name, tap it, then pick 2 more. Build deck: all 3 are in the new deck and the plan names the meta deck.", "Pick 12 cards and tap Check against the meta: it lists each card's best meta deck and up to 4 swaps; untick one and Save as deck."] },
@@ -3828,7 +3831,7 @@ function vCardGrid() {
   const f = (v, l) => `<button class="chip" data-a="cardFilter" data-v="${v}" aria-pressed="${ui.cardFilter === v}">${l}</button>`;
   return `<section class="sec">
     <div class="panel stack halftone" style="gap:6px"><div class="row between"><span class="eyebrow">Cards owned</span><span class="num" style="font-weight:800">${ownedN} / ${all.length} · ${donePct(ownedN, all.length)}%</span></div>${passBar(ownedN, all.length)}
-      <p class="muted small">Stats change with balance patches: tap any card to edit it.</p><div class="row"><label class="btn sm snap">Sync from SnapVault<input type="file" accept=".json,.csv,application/json,text/csv,text/plain" multiple data-svquick="1" hidden></label><button class="btn sm ghost" data-a="svOpen">Preview an export first</button></div></div>
+      <p class="muted small">Stats change with balance patches: tap any card to edit it.</p><div class="row"><label class="btn sm snap">Sync from SnapVault<input type="file" accept=".json,.csv,application/json,text/csv,text/comma-separated-values,text/plain" multiple data-svquick="1" hidden></label><button class="btn sm ghost" data-a="svOpen">Preview an export first</button></div></div>
     ${ui.cardFilter === "custom" ? "" : seriesPanel()}
     ${missingBanner()}
     <input type="search" id="card-q" data-ui="cardQ" value="${esc(ui.cardQ)}" placeholder="Search name, ability, variant, artist, rarity" aria-label="Search cards">
@@ -4706,8 +4709,9 @@ function svSheet() {
     <button class="btn snap block" data-a="svImport" ${!sv.owned && (!sv.decks || older) ? "disabled" : ""}>Import</button>`;
   }
   return `${sheetHead("Import from SnapVault", "Brings your cards and decks into SNAP Stat")}
-    <p class="small muted">In SnapVault, tap Export decks & collections, then choose that file here. Run it again any time to bring SNAP Stat up to date. Decks you imported before are updated, not duplicated.</p>
-    <label class="btn ${r ? "" : "snap"} block">Choose export file<input type="file" accept=".json,application/json,text/plain" data-svfile="1" hidden></label>
+    <p class="small muted">In SnapVault, export your decks & collections (.json) and your match history (.csv), then choose them here. Run it again any time to bring SNAP Stat up to date. Decks you imported before are updated, not duplicated.</p>
+    <label class="btn ${r ? "" : "snap"} block">Choose SnapVault files<input type="file" accept=".json,.csv,application/json,text/csv,text/comma-separated-values,text/plain" multiple data-svmany="1" hidden></label>
+    <span class="small muted">Pick as many as you like in one go: decks &amp; collections files (.json) and match history files (.csv). One decks file on its own shows a preview first.</span>
     <details><summary class="small">Or paste the file's text</summary><div class="stack" style="margin-top:8px"><textarea id="sv-text" class="code" data-sv="text" placeholder="Paste the export">${esc(sv.text)}</textarea><button class="btn" data-a="svParse">Read it</button></div></details>
     ${body}`;
 }
@@ -4775,7 +4779,7 @@ function svSyncPanel() {
   return `<section class="sec"><div class="panel stack ${stale ? "halftone" : ""}" style="gap:8px">
     <div class="row between"><span class="eyebrow">SnapVault sync</span><span class="small ${stale ? "" : "muted"}">${when}</span></div>
     <p class="small muted">In SnapVault, export your <b>decks &amp; collections</b> (.json) and your <b>match history</b> (.csv). Then tap <b>Sync now</b> and pick both files at once: cards, decks and every match come in together.</p>
-    <div class="row"><a class="btn" href="https://www.snapvault.app/" target="_blank" rel="noopener">Open SnapVault ↗</a><label class="btn snap">Sync now<input type="file" accept=".json,.csv,application/json,text/csv,text/plain" multiple data-svquick="1" hidden></label></div>
+    <div class="row"><a class="btn" href="https://www.snapvault.app/" target="_blank" rel="noopener">Open SnapVault ↗</a><label class="btn snap">Sync now<input type="file" accept=".json,.csv,application/json,text/csv,text/comma-separated-values,text/plain" multiple data-svquick="1" hidden></label></div>
     ${last && (lr.owned || lr.made || lr.updated) ? `<span class="muted small">Last sync: ${svSummary(lr)}</span>` : ""}</div></section>`;
 }
 function svSummary(r) { const p = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`; return [r.owned ? p(r.owned, "new card") : "", r.made ? p(r.made, "new deck") : "", r.updated ? p(r.updated, "deck") + " updated" : "", r.games ? p(r.games, "new result") : ""].filter(Boolean).join(", ") || "nothing new"; }
@@ -18422,7 +18426,7 @@ EXT.afterRender.push(function svcAutoLink() {
 });
 EXT.settingsData.push(() => `<section class="sec"><h2>SnapVault match history</h2><div class="panel stack small">
   <p>In SnapVault, export your matches (a file like <b>snapvault-matches-2026-11-12.csv</b>) and choose it here. Each match comes in with its time, mode, deck, result, cubes, snaps and locations, and everything that uses matches updates: rank, decks, stats, goals, achievements, events and the widget.</p>
-  <label class="btn">Choose the match file<input type="file" accept=".csv,.json,text/csv,application/json,text/plain" multiple hidden data-svcfile></label>
+  <label class="btn">Choose SnapVault files<input type="file" accept=".csv,.json,text/csv,text/comma-separated-values,application/json,text/plain" multiple hidden data-svcfile></label>
   <span class="muted">You can pick the decks &amp; collections file (.json) with it to sync everything at once. Choosing the same file again (or several copies) is fine: matches already in SNAP Stat are skipped.</span></div></section>`);
 EXT.search.push((q) => (/snapvault|csv|match history|export/i.test(q) ? [{ label: "SnapVault match history file", sub: "Settings › Import & backup", route: "settings/data" }] : []));
 
@@ -18456,25 +18460,29 @@ async function svBothFiles(files) {
     catch (e) { bad.push(`${f.name}: ${errText(e)}`); }
   }
   if (!json.length && !csv.length) { toast(bad[0] || "No SnapVault file chosen"); return; }
-  if (!csv.length) { svQuickSync(json.sort((a, b) => b.f.lastModified - a.f.lastModified)[0].txt); return; }
+  if (!csv.length && json.length === 1) { if (bad.length) toast(`Skipped: ${bad[0]}`); svQuickSync(json[0].txt); return; }
   if (!json.length) { svcFiles(csv.map((x) => x.f)); return; }
   try { svBothRun(json, csv, bad); } catch (e) { errNote("syncing SnapVault files", e); }
 }
 function svBothRun(json, csv, bad) {
-  const out = { matches: "", csvAll: 0, csvNew: 0, deck: null, deckNote: "", linked: 0, bad };
+  const out = { matches: "", csvAll: 0, csvNew: 0, deck: null, deckNote: "", linked: 0, bad, nJson: json.length, nCsv: csv.length };
   // 1. Matches, with everything a logged match updates (rank, stats, events, goals, widget)
   svc.list = []; svc.files = 0; svc.done = ""; svc.replace = true;
   csv.forEach((x) => { const r = svcRows(x.txt); if (r.bad) bad.push(`${x.f.name}: ${r.bad}`); else { svc.list.push(...r.list); svc.files++; } });
   const plan = svcPlan(); out.csvAll = plan.all; out.csvNew = plan.fresh.length;
   if (plan.fresh.length) { A.svcImport(); out.matches = svc.done; }
   // 2. Cards and decks from the newest export
-  const pick = json.map((x) => ({ ...x, r: parseSnapVault(x.txt) })).filter((x) => !x.r.err).sort((a, b) => (Date.parse(b.r.date || "") || 0) - (Date.parse(a.r.date || "") || 0))[0];
-  if (!pick) out.deckNote = parseSnapVault(json[0].txt).err || "Couldn't read the decks file.";
+  const good = json.map((x) => ({ ...x, r: parseSnapVault(x.txt) })).filter((x) => { if (x.r.err) bad.push(`${x.f.name}: ${x.r.err}`); return !x.r.err; });
+  const pick = good.slice().sort((a, b) => (Date.parse(b.r.date || "") || 0) - (Date.parse(a.r.date || "") || 0))[0];
+  if (!pick) out.deckNote = json.length ? "Couldn't read the decks file." : "";
   else {
     const at = Date.parse(pick.r.date || ""), prev = Date.parse(S.svExportDate || "");
     if (at && prev && at < prev) out.deckNote = `The decks file is from ${dateStr(localDate(at))}, older than your last sync, so cards and decks were left as they are.`;
     else { sv.res = pick.r; sv.owned = true; sv.decks = true; sv.past = false; out.deck = applySnapVault(); S.svLast = out.deck; if (pick.r.date) S.svExportDate = pick.r.date; }
   }
+  // Older decks files picked with it: their decks are out of date, but any card only they list is still yours
+  let extra = 0; good.filter((x) => x !== pick).forEach((x) => x.r.codes.forEach((code) => { const k = ensureCodeCard(code); if (!S.owned[k]) { S.owned[k] = true; extra++; } }));
+  if (extra) { out.deck = out.deck || { owned: 0, made: 0, updated: 0 }; out.deck.owned = num(out.deck.owned) + extra; }
   // 3. Matches whose deck just arrived join it
   out.linked = svcLinkDecks();
   if (out.linked) out.matches = out.matches.replace(/\s*\d+ deck names? (?:isn't|aren't) in SNAP Stat yet\.[^.]*\./, "");
@@ -18485,11 +18493,13 @@ function svBothSheet() {
   const o = svBoth.done; if (!o) return sheetHead("SnapVault sync", "");
   const d = o.deck || {};
   return `${sheetHead("SnapVault sync", "Decks, collection and matches")}<div class="stack small">
-    <div class="tiles"><div class="tile"><div class="k">Matches</div><div class="v">${fmt(o.csvNew)}</div><div class="small muted">new of ${fmt(o.csvAll)}</div></div>
+    <div class="tiles"><div class="tile"><div class="k">Matches</div><div class="v">${o.nCsv ? fmt(o.csvNew) : "–"}</div><div class="small muted">${o.nCsv ? `new of ${fmt(o.csvAll)}` : "no match file picked"}</div></div>
     <div class="tile"><div class="k">Cards</div><div class="v">${fmt(num(d.owned))}</div><div class="small muted">new to you</div></div>
     <div class="tile"><div class="k">Decks</div><div class="v">${fmt(num(d.made) + num(d.updated))}</div><div class="small muted">${num(d.made)} new · ${num(d.updated)} updated</div></div></div>
     <div class="panel stack">
-      ${o.csvNew ? `<p>${esc(o.matches)}</p>` : `<p class="muted">Every match in the file was already in SNAP Stat.</p>`}
+      <span class="eyebrow">${[o.nJson ? `${o.nJson} decks file${o.nJson === 1 ? "" : "s"}` : "", o.nCsv ? `${o.nCsv} match file${o.nCsv === 1 ? "" : "s"}` : ""].filter(Boolean).join(" · ")}</span>
+      ${o.csvNew ? `<p>${esc(o.matches)}</p>` : o.nCsv ? `<p class="muted">Every match in ${o.nCsv > 1 ? "those files" : "the file"} was already in SNAP Stat.</p>` : ""}
+      ${o.nJson > 1 ? `<p class="muted">The newest decks file set your decks and records; cards from the older ones were added too.</p>` : ""}
       ${o.deck ? `<p>Collection and decks: ${esc(svSummary(o.deck))}.${o.deck.first ? " From now on, new wins and losses come in as matches." : ""}</p>` : ""}
       ${o.deckNote ? `<p class="note">${esc(o.deckNote)}</p>` : ""}
       ${o.linked ? `<p>${o.linked} match${o.linked === 1 ? "" : "es"} joined ${o.linked === 1 ? "its deck" : "their decks"}.</p>` : ""}
@@ -18497,6 +18507,15 @@ function svBothSheet() {
       <span class="muted">Picking the same files again is safe: nothing is added twice.</span></div>
     <div class="row"><button class="btn snap" data-a="svcGo" data-to="home/matches">See my matches</button><button class="btn" data-a="svcGo" data-to="cards/decks">See my decks</button><button class="btn ghost" data-a="close">Close</button></div></div>`;
 }
+// "Import from SnapVault" sheet: one decks file alone keeps its preview; anything more goes in together
+document.addEventListener("change", (e) => {
+  const t = e.target; if (!t || !t.dataset || t.dataset.svmany === undefined) return;
+  const fs = Array.from(t.files || []); t.value = ""; if (!fs.length) return;
+  (async () => {
+    if (fs.length === 1) { const txt = await fs[0].text(); if (svKindOf(txt) === "json") { sv.text = ""; const r = parseSnapVault(txt); sv.err = r.err || ""; sv.res = r.err ? null : r; refreshSheet(); return; } }
+    closeSheet(); await svBothFiles(fs);
+  })().catch((err) => errNote("reading SnapVault files", err));
+});
 EXT.search.push((q) => (/snapvault|sync/i.test(q) ? [{ label: "Sync both SnapVault files", sub: "Home › SnapVault sync › Sync now", route: "settings/data" }] : []));
 /* ============ AI keys checked every time SNAP Stat opens (Nov 14) ============
    Screenshots weren't read until "Test it" was tapped: the test re-finds Gemini's working way and models and wakes up a

@@ -44,8 +44,9 @@ function svSheet() {
     <button class="btn snap block" data-a="svImport" ${!sv.owned && (!sv.decks || older) ? "disabled" : ""}>Import</button>`;
   }
   return `${sheetHead("Import from SnapVault", "Brings your cards and decks into SNAP Stat")}
-    <p class="small muted">In SnapVault, tap Export decks & collections, then choose that file here. Run it again any time to bring SNAP Stat up to date. Decks you imported before are updated, not duplicated.</p>
-    <label class="btn ${r ? "" : "snap"} block">Choose export file<input type="file" accept=".json,application/json,text/plain" data-svfile="1" hidden></label>
+    <p class="small muted">In SnapVault, export your decks & collections (.json) and your match history (.csv), then choose them here. Run it again any time to bring SNAP Stat up to date. Decks you imported before are updated, not duplicated.</p>
+    <label class="btn ${r ? "" : "snap"} block">Choose SnapVault files<input type="file" accept=".json,.csv,application/json,text/csv,text/comma-separated-values,text/plain" multiple data-svmany="1" hidden></label>
+    <span class="small muted">Pick as many as you like in one go: decks &amp; collections files (.json) and match history files (.csv). One decks file on its own shows a preview first.</span>
     <details><summary class="small">Or paste the file's text</summary><div class="stack" style="margin-top:8px"><textarea id="sv-text" class="code" data-sv="text" placeholder="Paste the export">${esc(sv.text)}</textarea><button class="btn" data-a="svParse">Read it</button></div></details>
     ${body}`;
 }
@@ -113,7 +114,7 @@ function svSyncPanel() {
   return `<section class="sec"><div class="panel stack ${stale ? "halftone" : ""}" style="gap:8px">
     <div class="row between"><span class="eyebrow">SnapVault sync</span><span class="small ${stale ? "" : "muted"}">${when}</span></div>
     <p class="small muted">In SnapVault, export your <b>decks &amp; collections</b> (.json) and your <b>match history</b> (.csv). Then tap <b>Sync now</b> and pick both files at once: cards, decks and every match come in together.</p>
-    <div class="row"><a class="btn" href="https://www.snapvault.app/" target="_blank" rel="noopener">Open SnapVault ↗</a><label class="btn snap">Sync now<input type="file" accept=".json,.csv,application/json,text/csv,text/plain" multiple data-svquick="1" hidden></label></div>
+    <div class="row"><a class="btn" href="https://www.snapvault.app/" target="_blank" rel="noopener">Open SnapVault ↗</a><label class="btn snap">Sync now<input type="file" accept=".json,.csv,application/json,text/csv,text/comma-separated-values,text/plain" multiple data-svquick="1" hidden></label></div>
     ${last && (lr.owned || lr.made || lr.updated) ? `<span class="muted small">Last sync: ${svSummary(lr)}</span>` : ""}</div></section>`;
 }
 function svSummary(r) { const p = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`; return [r.owned ? p(r.owned, "new card") : "", r.made ? p(r.made, "new deck") : "", r.updated ? p(r.updated, "deck") + " updated" : "", r.games ? p(r.games, "new result") : ""].filter(Boolean).join(", ") || "nothing new"; }

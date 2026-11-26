@@ -115,6 +115,10 @@ class MainActivity : ComponentActivity() {
                 fileCallback?.onReceiveValue(null)
                 fileCallback = cb
                 val i = params.createIntent()
+                // A picker that lists several kinds of file, or file endings like .csv, shows every file: Android only
+                // takes the first kind otherwise, which hides SnapVault's .csv next to its .json
+                val kinds = params.acceptTypes.flatMap { it.split(",") }.map { it.trim() }.filter { it.isNotEmpty() }
+                if (kinds.size > 1 || kinds.any { !it.contains("/") }) { i.type = "*/*"; i.removeExtra(Intent.EXTRA_MIME_TYPES) }
                 if (params.mode == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE) i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
                 return try { pickFiles.launch(i); true } catch (e: Exception) { fileCallback = null; false }
             }
