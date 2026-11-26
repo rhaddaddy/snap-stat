@@ -1,5 +1,16 @@
 {
- "anim": [],
+ "anim": [
+  "Fire",
+  "FirePink",
+  "FireRed",
+  "MetalChains",
+  "NeonNights",
+  "CandyCane",
+  "Rare",
+  "SnowflakesRed",
+  "WebBlack",
+  "WebRed"
+ ],
  "still": [
   "WebPink",
   "MetalChainsGold",
@@ -43,13 +54,10 @@
  ],
  "kept": [
   "FireGreen",
-  "Fire",
   "FireBlue",
   "FireGold",
-  "FirePink",
   "FirePurple",
   "FireRainbow",
-  "FireRed",
   "FireWhite",
   "Overloaded",
   "DistressedGold",
@@ -62,9 +70,6 @@
   "Pax2025",
   "RefractionRainbow",
   "GlyphsGreen",
-  "MetalChains",
-  "NeonNights",
-  "CandyCane",
   "Common",
   "CosmicBlack",
   "CosmicBlue",
@@ -91,13 +96,9 @@
   "NeonRed",
   "NeonWhite",
   "NeonYellow",
-  "Rare",
   "SnowflakesBlue",
-  "SnowflakesRed",
   "UltraLegendary",
   "Uncommon",
-  "WebBlack",
-  "WebRed",
   "WrappingPaper"
  ]
 }
